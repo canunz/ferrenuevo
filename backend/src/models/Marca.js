@@ -16,6 +16,10 @@ const Marca = sequelize.define('Marca', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  imagen: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   activo: {
     type: DataTypes.TINYINT(1),
     allowNull: false,

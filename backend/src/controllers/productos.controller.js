@@ -1,6 +1,6 @@
-
 const { Producto, Categoria, Marca, Inventario } = require('../models');
 const { Op } = require('sequelize');
+const path = require('path');
 
 class ProductosController {
   // Listar todos los productos (SIN ASOCIACIONES COMPLEJAS)
@@ -50,7 +50,7 @@ class ProductosController {
             descripcion: producto.descripcion,
             precio: producto.precio,
             precio_oferta: producto.precio_oferta,
-            imagen_url: producto.imagen_url,
+            imagen: producto.imagen,
             activo: producto.activo,
             categoria: categoria ? {
               id: categoria.id,
@@ -119,7 +119,7 @@ class ProductosController {
         descripcion: producto.descripcion,
         precio: producto.precio,
         precio_oferta: producto.precio_oferta,
-        imagen_url: producto.imagen_url,
+        imagen: producto.imagen,
         activo: producto.activo,
         categoria: categoria ? {
           id: categoria.id,
@@ -161,8 +161,7 @@ class ProductosController {
         precio, 
         precio_oferta,
         categoria_id, 
-        marca_id, 
-        imagen_url,
+        marca_id,
         stock_inicial = 0
       } = req.body;
 
@@ -186,6 +185,12 @@ class ProductosController {
         });
       }
 
+      // Procesar la imagen si existe
+      let imagen = null;
+      if (req.file) {
+        imagen = req.file.filename;
+      }
+
       // Crear producto
       const producto = await Producto.create({
         nombre,
@@ -194,7 +199,7 @@ class ProductosController {
         precio_oferta,
         categoria_id,
         marca_id,
-        imagen_url,
+        imagen,
         activo: true
       });
 
@@ -216,6 +221,7 @@ class ProductosController {
           precio: producto.precio,
           categoria: categoria.nombre,
           marca: marca.nombre,
+          imagen: producto.imagen,
           stock_inicial
         },
         timestamp: new Date().toISOString()
@@ -236,7 +242,7 @@ class ProductosController {
   async actualizarProducto(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, descripcion, precio, precio_oferta, categoria_id, marca_id, imagen_url, activo } = req.body;
+      const { nombre, descripcion, precio, precio_oferta, categoria_id, marca_id, activo } = req.body;
 
       const producto = await Producto.findByPk(id);
       if (!producto) {
@@ -247,15 +253,21 @@ class ProductosController {
         });
       }
 
+      // Procesar la imagen si existe
+      let imagen = producto.imagen;
+      if (req.file) {
+        imagen = req.file.filename;
+      }
+
       await producto.update({
-        ...(nombre && { nombre }),
-        ...(descripcion && { descripcion }),
-        ...(precio && { precio }),
-        ...(precio_oferta !== undefined && { precio_oferta }),
-        ...(categoria_id && { categoria_id }),
-        ...(marca_id && { marca_id }),
-        ...(imagen_url && { imagen_url }),
-        ...(activo !== undefined && { activo })
+        nombre,
+        descripcion,
+        precio,
+        precio_oferta,
+        categoria_id,
+        marca_id,
+        imagen,
+        activo
       });
 
       res.json({
@@ -264,7 +276,8 @@ class ProductosController {
         data: {
           id: producto.id,
           nombre: producto.nombre,
-          precio: producto.precio
+          precio: producto.precio,
+          imagen: producto.imagen
         },
         timestamp: new Date().toISOString()
       });
@@ -321,7 +334,7 @@ class ProductosController {
             nombre: producto.nombre,
             precio: producto.precio,
             precio_oferta: producto.precio_oferta,
-            imagen_url: producto.imagen_url,
+            imagen: producto.imagen,
             categoria: categoria ? categoria.nombre : 'Sin categoría',
             marca: marca ? marca.nombre : 'Sin marca'
           };

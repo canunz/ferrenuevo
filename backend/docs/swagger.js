@@ -330,6 +330,48 @@ const options = {
               }
             }
           }
+        },
+        Marca: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'ID único de la marca',
+              example: 1
+            },
+            nombre: {
+              type: 'string',
+              description: 'Nombre de la marca',
+              example: 'DeWalt'
+            },
+            descripcion: {
+              type: 'string',
+              description: 'Descripción de la marca',
+              example: 'Herramientas profesionales de alta calidad'
+            },
+            imagen: {
+              type: 'string',
+              description: 'Nombre de archivo de la imagen de la marca',
+              example: 'dewalt.png'
+            },
+            activo: {
+              type: 'boolean',
+              description: 'Estado activo de la marca',
+              example: true
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Fecha de creación',
+              example: '2025-01-15T10:30:00Z'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Fecha de actualización',
+              example: '2025-01-15T10:30:00Z'
+            }
+          }
         }
       },
       responses: {

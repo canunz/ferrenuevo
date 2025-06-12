@@ -15,13 +15,25 @@ export const servicioProductos = {
 
   // Crear nuevo producto
   crear: async (data) => {
-    const response = await api.post('/productos', data);
+    // Si data es FormData, no necesitamos configurar headers
+    const config = data instanceof FormData ? {} : {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    const response = await api.post('/productos', data, config);
     return response.data;
   },
 
   // Actualizar producto
   actualizar: async (id, data) => {
-    const response = await api.put(`/productos/${id}`, data);
+    // Si data es FormData, no necesitamos configurar headers
+    const config = data instanceof FormData ? {} : {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    const response = await api.put(`/productos/${id}`, data, config);
     return response.data;
   },
 

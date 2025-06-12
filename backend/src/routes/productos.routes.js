@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const productosController = require('../controllers/productos.controller');
 const { body, query, validationResult } = require('express-validator');
+const upload = require('../middleware/upload');
 
 // Middleware para manejar errores de validación
 const handleValidationErrors = (req, res, next) => {
@@ -191,6 +192,7 @@ router.get('/:id', productosController.obtenerProducto);
  *         description: Producto creado exitosamente
  */
 router.post('/',
+  upload.single('imagen'),
   [
     body('nombre').notEmpty().withMessage('El nombre es requerido'),
     body('precio').isFloat({ min: 0 }).withMessage('El precio debe ser mayor a 0'),
@@ -218,6 +220,7 @@ router.post('/',
  *         description: Producto actualizado exitosamente
  */
 router.put('/:id',
+  upload.single('imagen'),
   [
     body('nombre').optional().notEmpty(),
     body('precio').optional().isFloat({ min: 0 }),

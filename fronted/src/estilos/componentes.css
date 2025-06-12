@@ -10,7 +10,7 @@
   }
   
   .btn-ferremas-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
   }
   
   .btn-ferremas-secondary {
@@ -297,7 +297,7 @@
   }
   
   .pagination-btn-active {
-    @apply z-10 bg-blue-50 border-blue-500 text-blue-600;
+    @apply z-10 bg-red-50 border-red-500 text-red-600;
   }
   
   /* Loading states */

@@ -15,9 +15,15 @@ import BarraLateral from './componentes/comun/BarraLateral';
 import PiePagina from './componentes/comun/PiePagina';
 
 // Páginas principales
-import PaginaPrincipal from './paginas/PaginaPrincipal';
+import PaginaInicio from './paginas/PaginaInicio';  // NUEVA - Landing Page
+import PaginaPrincipal from './paginas/PaginaPrincipal';  // Catálogo/Ofertas
 import PaginaTablero from './paginas/PaginaTablero';
 import PanelCliente from './paginas/PanelCliente';
+import Herramientas from './paginas/Herramientas';
+import Construccion from './paginas/Construccion';
+import Seguridad from './paginas/Seguridad';
+import Contacto from './paginas/Contacto';
+import Ofertas from './paginas/Ofertas';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -27,6 +33,12 @@ import Registrarse from './componentes/autenticacion/Registrarse';
 import { useAuth } from './contexto/ContextoAuth';
 
 import TestBackend from './componentes/TestBackend';
+import DetalleProducto from './componentes/productos/DetalleProducto';
+
+// Wrapper para cargar el producto por ID y pasarlo a DetalleProducto
+import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { servicioProductos } from './servicios/servicioProductos';
 
 // Componente para rutas protegidas
 const RutaProtegida = ({ children }) => {
@@ -44,6 +56,19 @@ const RutaProtegida = ({ children }) => {
   }
   
   return usuario ? children : <Navigate to="/iniciar-sesion" />;
+};
+
+// Layout para páginas públicas
+const LayoutPublico = ({ children }) => {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Encabezado />
+      <main className="flex-1">
+        {children}
+      </main>
+      <PiePagina />
+    </div>
+  );
 };
 
 // Layout para páginas administrativas
@@ -79,52 +104,132 @@ const PaginaEnDesarrollo = ({ titulo, icono }) => {
   );
 };
 
+// Wrapper para cargar el producto por ID y pasarlo a DetalleProducto
+const DetalleProductoWrapper = () => {
+  const { id } = useParams();
+  const [producto, setProducto] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  
+  useEffect(() => {
+    const cargar = async () => {
+      setCargando(true);
+      try {
+        const res = await servicioProductos.obtenerPorId(id);
+        setProducto(res.data);
+      } catch (e) {
+        setProducto(null);
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargar();
+  }, [id]);
+  
+  if (cargando) return <div className="p-8 text-center">Cargando...</div>;
+  return <DetalleProducto producto={producto} />;
+};
+
 // Componente principal de la aplicación
 const ContenidoPrincipal = () => {
   const { usuario } = useAuth();
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/" element={
-            <div>
-              <Encabezado />
+      <Routes>
+        {/* PÁGINA DE INICIO - LANDING PAGE */}
+        <Route 
+          path="/" 
+          element={
+            <LayoutPublico>
+              <PaginaInicio />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* CATÁLOGO/OFERTAS - Tu página actual */}
+        <Route 
+          path="/catalogo" 
+          element={
+            <LayoutPublico>
               <PaginaPrincipal />
-              <PiePagina />
-            </div>
-          } />
-          
-          <Route path="/iniciar-sesion" element={
+            </LayoutPublico>
+          } 
+        />
+
+        {/* OFERTAS - Página independiente */}
+        <Route 
+          path="/ofertas" 
+          element={
+            <LayoutPublico>
+              <Ofertas />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* Rutas de autenticación */}
+        <Route 
+          path="/iniciar-sesion" 
+          element={
             usuario ? <Navigate to="/tablero" /> : <IniciarSesion />
-          } />
-          
-          <Route path="/registrarse" element={
+          } 
+        />
+        
+        <Route 
+          path="/registrarse" 
+          element={
             usuario ? <Navigate to="/tablero" /> : <Registrarse />
-          } />
+          } 
+        />
 
-          {/* Panel de Cliente */}
-          <Route path="/mi-cuenta" element={
+        {/* Panel de Cliente */}
+        <Route 
+          path="/mi-cuenta" 
+          element={
             <RutaProtegida>
-              <div>
-                <Encabezado />
+              <LayoutPublico>
                 <PanelCliente />
-                <PiePagina />
-              </div>
+              </LayoutPublico>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          {/* Rutas administrativas protegidas */}
-          <Route path="/tablero" element={
+        {/* Detalle de Producto */}
+        <Route 
+          path="/producto/:id" 
+          element={
+            <LayoutPublico>
+              <DetalleProductoWrapper />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* Test Backend */}
+        <Route 
+          path="/test-backend" 
+          element={
+            <LayoutPublico>
+              <div className="container mx-auto px-4 py-8">
+                <TestBackend />
+              </div>
+            </LayoutPublico>
+          } 
+        />
+
+        {/* RUTAS ADMINISTRATIVAS */}
+        <Route 
+          path="/tablero" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaTablero />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/clientes" element={
+        <Route 
+          path="/clientes" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -133,9 +238,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/proveedores" element={
+        <Route 
+          path="/proveedores" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -144,9 +252,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/productos" element={
+        <Route 
+          path="/productos" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -155,9 +266,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/inventario" element={
+        <Route 
+          path="/inventario" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -166,9 +280,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/pedidos" element={
+        <Route 
+          path="/pedidos" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -177,9 +294,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/facturas" element={
+        <Route 
+          path="/facturas" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -188,9 +308,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/pagos" element={
+        <Route 
+          path="/pagos" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -199,9 +322,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/descuentos" element={
+        <Route 
+          path="/descuentos" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -210,9 +336,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/reportes" element={
+        <Route 
+          path="/reportes" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -221,9 +350,12 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/integraciones" element={
+        <Route 
+          path="/integraciones" 
+          element={
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaEnDesarrollo 
@@ -232,22 +364,46 @@ const ContenidoPrincipal = () => {
                 />
               </LayoutAdmin>
             </RutaProtegida>
-          } />
+          } 
+        />
 
-          <Route path="/test-backend" element={
-            <div>
-              <Encabezado />
-              <div className="container mx-auto px-4 py-8">
-                <TestBackend />
-              </div>
-              <PiePagina />
-            </div>
-          } />
+        {/* PÁGINAS SECUNDARIAS */}
+        <Route 
+          path="/herramientas" 
+          element={
+            <LayoutPublico>
+              <Herramientas />
+            </LayoutPublico>
+          } 
+        />
+        <Route 
+          path="/construccion" 
+          element={
+            <LayoutPublico>
+              <Construccion />
+            </LayoutPublico>
+          } 
+        />
+        <Route 
+          path="/seguridad" 
+          element={
+            <LayoutPublico>
+              <Seguridad />
+            </LayoutPublico>
+          } 
+        />
+        <Route 
+          path="/contacto" 
+          element={
+            <LayoutPublico>
+              <Contacto />
+            </LayoutPublico>
+          } 
+        />
 
-          {/* Ruta por defecto */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
+        {/* Ruta por defecto */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </Router>
   );
 };

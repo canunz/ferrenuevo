@@ -2,7 +2,7 @@
 // ARCHIVO: frontend/src/paginas/PaginaPrincipal.jsx
 // ==========================================
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingCartIcon, 
@@ -55,7 +55,7 @@ const PaginaPrincipal = () => {
     cargarDatos();
   }, []);
 
-  // Filtrar productos
+  // Filtrar productos (solo catálogo general)
   const productosFiltrados = productos.filter(producto => {
     const cumpleBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       (producto.marca?.nombre?.toLowerCase().includes(busqueda.toLowerCase()));
@@ -96,8 +96,17 @@ const PaginaPrincipal = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-orange-600 text-white py-16">
-        <div className="container mx-auto px-4">
+      <section
+        className="relative text-white py-16"
+        style={{
+          backgroundImage: "url('/assets/imagenes/banner/bannerferremas.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Overlay para oscurecer la imagen y mejorar la legibilidad */}
+        <div className="absolute inset-0 bg-black opacity-40"></div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -262,9 +271,9 @@ const PaginaPrincipal = () => {
                   {/* Imagen del producto */}
                   <div className="relative">
                     <img
-                      src={producto.imagen}
+                      src={producto.imagen ? `/assets/imagenes/productos/${producto.imagen}` : '/assets/imagenes/productos/Sierrabosch.jpg'}
                       alt={producto.nombre}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-300 bg-white"
                     />
                     
                     {/* Etiquetas */}
@@ -422,16 +431,37 @@ const PaginaPrincipal = () => {
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
             Marcas de Confianza
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
-            {marcas.map(marca => (
-              <div key={marca.id} className="flex items-center justify-center p-4 grayscale hover:grayscale-0 transition-all">
-                <div className="text-center">
-                  <div className="h-12 w-24 bg-gray-200 rounded flex items-center justify-center mb-2">
-                    <span className="font-bold text-gray-700">{marca.nombre}</span>
+          <div className="w-full flex justify-center">
+            <div
+              className={`grid gap-8 justify-center mx-auto`}
+              style={{
+                gridTemplateColumns: `repeat(${marcas.filter(marca => marca.nombre !== 'Todas' && marca.id !== 'todas').length}, minmax(0, 1fr))`,
+                maxWidth: '900px'
+              }}
+            >
+              {marcas.filter(marca => marca.nombre !== 'Todas' && marca.id !== 'todas').map(marca => {
+                console.log('Logo marca:', marca.imagen);
+                return (
+                  <div
+                    key={marca.id}
+                    className="flex flex-col items-center justify-center p-4 bg-white rounded-lg shadow-md hover:shadow-xl transition-all border border-gray-100 group cursor-pointer"
+                  >
+                    {/* Logo de la marca si existe */}
+                    <div className="flex items-center justify-center h-16 w-24 mb-2">
+                      <img
+                        src={marca.imagen ? `/assets/imagenes/marcas/${marca.imagen}` : undefined}
+                        alt={marca.nombre}
+                        className="h-16 object-contain transition-all duration-300"
+                      />
+                    </div>
+                    {/* Nombre de la marca */}
+                    <span className="font-semibold text-gray-700 text-center text-base group-hover:text-blue-600 transition-colors">
+                      {marca.nombre}
+                    </span>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>

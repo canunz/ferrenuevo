@@ -80,3 +80,15 @@ INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, precio_unitario, 
 INSERT INTO pagos (pedido_id, metodo_pago_id, monto, estado, referencia_externa, fecha_pago) VALUES
 (1, 2, 54.98, 'aprobado', 'TXN-001', '2024-03-01 10:00:00'),
 (2, 1, 219.99, 'pendiente', NULL, NULL); 
+
+
+
+--agregar las imagenes a la tabla productos
+
+UPDATE productos SET imagen = 'taladro_electrico_dewalt_20v.jpg' WHERE id = 1;
+UPDATE productos SET imagen = 'sierra_circular_bosch_725.jpg' WHERE id = 2;
+UPDATE productos SET imagen = 'lijadora_orbital_makita.jpg' WHERE id = 3;
+UPDATE productos SET imagen = 'taladro_percutor_black_decker.jpg' WHERE id = 4;
+UPDATE productos SET imagen = 'martillo_stanley_16oz.jpg' WHERE id = 5;
+UPDATE productos SET imagen = 'set_destornilladores_dewalt.jpg' WHERE id = 6;
+UPDATE productos SET imagen = 'llave_inglesa_ajustable_12.jpg' WHERE id = 7;

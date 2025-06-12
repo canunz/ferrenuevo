@@ -43,6 +43,10 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.TINYINT(1),
     allowNull: false,
     defaultValue: 1
+  },
+  imagen: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   }
 }, {
   tableName: 'productos',

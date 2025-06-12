@@ -105,7 +105,7 @@ const Encabezado = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-2xl font-bold text-red-600">
                 FERREMAS
               </div>
               <div className="ml-2 text-xs text-gray-600 hidden md:block">
@@ -267,64 +267,52 @@ const Encabezado = () => {
             <div className="hidden lg:flex items-center space-x-8 py-3">
               <Link
                 to="/"
-                className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                className={`text-sm font-medium transition-colors ${location.pathname === '/' ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
               >
                 Inicio
               </Link>
               <div className="relative group">
-                <button className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  to="/herramientas"
+                  className={`text-sm font-medium transition-colors ${location.pathname.startsWith('/herramientas') ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
+                >
                   Herramientas
-                </button>
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="p-4">
-                    <a href="#herramientas-manuales" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Herramientas Manuales
-                    </a>
-                    <a href="#herramientas-electricas" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Herramientas Eléctricas
-                    </a>
-                    <a href="#equipos-medicion" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Equipos de Medición
-                    </a>
-                  </div>
+                </Link>
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                  <Link to="/herramientas/manuales" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Herramientas Manuales</Link>
+                  <Link to="/herramientas/electricas" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Herramientas Eléctricas</Link>
                 </div>
               </div>
               <div className="relative group">
-                <button className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  to="/construccion"
+                  className={`text-sm font-medium transition-colors ${location.pathname.startsWith('/construccion') ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
+                >
                   Construcción
-                </button>
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="p-4">
-                    <a href="#materiales-construccion" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Materiales de Construcción
-                    </a>
-                    <a href="#pinturas" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Pinturas y Barnices
-                    </a>
-                    <a href="#ceramicos" className="block py-2 text-sm text-gray-700 hover:text-blue-600">
-                      Cerámicos y Acabados
-                    </a>
-                  </div>
+                </Link>
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                  <Link to="/construccion/materiales" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Materiales de Construcción</Link>
+                  <Link to="/construccion/pinturas" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pinturas y Barnices</Link>
                 </div>
               </div>
-              <a
-                href="#seguridad"
-                className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              <Link
+                to="/seguridad"
+                className={`text-sm font-medium transition-colors ${location.pathname.startsWith('/seguridad') ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
               >
                 Seguridad
-              </a>
-              <a
-                href="#ofertas"
-                className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+              </Link>
+              <Link
+                to="/ofertas"
+                className={`text-sm font-medium transition-colors ${location.pathname.startsWith('/ofertas') ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
               >
                 Ofertas
-              </a>
-              <a
-                href="#contacto"
-                className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              </Link>
+              <Link
+                to="/contacto"
+                className={`text-sm font-medium transition-colors ${location.pathname.startsWith('/contacto') ? 'text-red-600' : 'text-gray-700 hover:text-red-600'}`}
               >
                 Contacto
-              </a>
+              </Link>
             </div>
 
             {/* Menú móvil expandible */}
