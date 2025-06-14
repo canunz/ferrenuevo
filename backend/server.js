@@ -146,7 +146,7 @@ app.post('/setup-demo-data', async (req, res) => {
 
     res.json({
       success: true,
-      message: '🎉 Usuarios demo creados exitosamente',
+      message: '🎉 Usuarios demos creados exitosamente',
       data: {
         admin: { email: 'admin@ferremas.cl', password: 'password123' },
         cliente: { email: 'cliente@test.com', password: 'password123' }
