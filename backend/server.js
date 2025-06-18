@@ -12,9 +12,10 @@ const path = require('path');
 const authRoutes = require('./src/routes/auth.routes');
 const productosRoutes = require('./src/routes/productos.routes');
 const pedidosRoutes = require('./src/routes/pedidos.routes'); // ← NUEVO
+const clientesRoutes = require('./src/routes/clientes.routes')
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors());
@@ -169,6 +170,7 @@ app.post('/setup-demo-data', async (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/productos', productosRoutes);
 app.use('/api/v1/pedidos', pedidosRoutes); // ← NUEVO SISTEMA DE PEDIDOS
+app.use('/api/v1/clientes', clientesRoutes);
 
 // Manejo de errores 404
 app.use('*', (req, res) => {

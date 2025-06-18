@@ -3,6 +3,7 @@ const app = express();
 const path = require('path');
 const imagenRoutes = require('./routes/imagenRoutes');
 
+
 // Middlewares y rutas
 app.use('/api/imagenes', imagenRoutes);
 app.use('/imagenes', express.static(path.join(__dirname, '../public/imagenes')));
@@ -17,3 +18,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 }); 
+

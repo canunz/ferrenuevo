@@ -14,6 +14,7 @@ import EncabezadoAdmin from './componentes/comun/EncabezadoAdmin';
 import BarraLateral from './componentes/comun/BarraLateral';
 import PiePagina from './componentes/comun/PiePagina';
 
+
 // Páginas principales
 import PaginaInicio from './paginas/PaginaInicio';  // NUEVA - Landing Page
 import PaginaPrincipal from './paginas/PaginaPrincipal';  // Catálogo/Ofertas
@@ -24,6 +25,7 @@ import Construccion from './paginas/Construccion';
 import Seguridad from './paginas/Seguridad';
 import Contacto from './paginas/Contacto';
 import Ofertas from './paginas/Ofertas';
+import PaginaClientes from './paginas/PaginaClientes';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -227,19 +229,16 @@ const ContenidoPrincipal = () => {
           } 
         />
 
-        <Route 
-          path="/clientes" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Clientes" 
-                  icono="👥" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
+<Route 
+  path="/clientes" 
+  element={
+    <RutaProtegida>
+      <LayoutAdmin>
+        <PaginaClientes />
+      </LayoutAdmin>
+    </RutaProtegida>
+  } 
+/>
 
         <Route 
           path="/proveedores" 

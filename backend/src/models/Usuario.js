@@ -42,6 +42,64 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   }
+
+  ,
+  telefono: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  rut: {
+    type: DataTypes.STRING(12),
+    allowNull: true,
+    unique: true
+  },
+  tipo_cliente: {
+    type: DataTypes.ENUM('persona', 'empresa'),
+    defaultValue: 'persona'
+  },
+  razon_social: {
+    type: DataTypes.STRING(200),
+    allowNull: true
+  },
+  giro: {
+    type: DataTypes.STRING(200),
+    allowNull: true
+  },
+  fecha_nacimiento: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  genero: {
+    type: DataTypes.ENUM('masculino', 'femenino', 'otro', 'no_especifica'),
+    defaultValue: 'no_especifica'
+  },
+  segmento: {
+    type: DataTypes.ENUM('retail', 'profesional', 'empresa', 'vip'),
+    defaultValue: 'retail'
+  },
+  credito_disponible: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0
+  },
+  credito_usado: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0
+  },
+  descuento_personalizado: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0
+  },
+  notas: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  }
+
+
+
+
+
+
+
 }, {
   tableName: 'usuarios',
   timestamps: true,

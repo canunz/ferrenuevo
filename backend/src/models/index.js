@@ -13,6 +13,11 @@ const Pago = require('./Pago');
 const Inventario = require('./Inventario');
 const Divisa = require('./Divisa');
 const HistorialPrecio = require('./HistorialPrecio');
+const DireccionEnvio = require('./DireccionEnvio');
+const HistorialCompras = require('./HistorialCompras');
+const PreferenciasCliente = require('./PreferenciasCliente');
+const SegmentacionClientes = require('./SegmentacionClientes');
+const ComunicacionesCliente = require('./ComunicacionesCliente');
 
 // DEFINIR TODAS LAS ASOCIACIONES CORRECTAMENTE
 console.log('🔗 Configurando asociaciones de modelos...');
@@ -127,6 +132,83 @@ Divisa.hasMany(HistorialPrecio, {
   as: 'historial_precios' 
 });
 
+
+// Usuario - DireccionEnvio (Uno a Muchos)
+Usuario.hasMany(DireccionEnvio, { 
+  foreignKey: 'usuario_id', 
+  as: 'direcciones' 
+});
+DireccionEnvio.belongsTo(Usuario, { 
+  foreignKey: 'usuario_id', 
+  as: 'usuario' 
+});
+
+// Usuario - HistorialCompras (Uno a Muchos)
+Usuario.hasMany(HistorialCompras, { 
+  foreignKey: 'usuario_id', 
+  as: 'historial_compras' 
+});
+HistorialCompras.belongsTo(Usuario, { 
+  foreignKey: 'usuario_id', 
+  as: 'usuario' 
+});
+
+// HistorialCompras - Pedido (Muchos a Uno)
+HistorialCompras.belongsTo(Pedido, { 
+  foreignKey: 'pedido_id', 
+  as: 'pedido' 
+});
+Pedido.hasOne(HistorialCompras, { 
+  foreignKey: 'pedido_id', 
+  as: 'historial' 
+});
+
+// Usuario - PreferenciasCliente (Uno a Uno)
+Usuario.hasOne(PreferenciasCliente, { 
+  foreignKey: 'usuario_id', 
+  as: 'preferencias' 
+});
+PreferenciasCliente.belongsTo(Usuario, { 
+  foreignKey: 'usuario_id', 
+  as: 'usuario' 
+});
+
+// PreferenciasCliente - Categoria (Muchos a Uno)
+PreferenciasCliente.belongsTo(Categoria, { 
+  foreignKey: 'categoria_preferida_id', 
+  as: 'categoria_preferida' 
+});
+
+// PreferenciasCliente - Marca (Muchos a Uno)
+PreferenciasCliente.belongsTo(Marca, { 
+  foreignKey: 'marca_preferida_id', 
+  as: 'marca_preferida' 
+});
+
+// Usuario - ComunicacionesCliente (Uno a Muchos)
+Usuario.hasMany(ComunicacionesCliente, { 
+  foreignKey: 'usuario_id', 
+  as: 'comunicaciones' 
+});
+ComunicacionesCliente.belongsTo(Usuario, { 
+  foreignKey: 'usuario_id', 
+  as: 'usuario' 
+});
+
+// Usuario - Segmentación (Muchos a Muchos)
+Usuario.belongsToMany(SegmentacionClientes, { 
+  through: 'usuario_segmentos',
+  foreignKey: 'usuario_id',
+  otherKey: 'segmento_id',
+  as: 'segmentos' 
+});
+SegmentacionClientes.belongsToMany(Usuario, { 
+  through: 'usuario_segmentos',
+  foreignKey: 'segmento_id',
+  otherKey: 'usuario_id',
+  as: 'usuarios' 
+});
+
 console.log('✅ Asociaciones de modelos configuradas correctamente');
 
 // Exportar todos los modelos y sequelize
@@ -143,5 +225,10 @@ module.exports = {
   Pago,
   Inventario,
   Divisa,
-  HistorialPrecio
+  HistorialPrecio,
+  DireccionEnvio,
+  HistorialCompras,
+  PreferenciasCliente,
+  SegmentacionClientes,
+  ComunicacionesCliente
 };

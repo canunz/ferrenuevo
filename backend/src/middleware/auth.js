@@ -75,5 +75,31 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
+// Agregar función verificarRol
+const verificarRol = (rolesPermitidos) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'No autenticado',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (!rolesPermitidos.includes(req.user.rol)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acceso denegado',
+        message: `Se requiere uno de estos roles: ${rolesPermitidos.join(', ')}`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    next();
+  };
+};
+
 module.exports = auth;
 module.exports.adminOnly = adminOnly;
+module.exports.verificarToken = auth; // Alias para compatibilidad
+module.exports.verificarRol = verificarRol; // Nueva exportación
