@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { servicioProductos } from '../servicios/servicioProductos';
 import { ShoppingCartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
+import { useCarrito } from '../contexto/ContextoCarrito';
+import { useNotificacion } from '../contexto/ContextoNotificacion';
 
 const Ofertas = () => {
   const [productos, setProductos] = useState([]);
@@ -10,18 +12,44 @@ const Ofertas = () => {
   const [marcaSeleccionada, setMarcaSeleccionada] = useState('todas');
   const [ordenamiento, setOrdenamiento] = useState('destacados');
   const [cargando, setCargando] = useState(true);
+  const [precioMin, setPrecioMin] = useState(0);
+  const [precioMax, setPrecioMax] = useState(0);
+  const [filtroPrecioMin, setFiltroPrecioMin] = useState('');
+  const [filtroPrecioMax, setFiltroPrecioMax] = useState('');
+  const [etiquetas, setEtiquetas] = useState([]);
+  const [etiquetaSeleccionada, setEtiquetaSeleccionada] = useState('todas');
+  const { agregarItem } = useCarrito();
+  const { mostrarNotificacion } = useNotificacion();
 
   useEffect(() => {
     const cargar = async () => {
       setCargando(true);
       try {
         const res = await servicioProductos.obtenerTodos();
-        setProductos(res.data?.productos || []);
+        const productosBD = res.data?.productos || [];
+        setProductos(productosBD);
         const marcasData = await servicioProductos.obtenerMarcas();
         setMarcas([{ id: 'todas', nombre: 'Todas' }, ...(marcasData.data || [])]);
+        // Calcular precios mínimo y máximo reales de productos en oferta
+        const ofertas = productosBD.filter(p => p.precioAnterior || (p.etiquetas && p.etiquetas.length > 0));
+        if (ofertas.length > 0) {
+          const precios = ofertas.map(p => p.precio);
+          setPrecioMin(Math.min(...precios));
+          setPrecioMax(Math.max(...precios));
+          setFiltroPrecioMin(Math.min(...precios));
+          setFiltroPrecioMax(Math.max(...precios));
+        }
+        // Obtener etiquetas únicas
+        const etiquetasUnicas = Array.from(new Set(ofertas.flatMap(p => p.etiquetas || [])));
+        setEtiquetas(['todas', ...etiquetasUnicas]);
       } catch (e) {
         setProductos([]);
         setMarcas([{ id: 'todas', nombre: 'Todas' }]);
+        setPrecioMin(0);
+        setPrecioMax(0);
+        setFiltroPrecioMin('');
+        setFiltroPrecioMax('');
+        setEtiquetas(['todas']);
       } finally {
         setCargando(false);
       }
@@ -31,15 +59,21 @@ const Ofertas = () => {
 
   // Filtrar solo productos en oferta
   let productosEnOferta = productos.filter(
-    p => p.precioAnterior || (p.etiquetas && p.etiquetas.includes('Promoción'))
+    p => (p.precio_anterior && p.precio_anterior > p.precio) || 
+         (typeof p.etiquetas === 'string' && p.etiquetas.includes('Promoción')) ||
+         (Array.isArray(p.etiquetas) && p.etiquetas.includes('Promoción'))
   );
 
-  // Filtros de búsqueda y marca
+  // Filtros de búsqueda, marca, precio y etiqueta
   productosEnOferta = productosEnOferta.filter(producto => {
     const cumpleBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       (producto.marca?.nombre?.toLowerCase().includes(busqueda.toLowerCase()));
     const cumpleMarca = marcaSeleccionada === 'todas' || producto.marca?.id === marcaSeleccionada;
-    return cumpleBusqueda && cumpleMarca;
+    const cumplePrecio = (!filtroPrecioMin || producto.precio >= filtroPrecioMin) && (!filtroPrecioMax || producto.precio <= filtroPrecioMax);
+    const cumpleEtiqueta = etiquetaSeleccionada === 'todas' || 
+      (typeof producto.etiquetas === 'string' && producto.etiquetas.includes(etiquetaSeleccionada)) ||
+      (Array.isArray(producto.etiquetas) && producto.etiquetas.includes(etiquetaSeleccionada));
+    return cumpleBusqueda && cumpleMarca && cumplePrecio && cumpleEtiqueta;
   });
 
   // Ordenar productos
@@ -71,13 +105,18 @@ const Ofertas = () => {
     }).format(precio);
   };
 
+  const manejarAgregarCarrito = (producto) => {
+    agregarItem(producto);
+    mostrarNotificacion(`${producto.nombre} agregado al carrito`, 'success');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-4xl font-extrabold text-center text-red-600 mb-10 drop-shadow">Ofertas Especiales</h1>
         {/* Filtros y búsqueda */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-10 bg-white p-6 rounded-lg shadow">
-          <div className="relative w-full md:w-1/3">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-10 bg-white p-6 rounded-lg shadow flex-wrap">
+          <div className="relative w-full md:w-1/4">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
@@ -94,6 +133,38 @@ const Ofertas = () => {
           >
             {marcas.map(marca => (
               <option key={marca.id} value={marca.id}>{marca.nombre}</option>
+            ))}
+          </select>
+          {/* Filtro de precio */}
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={precioMin}
+              max={precioMax}
+              value={filtroPrecioMin}
+              onChange={e => setFiltroPrecioMin(Number(e.target.value))}
+              className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-red-500"
+              placeholder="Mín"
+            />
+            <span className="text-gray-500">-</span>
+            <input
+              type="number"
+              min={precioMin}
+              max={precioMax}
+              value={filtroPrecioMax}
+              onChange={e => setFiltroPrecioMax(Number(e.target.value))}
+              className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-red-500"
+              placeholder="Máx"
+            />
+          </div>
+          {/* Filtro de etiqueta */}
+          <select
+            value={etiquetaSeleccionada}
+            onChange={e => setEtiquetaSeleccionada(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          >
+            {etiquetas.map(et => (
+              <option key={et} value={et}>{et === 'todas' ? 'Todas las Promociones' : et}</option>
             ))}
           </select>
           <select
@@ -141,6 +212,7 @@ const Ofertas = () => {
                         )}
                       </div>
                       <button
+                        onClick={() => manejarAgregarCarrito(producto)}
                         className="w-full flex items-center justify-center px-4 py-2 rounded-md font-semibold transition-colors bg-red-600 text-white hover:bg-red-700 shadow"
                       >
                         <ShoppingCartIcon className="h-5 w-5 mr-2" />

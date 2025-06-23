@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { Usuario, Rol } = require('../models');
 
-const auth = async (req, res, next) => {
+const verificarToken = async (req, res, next) => {
   try {
     // Obtener token del header
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -53,27 +53,32 @@ const auth = async (req, res, next) => {
   }
 };
 
-// Middleware para verificar rol de administrador
-const adminOnly = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      error: 'No autenticado',
-      timestamp: new Date().toISOString()
-    });
-  }
+// Middleware para verificar roles específicos
+const verificarRol = (rolesPermitidos) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'No autenticado',
+        message: 'Se requiere autenticación',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-  if (req.user.rol !== 'administrador') {
-    return res.status(403).json({
-      success: false,
-      error: 'Acceso denegado',
-      message: 'Se requieren permisos de administrador',
-      timestamp: new Date().toISOString()
-    });
-  }
+    if (!rolesPermitidos.includes(req.user.rol)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Acceso denegado',
+        message: 'No tienes permisos suficientes para realizar esta acción',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-  next();
+    next();
+  };
 };
 
-module.exports = auth;
-module.exports.adminOnly = adminOnly;
+module.exports = {
+  verificarToken,
+  verificarRol
+};

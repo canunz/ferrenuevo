@@ -272,4 +272,5 @@ class UsuariosController {
   }
 }
 
+// Exportar una instancia del controlador
 module.exports = new UsuariosController();

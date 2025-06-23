@@ -4,6 +4,9 @@ export const servicioAuth = {
   // Iniciar sesión
   iniciarSesion: async (credenciales) => {
     const response = await api.post('/auth/login', credenciales);
+    if (response.data.exito) {
+      localStorage.setItem('token', response.data.datos.token);
+    }
     return response.data;
   },
 
@@ -39,7 +42,7 @@ export const servicioAuth = {
 
   // Cerrar sesión (lógica local)
   cerrarSesion: () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     window.location.href = '/iniciar-sesion';
   },
 };

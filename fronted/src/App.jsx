@@ -24,6 +24,8 @@ import Construccion from './paginas/Construccion';
 import Seguridad from './paginas/Seguridad';
 import Contacto from './paginas/Contacto';
 import Ofertas from './paginas/Ofertas';
+import ConfirmacionPago from './paginas/ConfirmacionPago';
+import PagoExitoso from './paginas/PagoExitoso';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -199,6 +201,26 @@ const ContenidoPrincipal = () => {
           element={
             <LayoutPublico>
               <DetalleProductoWrapper />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* Confirmación de Pago */}
+        <Route 
+          path="/confirmacion-pago" 
+          element={
+            <LayoutPublico>
+              <ConfirmacionPago />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* Pago Exitoso */}
+        <Route 
+          path="/pago-exitoso" 
+          element={
+            <LayoutPublico>
+              <PagoExitoso />
             </LayoutPublico>
           } 
         />

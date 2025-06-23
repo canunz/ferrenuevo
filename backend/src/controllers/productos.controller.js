@@ -1,6 +1,8 @@
 const { Producto, Categoria, Marca, Inventario } = require('../models');
 const { Op } = require('sequelize');
 const path = require('path');
+const fs = require('fs');
+const csv = require('csv-parse');
 
 class ProductosController {
   // Listar todos los productos (SIN ASOCIACIONES COMPLEJAS)
@@ -49,9 +51,13 @@ class ProductosController {
             nombre: producto.nombre,
             descripcion: producto.descripcion,
             precio: producto.precio,
+            precio_anterior: producto.precio_anterior,
             precio_oferta: producto.precio_oferta,
             imagen: producto.imagen,
             activo: producto.activo,
+            etiquetas: Array.isArray(producto.etiquetas) 
+              ? producto.etiquetas 
+              : (producto.etiquetas ? producto.etiquetas.split(',') : []),
             categoria: categoria ? {
               id: categoria.id,
               nombre: categoria.nombre
@@ -118,9 +124,13 @@ class ProductosController {
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         precio: producto.precio,
+        precio_anterior: producto.precio_anterior,
         precio_oferta: producto.precio_oferta,
         imagen: producto.imagen,
         activo: producto.activo,
+        etiquetas: Array.isArray(producto.etiquetas) 
+          ? producto.etiquetas 
+          : (producto.etiquetas ? producto.etiquetas.split(',') : []),
         categoria: categoria ? {
           id: categoria.id,
           nombre: categoria.nombre
@@ -402,6 +412,88 @@ class ProductosController {
 
     } catch (error) {
       console.error('Error al listar marcas:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  async cargaMasiva(req, res) {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No se subió ningún archivo' });
+    }
+    const productos = [];
+    const errores = [];
+    fs.createReadStream(req.file.path)
+      .pipe(csv({ columns: true, skip_empty_lines: true }))
+      .on('data', (row) => {
+        productos.push(row);
+      })
+      .on('end', async () => {
+        for (const prod of productos) {
+          try {
+            // Buscar o crear categoría y marca si es necesario
+            let categoria = await Categoria.findOne({ where: { nombre: prod.categoria } });
+            if (!categoria) {
+              categoria = await Categoria.create({ nombre: prod.categoria });
+            }
+            let marca = await Marca.findOne({ where: { nombre: prod.marca } });
+            if (!marca) {
+              marca = await Marca.create({ nombre: prod.marca });
+            }
+            // Crear producto
+            const producto = await Producto.create({
+              nombre: prod.nombre,
+              codigo: prod.codigo,
+              descripcion: prod.descripcion,
+              precio: prod.precio,
+              categoria_id: categoria.id,
+              marca_id: marca.id,
+              activo: true
+            });
+            // Si hay stock, actualizar inventario
+            if (prod.stock) {
+              if (typeof Inventario !== 'undefined') {
+                await Inventario.create({ producto_id: producto.id, stock_actual: prod.stock });
+              }
+            }
+          } catch (err) {
+            errores.push({ producto: prod.nombre, error: err.message });
+          }
+        }
+        fs.unlinkSync(req.file.path); // Borra el archivo temporal
+        res.json({ success: true, cargados: productos.length - errores.length, errores });
+      });
+  }
+
+  // Eliminar producto (solo admin)
+  async eliminarProducto(req, res) {
+    try {
+      const { id } = req.params;
+
+      const producto = await Producto.findByPk(id);
+      if (!producto) {
+        return res.status(404).json({
+          success: false,
+          error: 'Producto no encontrado',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Eliminar el producto
+      await producto.destroy();
+
+      res.json({
+        success: true,
+        message: 'Producto eliminado exitosamente',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
       res.status(500).json({
         success: false,
         error: 'Error interno del servidor',

@@ -353,4 +353,5 @@ class PedidosController {
   }
 }
 
+// Exportar una instancia del controlador
 module.exports = new PedidosController();

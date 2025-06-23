@@ -10,7 +10,7 @@ const Pedido = require('./Pedido');
 const DetallePedido = require('./DetallePedido');
 const MetodoPago = require('./MetodoPago');
 const Pago = require('./Pago');
-const Inventario = require('./Inventario');
+const Inventario = require('./Inventario')(sequelize);
 const Divisa = require('./Divisa');
 const HistorialPrecio = require('./HistorialPrecio');
 

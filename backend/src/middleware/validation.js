@@ -22,6 +22,64 @@ const manejarErrores = (req, res, next) => {
   next();
 };
 
+// Validaciones para usuarios
+const validarCreacionUsuario = [
+  body('nombre')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El nombre debe tener entre 2 y 100 caracteres')
+    .trim(),
+  body('email')
+    .isEmail()
+    .withMessage('Debe ser un email válido')
+    .normalizeEmail(),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('La contraseña debe tener al menos 6 caracteres'),
+  body('telefono')
+    .optional()
+    .isLength({ min: 8, max: 20 })
+    .withMessage('El teléfono debe tener entre 8 y 20 caracteres'),
+  body('direccion')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('La dirección no puede exceder 200 caracteres'),
+  body('rol_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('El rol debe ser un número entero válido'),
+  manejarErrores
+];
+
+const validarActualizacionUsuario = [
+  body('nombre')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El nombre debe tener entre 2 y 100 caracteres')
+    .trim(),
+  body('email')
+    .optional()
+    .isEmail()
+    .withMessage('Debe ser un email válido')
+    .normalizeEmail(),
+  body('telefono')
+    .optional()
+    .isLength({ min: 8, max: 20 })
+    .withMessage('El teléfono debe tener entre 8 y 20 caracteres'),
+  body('direccion')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('La dirección no puede exceder 200 caracteres'),
+  body('rol_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('El rol debe ser un número entero válido'),
+  body('activo')
+    .optional()
+    .isBoolean()
+    .withMessage('El estado activo debe ser un valor booleano'),
+  manejarErrores
+];
+
 // Validaciones básicas
 const validarLogin = [
   body('email')
@@ -93,5 +151,7 @@ module.exports = {
   validarCrearPedido,
   validarActualizarEstado,
   validarGenerico,
-  manejarErrores
+  manejarErrores,
+  validarCreacionUsuario,
+  validarActualizacionUsuario
 };

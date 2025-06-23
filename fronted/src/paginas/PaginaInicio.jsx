@@ -20,13 +20,18 @@ import {
 } from '@heroicons/react/24/outline';
 import { useCarrito } from '../contexto/ContextoCarrito';
 import { useNotificacion } from '../contexto/ContextoNotificacion';
+import { servicioProductos } from '../servicios/servicioProductos';
 
 const PaginaInicio = () => {
-  const { agregarAlCarrito } = useCarrito();
+  const { agregarItem } = useCarrito();
   const { mostrarNotificacion } = useNotificacion();
   
   const [bannerActual, setBannerActual] = useState(0);
   const [testimonioActual, setTestimonioActual] = useState(0);
+  const [productosDestacados, setProductosDestacados] = useState([]);
+  const [cargandoDestacados, setCargandoDestacados] = useState(true);
+  const [marcas, setMarcas] = useState([]);
+  const [cargandoMarcas, setCargandoMarcas] = useState(true);
 
   // Hero Banners
   const banners = [
@@ -35,7 +40,7 @@ const PaginaInicio = () => {
       titulo: "FERREMAS",
       subtitulo: "Tu ferretería de confianza desde 1985",
       descripcion: "Más de 10,000 productos para construcción, herramientas profesionales y todo lo que necesitas para tus proyectos",
-      imagen: "/imagenes/hero/ferremas-hero-1.jpg",
+      imagen: "/assets/imagenes/banner/ferremas-hero-1.jpg",
       boton: "Ver Catálogo",
       enlace: "/catalogo"
     },
@@ -44,7 +49,7 @@ const PaginaInicio = () => {
       titulo: "Herramientas Profesionales",
       subtitulo: "Las mejores marcas del mercado",
       descripcion: "BOSCH, MAKITA, STANLEY, DeWALT y más. Calidad garantizada para profesionales y aficionados",
-      imagen: "/imagenes/hero/ferremas-hero-2.jpg",
+      imagen: "/assets/imagenes/banner/ferremas-hero-2.jpg",
       boton: "Ver Herramientas",
       enlace: "/catalogo?categoria=herramientas"
     },
@@ -53,57 +58,9 @@ const PaginaInicio = () => {
       titulo: "Materiales de Construcción",
       subtitulo: "Todo para tu obra",
       descripcion: "Cemento, fierro, maderas, pinturas y más. Precios mayoristas y entregas a obra",
-      imagen: "/imagenes/hero/ferremas-hero-3.jpg",
+      imagen: "/assets/imagenes/banner/ferremas-hero-3.jpg",
       boton: "Ver Materiales",
       enlace: "/catalogo?categoria=materiales"
-    }
-  ];
-
-  // Productos destacados
-  const productosDestacados = [
-    {
-      id: 1,
-      nombre: "Taladro Percutor BOSCH GSB 13 RE",
-      precio: 89990,
-      precioAnterior: 109990,
-      imagen: "/imagenes/productos/taladro-bosch-gsb13re.jpg",
-      categoria: "Herramientas Eléctricas",
-      marca: "BOSCH",
-      rating: 4.5,
-      reviews: 128,
-      esOferta: true
-    },
-    {
-      id: 2,
-      nombre: "Sierra Circular MAKITA 5007MG",
-      precio: 129990,
-      precioAnterior: 149990,
-      imagen: "/imagenes/productos/sierra-circular-makita.jpg",
-      categoria: "Herramientas Eléctricas",
-      marca: "MAKITA",
-      rating: 4.7,
-      reviews: 156,
-      esOferta: true
-    },
-    {
-      id: 3,
-      nombre: "Juego Llaves Stanley 150 piezas",
-      precio: 45990,
-      imagen: "/imagenes/productos/juego-llaves-stanley.jpg",
-      categoria: "Herramientas Manuales",
-      marca: "STANLEY",
-      rating: 4.3,
-      reviews: 89
-    },
-    {
-      id: 4,
-      nombre: "Escalera Aluminio 6 Peldaños",
-      precio: 45990,
-      imagen: "/imagenes/productos/escalera-aluminio.jpg",
-      categoria: "Escaleras",
-      marca: "ALCO",
-      rating: 4.1,
-      reviews: 45
     }
   ];
 
@@ -113,7 +70,7 @@ const PaginaInicio = () => {
       id: 1,
       nombre: "Herramientas Eléctricas",
       descripcion: "Taladros, sierras, lijadoras y más",
-      imagen: "/imagenes/categorias/herramientas-electricas.jpg",
+      imagen: "/assets/imagenes/categorias/herramientas-electricas.jpg",
       icon: WrenchScrewdriverIcon,
       color: "bg-blue-500"
     },
@@ -121,7 +78,7 @@ const PaginaInicio = () => {
       id: 2,
       nombre: "Materiales de Construcción",
       descripcion: "Cemento, fierro, ladrillos",
-      imagen: "/imagenes/categorias/materiales-construccion.jpg",
+      imagen: "/assets/imagenes/categorias/materiales-construccion.jpg",
       icon: HomeModernIcon,
       color: "bg-orange-500"
     },
@@ -129,7 +86,7 @@ const PaginaInicio = () => {
       id: 3,
       nombre: "Pinturas y Barnices",
       descripcion: "Pinturas, barnices, brochas",
-      imagen: "/imagenes/categorias/pinturas-barnices.jpg",
+      imagen: "/assets/imagenes/categorias/pinturas-barnices.jpg",
       icon: PaintBrushIcon,
       color: "bg-green-500"
     },
@@ -137,7 +94,7 @@ const PaginaInicio = () => {
       id: 4,
       nombre: "Ferretería",
       descripcion: "Tornillos, clavos, bisagras",
-      imagen: "/imagenes/categorias/ferreteria.jpg",
+      imagen: "/assets/imagenes/categorias/ferreteria.jpg",
       icon: WrenchScrewdriverIcon,
       color: "bg-purple-500"
     },
@@ -145,7 +102,7 @@ const PaginaInicio = () => {
       id: 5,
       nombre: "Plomería",
       descripcion: "Tuberías, grifería, accesorios",
-      imagen: "/imagenes/categorias/plomeria.jpg",
+      imagen: "/assets/imagenes/categorias/plomeria.jpg",
       icon: WrenchScrewdriverIcon,
       color: "bg-blue-600"
     },
@@ -153,7 +110,7 @@ const PaginaInicio = () => {
       id: 6,
       nombre: "Electricidad",
       descripcion: "Cables, enchufes, interruptores",
-      imagen: "/imagenes/categorias/electricidad.jpg",
+      imagen: "/assets/imagenes/categorias/electricidad.jpg",
       icon: WrenchScrewdriverIcon,
       color: "bg-yellow-500"
     }
@@ -163,30 +120,24 @@ const PaginaInicio = () => {
   const testimonios = [
     {
       id: 1,
-      nombre: "Carlos Mendoza",
+      nombre: "Juan Pérez",
       cargo: "Constructor",
-      empresa: "Constructora San Miguel",
-      comentario: "Llevamos más de 15 años comprando en FERREMAS. Excelente calidad, precios competitivos y siempre tienen stock.",
-      rating: 5,
-      avatar: "/imagenes/testimonios/carlos-mendoza.jpg"
+      texto: "Excelente servicio y productos de calidad. Las herramientas son duraderas y el personal muy atento.",
+      avatar: "/assets/imagenes/testimonios/default-avatar.png"
     },
     {
       id: 2,
       nombre: "María González",
       cargo: "Arquitecta",
-      empresa: "Estudio MG Arquitectos",
-      comentario: "El mejor servicio técnico de Santiago. Me asesoran perfectamente en cada proyecto y la entrega es siempre puntual.",
-      rating: 5,
-      avatar: "/imagenes/testimonios/maria-gonzalez.jpg"
+      texto: "La mejor ferretería de la zona. Siempre tienen lo que necesito y los precios son muy competitivos.",
+      avatar: "/assets/imagenes/testimonios/default-avatar.png"
     },
     {
       id: 3,
-      nombre: "Roberto Silva",
-      cargo: "Maestro",
-      empresa: "Independiente",
-      comentario: "Precios justos y herramientas de calidad. El personal siempre me ayuda a encontrar exactamente lo que necesito.",
-      rating: 5,
-      avatar: "/imagenes/testimonios/roberto-silva.jpg"
+      nombre: "Carlos Rodríguez",
+      cargo: "Contratista",
+      texto: "He trabajado con FERREMAS por años y nunca me han fallado. Su servicio post-venta es excepcional.",
+      avatar: "/assets/imagenes/testimonios/default-avatar.png"
     }
   ];
 
@@ -233,6 +184,39 @@ const PaginaInicio = () => {
     return () => clearInterval(interval);
   }, [testimonios.length]);
 
+  useEffect(() => {
+    const cargarDestacados = async () => {
+      setCargandoDestacados(true);
+      try {
+        const res = await servicioProductos.obtenerTodos();
+        let productos = res.data?.productos || [];
+        // Mostrar siempre los primeros 4 productos activos
+        let destacados = productos.slice(0, 4);
+        setProductosDestacados(destacados);
+      } catch (e) {
+        setProductosDestacados([]);
+      } finally {
+        setCargandoDestacados(false);
+      }
+    };
+    cargarDestacados();
+  }, []);
+
+  useEffect(() => {
+    const cargarMarcas = async () => {
+      setCargandoMarcas(true);
+      try {
+        const res = await servicioProductos.obtenerMarcas();
+        setMarcas(res.data || []);
+      } catch (e) {
+        setMarcas([]);
+      } finally {
+        setCargandoMarcas(false);
+      }
+    };
+    cargarMarcas();
+  }, []);
+
   // Funciones
   const formatearPrecio = (precio) => {
     return new Intl.NumberFormat('es-CL', {
@@ -256,7 +240,7 @@ const PaginaInicio = () => {
   };
 
   const manejarAgregarCarrito = (producto) => {
-    agregarAlCarrito(producto);
+    agregarItem(producto);
     mostrarNotificacion(`${producto.nombre} agregado al carrito`, 'success');
   };
 
@@ -426,6 +410,35 @@ const PaginaInicio = () => {
         </div>
       </section>
 
+      {/* Marcas */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Nuestras Marcas</h2>
+            <p className="text-lg text-gray-600">Trabajamos con las mejores marcas del mercado</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 items-center justify-center">
+            {cargandoMarcas ? (
+              <div className="col-span-5 text-center py-8 text-gray-400">Cargando marcas...</div>
+            ) : marcas.length === 0 ? (
+              <div className="col-span-5 text-center py-8 text-gray-400">No hay marcas registradas.</div>
+            ) : (
+              marcas.map((marca) => (
+                <div key={marca.id} className="flex flex-col items-center">
+                  <img
+                    src={`/assets/imagenes/marcas/${marca.nombre.toLowerCase().replace(/ /g, '_')}.png`}
+                    alt={marca.nombre}
+                    className="h-16 w-auto object-contain mb-2"
+                    onError={(e) => { e.target.src = '/assets/imagenes/marcas/placeholder.png'; }}
+                  />
+                  <span className="text-sm text-gray-700 font-medium">{marca.nombre}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Productos Destacados */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -439,7 +452,12 @@ const PaginaInicio = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {productosDestacados.map((producto, index) => (
+            {cargandoDestacados ? (
+              <div className="col-span-4 text-center py-12 text-gray-400">Cargando productos destacados...</div>
+            ) : productosDestacados.length === 0 ? (
+              <div className="col-span-4 text-center py-12 text-gray-400">No hay productos destacados actualmente.</div>
+            ) : (
+              productosDestacados.map((producto, index) => (
               <motion.div
                 key={producto.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -450,31 +468,33 @@ const PaginaInicio = () => {
               >
                 <div className="relative">
                   <img
-                    src={producto.imagen}
+                      src={`/assets/imagenes/productos/${producto.imagen}`}
                     alt={producto.nombre}
                     className="w-full h-48 object-cover"
                     onError={(e) => {
-                      e.target.src = '/imagenes/productos/placeholder.jpg';
+                      e.target.src = '/assets/imagenes/productos/placeholder.jpg';
                     }}
                   />
-                  {producto.esOferta && (
+                    {producto.etiquetas && producto.etiquetas.includes('Promoción') && (
                     <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
                       OFERTA
                     </div>
                   )}
+                    {producto.etiquetas && producto.etiquetas.includes('Destacado') && (
+                      <div className="absolute top-2 left-2 bg-yellow-400 text-white px-2 py-1 rounded text-xs font-semibold">
+                        DESTACADO
+                      </div>
+                    )}
                 </div>
-
                 <div className="p-4">
                   <div className="mb-2">
                     <span className="text-xs text-blue-600 font-medium">
-                      {producto.marca}
+                        {producto.marca?.nombre || producto.marca}
                     </span>
                   </div>
-                  
                   <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
                     {producto.nombre}
                   </h3>
-
                   {/* Rating */}
                   <div className="flex items-center mb-2">
                     <div className="flex">
@@ -484,7 +504,6 @@ const PaginaInicio = () => {
                       ({producto.reviews})
                     </span>
                   </div>
-
                   {/* Precio */}
                   <div className="mb-3">
                     {producto.precioAnterior && (
@@ -501,18 +520,18 @@ const PaginaInicio = () => {
                       </span>
                     )}
                   </div>
-
                   {/* Botón agregar al carrito */}
                   <button
                     onClick={() => manejarAgregarCarrito(producto)}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
                   >
                     <ShoppingCartIcon className="h-4 w-4 mr-2" />
                     Agregar al Carrito
                   </button>
                 </div>
               </motion.div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="text-center mt-12">
@@ -549,12 +568,9 @@ const PaginaInicio = () => {
               >
                 <div className="mb-8">
                   <img
-                    src={testimonios[testimonioActual]?.avatar || '/imagenes/testimonios/placeholder.jpg'}
+                    src={testimonios[testimonioActual]?.avatar}
                     alt={testimonios[testimonioActual]?.nombre}
-                    className="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
-                    onError={(e) => {
-                      e.target.src = '/imagenes/testimonios/placeholder.jpg';
-                    }}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
                   />
                   <div className="flex justify-center mb-4">
                     {renderEstrellas(testimonios[testimonioActual]?.rating)}
@@ -562,7 +578,7 @@ const PaginaInicio = () => {
                 </div>
                 
                 <blockquote className="text-xl italic mb-6 text-blue-100">
-                  "{testimonios[testimonioActual]?.comentario}"
+                  "{testimonios[testimonioActual]?.texto}"
                 </blockquote>
                 
                 <div>
@@ -570,7 +586,7 @@ const PaginaInicio = () => {
                     {testimonios[testimonioActual]?.nombre}
                   </p>
                   <p className="text-blue-300">
-                    {testimonios[testimonioActual]?.cargo} • {testimonios[testimonioActual]?.empresa}
+                    {testimonios[testimonioActual]?.cargo}
                   </p>
                 </div>
               </motion.div>

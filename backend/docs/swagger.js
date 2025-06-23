@@ -40,7 +40,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'http://localhost:3001',
         description: 'Servidor de desarrollo'
       },
       {
@@ -256,7 +256,7 @@ const options = {
             referencia_externa: {
               type: 'string',
               description: 'Referencia externa del pago',
-              example: 'MP_123456789'
+              example: 'WEBPAY_123456789'
             },
             fecha_pago: {
               type: 'string',
@@ -268,7 +268,7 @@ const options = {
               type: 'object',
               properties: {
                 id: { type: 'integer', example: 1 },
-                nombre: { type: 'string', example: 'MercadoPago' }
+                nombre: { type: 'string', example: 'Webpay' }
               }
             }
           }

@@ -19,7 +19,7 @@ import { useAuth } from '../../contexto/ContextoAuth';
 import { useCarrito } from '../../contexto/ContextoCarrito';
 import { useTema } from '../../contexto/ContextoTema';
 import { useNotificacion } from '../../contexto/ContextoNotificacion';
-import CarritoCompras from './CarritoCompras';
+import CarritoLateral from './CarritoLateral';
 
 const Encabezado = () => {
   const { usuario, cerrarSesion } = useAuth();
@@ -400,7 +400,7 @@ const Encabezado = () => {
       </header>
 
       {/* Componente del Carrito */}
-      <CarritoCompras 
+      <CarritoLateral 
         abierto={carritoAbierto} 
         onCerrar={() => setCarritoAbierto(false)} 
       />

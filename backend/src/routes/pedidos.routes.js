@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const pedidosController = require('../controllers/pedidos.controller');
-const auth = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
+const pedidosController = require('../controllers/pedidos.controller');
+const { verificarToken } = require('../middleware/auth');
 
 // Middleware para manejar errores de validación
 const handleValidationErrors = (req, res, next) => {
@@ -10,8 +10,13 @@ const handleValidationErrors = (req, res, next) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      error: 'Errores de validación',
-      details: errors.array(),
+      error: 'Datos inválidos',
+      message: 'Los datos proporcionados no son válidos',
+      detalles: errors.array().map(error => ({
+        campo: error.path || error.param,
+        valor: error.value,
+        mensaje: error.msg
+      })),
       timestamp: new Date().toISOString()
     });
   }
@@ -94,7 +99,7 @@ const handleValidationErrors = (req, res, next) => {
  *         description: No autorizado
  */
 router.post('/',
-  auth,
+  verificarToken,
   [
     body('productos')
       .isArray({ min: 1 })
@@ -152,7 +157,7 @@ router.post('/',
  *         description: Lista de pedidos obtenida exitosamente
  */
 router.get('/',
-  auth,
+  verificarToken,
   [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
@@ -182,7 +187,7 @@ router.get('/',
  *       404:
  *         description: Pedido no encontrado
  */
-router.get('/:id', auth, pedidosController.obtenerPedido);
+router.get('/:id', verificarToken, pedidosController.obtenerPedido);
 
 /**
  * @swagger
@@ -219,7 +224,7 @@ router.get('/:id', auth, pedidosController.obtenerPedido);
  *         description: Sin permisos
  */
 router.put('/:id/estado',
-  auth,
+  verificarToken,
   [
     body('estado')
       .isIn(['pendiente', 'confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'])

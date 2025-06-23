@@ -1,5 +1,5 @@
 // ==========================================
-// ARCHIVO: frontend/src/paginas/PaginaPrincipal.jsx
+// ARCHIVO: frontend/src/paginas/PaginaPrincipal.jsx - ACTUALIZADO
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -20,8 +20,10 @@ import { useCarrito } from '../contexto/ContextoCarrito';
 import { useAuth } from '../contexto/ContextoAuth';
 import { servicioProductos } from '../servicios/servicioProductos';
 
+console.log('PAGINA PRINCIPAL SE MONTA');
+
 const PaginaPrincipal = () => {
-  const { agregarAlCarrito, carrito } = useCarrito();
+  const { agregarItem, carrito } = useCarrito();
   const { usuario } = useAuth();
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos');
   const [marcaSeleccionada, setMarcaSeleccionada] = useState('todas');
@@ -30,37 +32,89 @@ const PaginaPrincipal = () => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [ordenamiento, setOrdenamiento] = useState('destacados');
 
-  // ESTADOS REALES
+  // ESTADOS REALES CON NUEVA API
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([{ id: 'todos', nombre: 'Todos los Productos', icono: '🔧' }]);
   const [marcas, setMarcas] = useState([{ id: 'todas', nombre: 'Todas' }]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
+  // CARGAR DATOS CON NUEVA API
   useEffect(() => {
     const cargarDatos = async () => {
+      console.log('🔄 Cargando datos para PaginaPrincipal...');
       setCargando(true);
+      setError(null);
+      
       try {
-        const productosData = await servicioProductos.obtenerTodos();
-        const marcasData = await servicioProductos.obtenerMarcas();
-        const categoriasData = await servicioProductos.obtenerCategorias();
-        setProductos(productosData.data?.productos || []);
-        setMarcas([{ id: 'todas', nombre: 'Todas' }, ...(marcasData.data || [])]);
-        setCategorias([{ id: 'todos', nombre: 'Todos los Productos', icono: '🔧' }, ...(categoriasData.data || [])]);
+        // Cargar productos
+        console.log('📦 Cargando productos...');
+        const productosResponse = await servicioProductos.obtenerTodos();
+        console.log('✅ Productos recibidos:', productosResponse);
+        
+        if (productosResponse.success && productosResponse.data && productosResponse.data.productos) {
+          setProductos(productosResponse.data.productos);
+          console.log('✅ Productos establecidos:', productosResponse.data.productos.length);
+        } else {
+          setProductos([]);
+        }
+
+        // Cargar marcas
+        console.log('🏷️ Cargando marcas...');
+        const marcasResponse = await servicioProductos.obtenerMarcas();
+        console.log('✅ Marcas recibidas:', marcasResponse);
+        
+        if (marcasResponse.success && marcasResponse.data) {
+          setMarcas([
+            { id: 'todas', nombre: 'Todas' }, 
+            ...marcasResponse.data.map(marca => ({
+              id: marca.id,
+              nombre: marca.nombre,
+              total_productos: marca.total_productos
+            }))
+          ]);
+          console.log('✅ Marcas establecidas:', marcasResponse.data.length);
+        }
+
+        // Cargar categorías
+        console.log('📁 Cargando categorías...');
+        const categoriasResponse = await servicioProductos.obtenerCategorias();
+        console.log('✅ Categorías recibidas:', categoriasResponse);
+        
+        if (categoriasResponse.success && categoriasResponse.data) {
+          setCategorias([
+            { id: 'todos', nombre: 'Todos los Productos', icono: '🔧' },
+            ...categoriasResponse.data.map(categoria => ({
+              id: categoria.id,
+              nombre: categoria.nombre,
+              total_productos: categoria.total_productos
+            }))
+          ]);
+          console.log('✅ Categorías establecidas:', categoriasResponse.data.length);
+        }
+
       } catch (error) {
-        console.error('Error al cargar datos:', error);
+        console.error('❌ Error cargando datos:', error);
+        setError(error.message);
       } finally {
         setCargando(false);
       }
     };
+
     cargarDatos();
   }, []);
 
-  // Filtrar productos (solo catálogo general)
+  // Filtrar productos
   const productosFiltrados = productos.filter(producto => {
     const cumpleBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       (producto.marca?.nombre?.toLowerCase().includes(busqueda.toLowerCase()));
-    const cumpleCategoria = categoriaSeleccionada === 'todos' || producto.categoria?.id === categoriaSeleccionada;
-    const cumpleMarca = marcaSeleccionada === 'todas' || producto.marca?.id === marcaSeleccionada;
+    
+    const cumpleCategoria = categoriaSeleccionada === 'todos' || 
+      producto.categoria?.id === parseInt(categoriaSeleccionada);
+    
+    const cumpleMarca = marcaSeleccionada === 'todas' || 
+      producto.marca?.id === parseInt(marcaSeleccionada);
+    
     return cumpleBusqueda && cumpleCategoria && cumpleMarca;
   });
 
@@ -68,9 +122,9 @@ const PaginaPrincipal = () => {
   const productosOrdenados = [...productosFiltrados].sort((a, b) => {
     switch (ordenamiento) {
       case 'precio-asc':
-        return a.precio - b.precio;
+        return parseFloat(a.precio) - parseFloat(b.precio);
       case 'precio-desc':
-        return b.precio - a.precio;
+        return parseFloat(b.precio) - parseFloat(a.precio);
       case 'nombre':
         return a.nombre.localeCompare(b.nombre);
       default:
@@ -89,9 +143,54 @@ const PaginaPrincipal = () => {
   const formatearPrecio = (precio) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
-      currency: 'CLP'
+      currency: 'CLP',
+      minimumFractionDigits: 0
     }).format(precio);
   };
+
+  const manejarAgregarCarrito = (producto) => {
+    agregarItem({
+      id: producto.id,
+      nombre: producto.nombre,
+      precio: parseFloat(producto.precio),
+      imagen: producto.imagen,
+      marca_nombre: producto.marca?.nombre,
+      categoria_nombre: producto.categoria?.nombre
+    });
+  };
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Cargando catálogo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error de Conexión</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Link 
+            to="/test-backend" 
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            🔧 Probar Conexión
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -104,7 +203,6 @@ const PaginaPrincipal = () => {
           backgroundPosition: 'center',
         }}
       >
-        {/* Overlay para oscurecer la imagen y mejorar la legibilidad */}
         <div className="absolute inset-0 bg-black opacity-40"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center">
@@ -113,9 +211,7 @@ const PaginaPrincipal = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-5xl font-bold mb-4">
-                FERREMAS
-              </h1>
+              <h1 className="text-5xl font-bold mb-4">FERREMAS</h1>
               <p className="text-xl mb-8 text-blue-100">
                 Tu distribuidora de confianza desde 1980
               </p>
@@ -131,6 +227,30 @@ const PaginaPrincipal = () => {
                 <div className="flex items-center">
                   <TagIcon className="h-5 w-5 mr-2" />
                   Mejores precios
+                </div>
+              </div>
+              
+              {/* Estadísticas */}
+              <div className="mt-8 bg-black bg-opacity-30 rounded-lg p-4 inline-block">
+                <div className="flex gap-8 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-400">
+                      {productos.length}
+                    </div>
+                    <div className="text-sm">Productos</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-blue-400">
+                      {marcas.length - 1}
+                    </div>
+                    <div className="text-sm">Marcas</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-yellow-400">
+                      {categorias.length - 1}
+                    </div>
+                    <div className="text-sm">Categorías</div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -199,7 +319,24 @@ const PaginaPrincipal = () => {
                     >
                       {marcas.map(marca => (
                         <option key={marca.id} value={marca.id}>
-                          {marca.nombre}
+                          {marca.nombre} {marca.total_productos ? `(${marca.total_productos})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Categoría
+                    </label>
+                    <select
+                      value={categoriaSeleccionada}
+                      onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    >
+                      {categorias.map(categoria => (
+                        <option key={categoria.id} value={categoria.id}>
+                          {categoria.nombre} {categoria.total_productos ? `(${categoria.total_productos})` : ''}
                         </option>
                       ))}
                     </select>
@@ -211,260 +348,121 @@ const PaginaPrincipal = () => {
         </div>
       </section>
 
+      {/* Resultados */}
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar de categorías */}
-          <aside className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Categorías
-              </h3>
-              <nav className="space-y-2">
-                {categorias.map(categoria => (
-                  <button
-                    key={categoria.id}
-                    onClick={() => setCategoriaSeleccionada(categoria.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center ${
-                      categoriaSeleccionada === categoria.id
-                        ? 'bg-blue-100 text-blue-800 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="mr-3 text-lg">{categoria.icono}</span>
-                    {categoria.nombre}
-                  </button>
-                ))}
-              </nav>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Nuestros Productos</h2>
+            <p className="text-gray-600">
+              {productosOrdenados.length} producto{productosOrdenados.length !== 1 ? 's' : ''} encontrado{productosOrdenados.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          
+          {/* Debug info */}
+          <div className="text-right text-sm text-gray-500">
+            <div>✅ {productos.length} productos cargados</div>
+            <div>🏷️ {marcas.length - 1} marcas</div>
+            <div>📁 {categorias.length - 1} categorías</div>
+          </div>
+        </div>
 
-              {/* Banner promocional */}
-              <div className="mt-8 bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-lg">
-                <h4 className="font-bold text-sm mb-2">¡Oferta Especial!</h4>
-                <p className="text-xs">Descuento del 20% en herramientas eléctricas</p>
-                <button className="mt-2 bg-white text-orange-600 px-3 py-1 rounded text-xs font-medium">
-                  Ver ofertas
-                </button>
-              </div>
+        {productosOrdenados.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
             </div>
-          </aside>
-
-          {/* Grid de productos */}
-          <main className="flex-1">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {categorias.find(c => c.id === categoriaSeleccionada)?.nombre}
-              </h2>
-              <span className="text-gray-600">
-                {productosOrdenados.length} productos encontrados
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {productosOrdenados.map(producto => (
-                <motion.div
-                  key={producto.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden group hover:shadow-lg transition-all duration-300"
-                >
-                  {/* Imagen del producto */}
-                  <div className="relative">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No se encontraron productos
+            </h3>
+            <p className="text-gray-600">
+              Intenta ajustar tus filtros o términos de búsqueda
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {productosOrdenados.map((producto) => (
+              <motion.div
+                key={producto.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              >
+                <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg overflow-hidden">
+                  {producto.imagen ? (
                     <img
-                      src={producto.imagen ? `/assets/imagenes/productos/${producto.imagen}` : '/assets/imagenes/productos/Sierrabosch.jpg'}
+                      src={`/assets/imagenes/productos/${producto.imagen}`}
                       alt={producto.nombre}
-                      className="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-300 bg-white"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                    
-                    {/* Etiquetas */}
-                    {producto.etiquetas && (
-                      <div className="absolute top-2 left-2 space-y-1">
-                        {producto.etiquetas.map(etiqueta => (
-                          <span
-                            key={etiqueta}
-                            className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                              etiqueta === 'Promoción' ? 'bg-red-500 text-white' :
-                              etiqueta === 'Nuevo' ? 'bg-green-500 text-white' :
-                              'bg-blue-500 text-white'
-                            }`}
-                          >
-                            {etiqueta}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Botón de favoritos */}
+                  ) : null}
+                  <div className="w-full h-48 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                    <div className="text-center">
+                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      <p className="text-xs text-gray-500">{producto.categoria_nombre}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                      {producto.nombre}
+                    </h3>
                     <button
                       onClick={() => toggleFavorito(producto.id)}
-                      className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+                      className="text-gray-400 hover:text-red-500 transition-colors"
                     >
                       {favoritos.includes(producto.id) ? (
                         <HeartSolid className="h-5 w-5 text-red-500" />
                       ) : (
-                        <HeartIcon className="h-5 w-5 text-gray-400" />
+                        <HeartIcon className="h-5 w-5" />
                       )}
                     </button>
-
-                    {/* Stock bajo */}
-                    {producto.stock < 10 && (
-                      <div className="absolute bottom-2 left-2">
-                        <span className="bg-orange-500 text-white px-2 py-1 text-xs rounded">
-                          ¡Últimas {producto.stock} unidades!
-                        </span>
-                      </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    {producto.marca_nombre && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        {producto.marca_nombre}
+                      </span>
+                    )}
+                    {producto.codigo_sku && (
+                      <span className="text-xs text-gray-400">
+                        SKU: {producto.codigo_sku}
+                      </span>
                     )}
                   </div>
-
-                  {/* Información del producto */}
-                  <div className="p-4">
-                    <div className="mb-2">
-                      <span className="text-sm text-blue-600 font-medium">
-                        {producto.marca?.nombre}
-                      </span>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {producto.descripcion || 'Descripción no disponible'}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatearPrecio(producto.precio)}
                     </div>
-                    
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {producto.nombre}
-                    </h3>
-
-                    {/* Rating */}
-                    <div className="flex items-center mb-3">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <StarSolid
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(producto.rating)
-                                ? 'text-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {producto.rating} ({producto.reviews})
-                      </span>
-                    </div>
-
-                    {/* Precio */}
-                    <div className="mb-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl font-bold text-gray-900">
-                          {formatearPrecio(producto.precio)}
-                        </span>
-                        {producto.precioAnterior && (
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatearPrecio(producto.precioAnterior)}
-                          </span>
-                        )}
-                      </div>
-                      {producto.precioAnterior && (
-                        <span className="text-sm text-green-600 font-medium">
-                          Ahorra {formatearPrecio(producto.precioAnterior - producto.precio)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Características */}
-                    {producto.caracteristicas && (
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-1">
-                          {producto.caracteristicas.slice(0, 2).map(caracteristica => (
-                            <span
-                              key={caracteristica}
-                              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
-                            >
-                              {caracteristica}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Botones de acción */}
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => agregarAlCarrito(producto)}
-                        disabled={producto.stock === 0}
-                        className={`w-full flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
-                          producto.stock === 0
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                        {producto.stock === 0 ? 'Sin stock' : 'Agregar al carrito'}
-                      </button>
-                      
-                      <Link
-                        to={`/producto/${producto.id}`}
-                        className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                      >
-                        Ver detalles
-                      </Link>
-                    </div>
+                    <button
+                      onClick={() => manejarAgregarCarrito(producto)}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                    >
+                      <ShoppingCartIcon className="h-4 w-4 mr-2" />
+                      Agregar
+                    </button>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Sin resultados */}
-            {productosOrdenados.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-gray-400 text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No se encontraron productos
-                </h3>
-                <p className="text-gray-600">
-                  Intenta cambiar los filtros o la búsqueda
-                </p>
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
-
-      {/* Sección de marcas */}
-      <section className="bg-white py-12 border-t">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
-            Marcas de Confianza
-          </h2>
-          <div className="w-full flex justify-center">
-            <div
-              className={`grid gap-8 justify-center mx-auto`}
-              style={{
-                gridTemplateColumns: `repeat(${marcas.filter(marca => marca.nombre !== 'Todas' && marca.id !== 'todas').length}, minmax(0, 1fr))`,
-                maxWidth: '900px'
-              }}
-            >
-              {marcas.filter(marca => marca.nombre !== 'Todas' && marca.id !== 'todas').map(marca => {
-                console.log('Logo marca:', marca.imagen);
-                return (
-                  <div
-                    key={marca.id}
-                    className="flex flex-col items-center justify-center p-4 bg-white rounded-lg shadow-md hover:shadow-xl transition-all border border-gray-100 group cursor-pointer"
-                  >
-                    {/* Logo de la marca si existe */}
-                    <div className="flex items-center justify-center h-16 w-24 mb-2">
-                      <img
-                        src={marca.imagen ? `/assets/imagenes/marcas/${marca.imagen}` : undefined}
-                        alt={marca.nombre}
-                        className="h-16 object-contain transition-all duration-300"
-                      />
-                    </div>
-                    {/* Nombre de la marca */}
-                    <span className="font-semibold text-gray-700 text-center text-base group-hover:text-blue-600 transition-colors">
-                      {marca.nombre}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
-      </section>
+        )}
+      </div>
     </div>
   );
 };

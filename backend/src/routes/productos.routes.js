@@ -3,6 +3,8 @@ const router = express.Router();
 const productosController = require('../controllers/productos.controller');
 const { body, query, validationResult } = require('express-validator');
 const upload = require('../middleware/upload');
+const uploadCsv = require('../middleware/uploadCsv');
+const { verificarToken, verificarRol } = require('../middleware/auth');
 
 // Middleware para manejar errores de validación
 const handleValidationErrors = (req, res, next) => {
@@ -61,58 +63,116 @@ const handleValidationErrors = (req, res, next) => {
 
 /**
  * @swagger
- * /api/v1/productos:
+ * /api/productos:
  *   get:
- *     summary: Listar todos los productos
+ *     summary: Listar productos
  *     tags: [Productos]
  *     parameters:
+ *       - in: query
+ *         name: categoria
+ *         schema:
+ *           type: string
+ *         description: Filtrar por categoría
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
+ *           default: 1
  *         description: Número de página
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Productos por página
+ *           default: 10
+ *         description: Cantidad de items por página
  *     responses:
  *       200:
- *         description: Lista de productos obtenida exitosamente
+ *         description: Lista de productos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       nombre:
+ *                         type: string
+ *                       descripcion:
+ *                         type: string
+ *                       precio:
+ *                         type: number
+ *                       stock:
+ *                         type: integer
+ *                       categoria:
+ *                         type: string
  */
-router.get('/', 
-  [
-    query('page').optional().isInt({ min: 1 }),
-    query('limit').optional().isInt({ min: 1, max: 100 }),
-    handleValidationErrors
-  ],
-  productosController.listarProductos
-);
+router.get('/', [
+  query('categoria').optional().isString(),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], productosController.listarProductos);
 
 /**
  * @swagger
- * /api/v1/productos/buscar:
- *   get:
- *     summary: Buscar productos
+ * /api/productos:
+ *   post:
+ *     summary: Crear un nuevo producto
  *     tags: [Productos]
- *     parameters:
- *       - in: query
- *         name: q
- *         required: true
- *         schema:
- *           type: string
- *         description: Término de búsqueda
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nombre
+ *               - precio
+ *               - stock
+ *               - categoria
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *                 example: Martillo Profesional
+ *               descripcion:
+ *                 type: string
+ *                 example: Martillo de acero forjado con mango ergonómico
+ *               precio:
+ *                 type: number
+ *                 minimum: 0
+ *                 example: 29.99
+ *               stock:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 50
+ *               categoria:
+ *                 type: string
+ *                 example: Herramientas
  *     responses:
- *       200:
- *         description: Resultados de búsqueda
+ *       201:
+ *         description: Producto creado exitosamente
+ *       400:
+ *         description: Error de validación
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No tiene permiso para crear productos
  */
-router.get('/buscar',
-  [
-    query('q').isLength({ min: 2 }).withMessage('El término de búsqueda debe tener al menos 2 caracteres'),
-    handleValidationErrors
-  ],
-  productosController.buscarProductos
-);
+router.post('/', verificarToken, verificarRol(['admin']), [
+  body('nombre').notEmpty().withMessage('El nombre es requerido'),
+  body('precio').isFloat({ min: 0 }).withMessage('El precio debe ser un número positivo'),
+  body('stock').isInt({ min: 0 }).withMessage('El stock debe ser un número entero positivo'),
+  body('categoria').notEmpty().withMessage('La categoría es requerida')
+], productosController.crearProducto);
 
 /**
  * @swagger
@@ -140,9 +200,9 @@ router.get('/marcas', productosController.listarMarcas);
 
 /**
  * @swagger
- * /api/v1/productos/{id}:
+ * /api/productos/{id}:
  *   get:
- *     summary: Obtener producto por ID
+ *     summary: Obtener un producto específico
  *     tags: [Productos]
  *     parameters:
  *       - in: path
@@ -153,7 +213,7 @@ router.get('/marcas', productosController.listarMarcas);
  *         description: ID del producto
  *     responses:
  *       200:
- *         description: Producto encontrado
+ *         description: Detalles del producto
  *       404:
  *         description: Producto no encontrado
  */
@@ -161,21 +221,25 @@ router.get('/:id', productosController.obtenerProducto);
 
 /**
  * @swagger
- * /api/v1/productos:
- *   post:
- *     summary: Crear nuevo producto (Solo administradores)
+ * /api/productos/{id}:
+ *   put:
+ *     summary: Actualizar un producto
  *     tags: [Productos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del producto
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - nombre
- *               - precio
- *               - categoria_id
- *               - marca_id
  *             properties:
  *               nombre:
  *                 type: string
@@ -183,50 +247,78 @@ router.get('/:id', productosController.obtenerProducto);
  *                 type: string
  *               precio:
  *                 type: number
- *               categoria_id:
+ *                 minimum: 0
+ *               stock:
  *                 type: integer
- *               marca_id:
- *                 type: integer
+ *                 minimum: 0
+ *               categoria:
+ *                 type: string
  *     responses:
- *       201:
- *         description: Producto creado exitosamente
+ *       200:
+ *         description: Producto actualizado exitosamente
+ *       400:
+ *         description: Error de validación
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No tiene permiso para actualizar productos
+ *       404:
+ *         description: Producto no encontrado
  */
-router.post('/',
-  upload.single('imagen'),
-  [
-    body('nombre').notEmpty().withMessage('El nombre es requerido'),
-    body('precio').isFloat({ min: 0 }).withMessage('El precio debe ser mayor a 0'),
-    body('categoria_id').isInt().withMessage('La categoría es requerida'),
-    body('marca_id').isInt().withMessage('La marca es requerida'),
-    handleValidationErrors
-  ],
-  productosController.crearProducto
-);
+router.put('/:id', verificarToken, verificarRol(['admin']), [
+  body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacío'),
+  body('precio').optional().isFloat({ min: 0 }).withMessage('El precio debe ser un número positivo'),
+  body('stock').optional().isInt({ min: 0 }).withMessage('El stock debe ser un número entero positivo'),
+  body('categoria').optional().notEmpty().withMessage('La categoría no puede estar vacía')
+], productosController.actualizarProducto);
 
 /**
  * @swagger
- * /api/v1/productos/{id}:
- *   put:
- *     summary: Actualizar producto
+ * /api/productos/{id}:
+ *   delete:
+ *     summary: Eliminar un producto
  *     tags: [Productos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del producto
  *     responses:
  *       200:
- *         description: Producto actualizado exitosamente
+ *         description: Producto eliminado exitosamente
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No tiene permiso para eliminar productos
+ *       404:
+ *         description: Producto no encontrado
  */
-router.put('/:id',
-  upload.single('imagen'),
-  [
-    body('nombre').optional().notEmpty(),
-    body('precio').optional().isFloat({ min: 0 }),
-    handleValidationErrors
-  ],
-  productosController.actualizarProducto
-);
+router.delete('/:id', verificarToken, verificarRol(['admin']), productosController.eliminarProducto);
+
+/**
+ * @swagger
+ * /api/v1/productos/carga-masiva:
+ *   post:
+ *     summary: Carga masiva de productos desde un archivo CSV
+ *     tags: [Productos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               archivo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Productos cargados exitosamente
+ */
+router.post('/carga-masiva', uploadCsv.single('archivo'), productosController.cargaMasiva);
 
 module.exports = router;

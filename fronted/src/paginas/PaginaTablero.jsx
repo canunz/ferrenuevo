@@ -20,10 +20,18 @@ import {
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexto/ContextoAuth';
+import { servicioDashboard } from '../servicios/servicioDashboard';
+import { useSnackbar } from 'notistack';
 
 const PaginaTablero = () => {
   const { usuario } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [fechaActual, setFechaActual] = useState(new Date());
+  const [estadisticasPrincipales, setEstadisticasPrincipales] = useState([]);
+  const [ventasRecientes, setVentasRecientes] = useState([]);
+  const [productosPopulares, setProductosPopulares] = useState([]);
+  const [alertas, setAlertas] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -33,66 +41,36 @@ const PaginaTablero = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Datos simulados del dashboard
-  const estadisticasPrincipales = [
-    {
-      titulo: 'Ventas del Día',
-      valor: '$890.000',
-      cambio: '+12.5%',
-      tendencia: 'up',
-      icono: CurrencyDollarIcon,
-      color: 'bg-green-500',
-      descripcion: 'Comparado con ayer'
-    },
-    {
-      titulo: 'Pedidos Pendientes',
-      valor: '23',
-      cambio: '-2.1%',
-      tendencia: 'down',
-      icono: ShoppingCartIcon,
-      color: 'bg-orange-500',
-      descripcion: 'Requieren atención'
-    },
-    {
-      titulo: 'Clientes Activos',
-      valor: '156',
-      cambio: '+5.4%',
-      tendencia: 'up',
-      icono: UsersIcon,
-      color: 'bg-blue-500',
-      descripcion: 'Clientes con compras recientes'
-    },
-    {
-      titulo: 'Productos en Stock',
-      valor: '2.847',
-      cambio: '+1.8%',
-      tendencia: 'up',
-      icono: ArchiveBoxIcon,
-      color: 'bg-purple-500',
-      descripcion: 'Total de productos disponibles'
-    }
-  ];
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        setCargando(true);
+        const [
+          estadisticas,
+          ventas,
+          productos,
+          alertasData
+        ] = await Promise.all([
+          servicioDashboard.obtenerEstadisticasPrincipales(),
+          servicioDashboard.obtenerVentasRecientes(),
+          servicioDashboard.obtenerProductosPopulares(),
+          servicioDashboard.obtenerAlertas()
+        ]);
 
-  const ventasRecientes = [
-    { id: 1, cliente: 'Juan Pérez', total: 45990, productos: ['Taladro Bosch', 'Brocas'], hora: '14:30' },
-    { id: 2, cliente: 'María González', total: 128500, productos: ['Cemento 25kg x5', 'Ladrillos x100'], hora: '13:45' },
-    { id: 3, cliente: 'Carlos Silva', total: 67890, productos: ['Pintura Látex', 'Rodillos'], hora: '12:20' },
-    { id: 4, cliente: 'Ana Rojas', total: 23450, productos: ['Martillo Stanley', 'Clavos'], hora: '11:15' }
-  ];
+        setEstadisticasPrincipales(estadisticas);
+        setVentasRecientes(ventas);
+        setProductosPopulares(productos);
+        setAlertas(alertasData);
+      } catch (error) {
+        console.error('Error al cargar datos del dashboard:', error);
+        enqueueSnackbar('Error al cargar los datos del dashboard', { variant: 'error' });
+      } finally {
+        setCargando(false);
+      }
+    };
 
-  const productosPopulares = [
-    { nombre: 'Tornillos Autorroscantes 3/8"', vendidos: 156, stock: 2500, progreso: 94 },
-    { nombre: 'Cemento Portland 25kg', vendidos: 89, stock: 45, progreso: 67 },
-    { nombre: 'Tuberías PVC 110mm', vendidos: 67, stock: 120, progreso: 56 },
-    { nombre: 'Pintura Látex Blanca 1L', vendidos: 54, stock: 200, progreso: 45 },
-    { nombre: 'Cables Eléctricos 2.5mm', vendidos: 43, stock: 150, progreso: 38 }
-  ];
-
-  const alertas = [
-    { tipo: 'warning', mensaje: 'Stock bajo: Cemento Portland (Solo 45 unidades)', icono: ExclamationTriangleIcon },
-    { tipo: 'success', mensaje: 'Nuevo proveedor agregado: Ferretería Industrial', icono: CheckCircleIcon },
-    { tipo: 'info', mensaje: 'Pedido especial: Materiales para construcción de 50 casas', icono: ClockIcon }
-  ];
+    cargarDatos();
+  }, [enqueueSnackbar]);
 
   const formatearPrecio = (precio) => {
     return new Intl.NumberFormat('es-CL', {
@@ -108,6 +86,17 @@ const PaginaTablero = () => {
   const obtenerColorTendencia = (tendencia) => {
     return tendencia === 'up' ? 'text-green-600' : 'text-red-600';
   };
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando datos del dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
