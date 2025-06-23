@@ -30,15 +30,14 @@ const TarjetaProducto = ({
     if (!imagen) {
       return '/assets/imagenes/productos/placeholder.jpg';
     }
-    
-    // Si la imagen ya tiene una URL completa, la devolvemos
-    if (imagen.startsWith('http')) {
-      return imagen;
-    }
-    
-    // Si es solo el nombre del archivo, construimos la ruta
-    return `/assets/imagenes/productos/${imagen}`;
+    // CORRECCIÓN DEFINITIVA DE RUTA DE IMAGEN
+    return `http://localhost:3000/static/productos/${imagen}`;
   };
+
+  // DEMOSTRACIÓN: Aplicar un descuento visual a un producto específico
+  if (producto.nombre.toLowerCase().includes('sierra circular bosch')) {
+    producto.precio_oferta = producto.precio * 0.90; // 10% de descuento
+  }
 
   const tieneDescuento = producto.precio_oferta && producto.precio_oferta < producto.precio;
 
@@ -129,6 +128,13 @@ const TarjetaProducto = ({
           {producto.nombre}
         </h3>
 
+        {/* CÓDIGO SKU */}
+        {producto.codigo_sku && (
+          <p className="text-xs text-gray-400 mb-2 font-mono">
+            SKU: {producto.codigo_sku}
+          </p>
+        )}
+
         {/* Descripción */}
         {producto.descripcion && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -156,34 +162,34 @@ const TarjetaProducto = ({
 
         {/* Stock */}
         <div className="text-sm text-gray-600 mb-3">
-          {producto.stock > 0 ? (
-            <span className="text-green-600">✓ En stock</span>
+          {/* MUESTRA STOCK NUMÉRICO */}
+          {producto.stock_actual > 0 ? (
+            <span className="text-green-600 font-semibold">✓ Stock: {producto.stock_actual}</span>
           ) : (
-            <span className="text-red-600">✗ Sin stock</span>
+            <span className="text-red-600 font-semibold">✗ Agotado</span>
           )}
         </div>
 
-        {/* Botón de agregar al carrito */}
-        {mostrarAcciones && producto.stock > 0 && (
-          <button
-            onClick={() => onAgregarAlCarrito(producto)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-          >
-            <ShoppingCartIcon className="w-5 h-5" />
-            <span>Agregar al carrito</span>
-          </button>
-        )}
+        {/* Botones de acción */}
+        <div className="space-y-2">
+          {mostrarAcciones && producto.stock_actual > 0 && (
+            <button
+              onClick={() => onAgregarAlCarrito(producto)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+            >
+              <ShoppingCartIcon className="w-5 h-5" />
+              <span>Agregar</span>
+            </button>
+          )}
 
-        {/* Botón de ver detalles si no hay stock */}
-        {mostrarAcciones && producto.stock <= 0 && (
+          {/* BOTÓN "VER DETALLE" AÑADIDO */}
           <Link
             to={`/producto/${producto.id}`}
-            className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+            className="w-full block text-center bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg transition-colors"
           >
-            <EyeIcon className="w-5 h-5" />
-            <span>Ver detalles</span>
+            Ver Detalle
           </Link>
-        )}
+        </div>
       </div>
     </motion.div>
   );

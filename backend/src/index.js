@@ -4,27 +4,18 @@ const path = require('path');
 require('dotenv').config();
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const cors = require('cors');
+const morgan = require('morgan');
 
 // Importar configuración de base de datos
 const sequelize = require('./config/database');
 const models = require('./models');
 
 // Configuración de CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
-// Middleware para parsear JSON
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
 // Importar rutas
 const imagenRoutes = require('./routes/imagenRoutes');
@@ -38,6 +29,7 @@ const reportesRoutes = require('./routes/reportes.routes');
 const sistemaRoutes = require('./routes/sistema.routes');
 const divisasRoutes = require('./routes/divisas.routes');
 const transbankRoutes = require('./routes/transbank.routes');
+const promocionesRoutes = require('./routes/promociones.routes');
 
 // Configurar rutas
 app.use('/api/v1/imagenes', imagenRoutes);
@@ -51,7 +43,8 @@ app.use('/api/v1/reportes', reportesRoutes);
 app.use('/api/v1/sistema', sistemaRoutes);
 app.use('/api/v1/divisas', divisasRoutes);
 app.use('/api/v1/transbank', transbankRoutes);
-app.use('/imagenes', express.static(path.join(__dirname, '../public/imagenes')));
+app.use('/api/v1/promociones', promocionesRoutes);
+app.use('/static', express.static(path.join(__dirname, '../public/imagenes')));
 
 // Configurar Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

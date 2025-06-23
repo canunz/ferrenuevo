@@ -154,7 +154,7 @@ const Marcas = () => {
               <div className="mb-4">
                 {marca.imagen ? (
                   <img
-                    src={`/assets/imagenes/marcas/${marca.imagen}`}
+                    src={`/assets/imagenes/marcas/${marca.imagen.replace('_&_', '_')}`}
                     alt={marca.nombre}
                     className="w-20 h-20 mx-auto object-contain"
                     onError={(e) => {

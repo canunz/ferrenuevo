@@ -23,6 +23,10 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
+  ficha_tecnica: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
   categoria_id: {
     type: DataTypes.INTEGER,
     allowNull: false,

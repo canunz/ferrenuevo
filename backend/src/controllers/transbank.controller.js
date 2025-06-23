@@ -1,4 +1,5 @@
 const { WebpayPlus, Options, Environment } = require('transbank-sdk');
+const { Pedido, Pago, sequelize } = require('../models'); // Importamos modelos y sequelize
 
 // Configuración de Transbank para ambiente de integración
 const options = new Options(
@@ -61,6 +62,7 @@ exports.crearTransaccion = async (req, res) => {
 
 // Confirmar transacción Webpay
 exports.confirmarTransaccion = async (req, res) => {
+    const t = await sequelize.transaction(); // Iniciamos transacción
     try {
         const { token_ws } = req.body;
 
@@ -71,39 +73,62 @@ exports.confirmarTransaccion = async (req, res) => {
             });
         }
 
-        // Confirmar transacción con Transbank
         const resultado = await transaction.commit(token_ws);
 
-        // Si la transacción fue exitosa
         if (resultado.status === 'AUTHORIZED') {
+            // El pago fue exitoso en Transbank. Ahora actualizamos nuestro sistema.
+            
+            const pedido = await Pedido.findOne({ where: { numero_pedido: resultado.buyOrder } });
+            if (!pedido) {
+                // Si no encontramos el pedido, hacemos un reembolso automático para no quedarnos con dinero que no corresponde.
+                await transaction.refund(token_ws, resultado.amount);
+                throw new Error(`Pedido ${resultado.buyOrder} no encontrado. Reembolso automático iniciado.`);
+            }
+
+            // 1. Crear el registro del pago
+            await Pago.create({
+                pedido_id: pedido.id,
+                monto: resultado.amount,
+                metodo_pago: 'Transbank',
+                estado: 'completado',
+                transaccion_id: token_ws,
+                datos_pasarela: resultado
+            }, { transaction: t });
+
+            // 2. Actualizar el estado del pedido
+            pedido.estado = 'aprobado'; // O el estado que corresponda
+            await pedido.save({ transaction: t });
+            
+            await t.commit(); // Confirmamos la transacción en nuestra BD
+
             res.json({
                 success: true,
-                message: 'Pago confirmado exitosamente',
+                message: 'Pago confirmado y pedido actualizado exitosamente',
                 data: {
                     status: resultado.status,
                     orden_compra: resultado.buyOrder,
                     monto: resultado.amount,
-                    fecha_transaccion: resultado.transactionDate
+                    pedido_id: pedido.id,
+                    nuevo_estado_pedido: pedido.estado
                 }
             });
+
         } else {
+            // El pago fue rechazado en Transbank
+            await t.rollback(); // Deshacemos cualquier posible cambio en nuestra BD
             res.json({
                 success: false,
-                message: 'Pago rechazado',
-                data: {
-                    status: resultado.status,
-                    orden_compra: resultado.buyOrder,
-                    monto: resultado.amount,
-                    fecha_transaccion: resultado.transactionDate
-                }
+                message: 'Pago rechazado por Transbank',
+                data: resultado
             });
         }
 
     } catch (error) {
+        await t.rollback(); // Si algo falla, deshacemos todo
         console.error('Error al confirmar transacción:', error);
         res.status(500).json({
             success: false,
-            error: 'Error interno del servidor',
+            error: 'Error interno del servidor al confirmar el pago',
             message: error.message
         });
     }

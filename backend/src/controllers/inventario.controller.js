@@ -1,188 +1,162 @@
+const { Inventario, MovimientoInventario, Producto, Categoria, Marca, Sucursal, sequelize } = require('../models');
+const { Op } = require('sequelize');
+const { formatearRespuesta, formatearError } = require('../utils/helpers');
+
 class InventarioController {
 
-  // Listar inventario
+  /**
+   * Listar inventario con paginación y filtros avanzados.
+   */
   async listarInventario(req, res) {
     try {
-      const { page = 1, limit = 10, sucursal_id, stock_bajo, categoria_id } = req.query;
+      const { 
+        page = 1, 
+        limit = 10, 
+        sucursal_id, 
+        stock_bajo, 
+        categoria_id,
+        q 
+      } = req.query;
 
-      // Simular inventario
-      const inventarioDemo = [
-        {
-          id: 1,
-          stock_actual: 25,
-          stock_minimo: 5,
-          stock_maximo: 50,
-          ubicacion: 'Estante A1-Superior',
-          producto: {
-            id: 1,
-            nombre: 'Taladro Eléctrico DeWalt 20V',
-            codigo_sku: 'DW-TAL-20V-001',
-            categoria: { id: 1, nombre: 'Herramientas Eléctricas' },
-            marca: { id: 1, nombre: 'DeWalt' }
-          },
-          sucursal: {
-            id: 1,
-            nombre: 'FERREMAS Centro'
-          }
-        },
-        {
-          id: 2,
-          stock_actual: 3, // Stock bajo
-          stock_minimo: 5,
-          stock_maximo: 30,
-          ubicacion: 'Estante A2-Centro',
-          producto: {
-            id: 2,
-            nombre: 'Sierra Circular Bosch 7.25"',
-            codigo_sku: 'BSH-SIE-725-001',
-            categoria: { id: 1, nombre: 'Herramientas Eléctricas' },
-            marca: { id: 3, nombre: 'Bosch' }
-          },
-          sucursal: {
-            id: 1,
-            nombre: 'FERREMAS Centro'
-          }
-        }
+      const offset = (page - 1) * limit;
+      let whereClause = {};
+      let includeClause = [
+        { model: Producto, as: 'producto', include: [
+            { model: Categoria, as: 'categoria' },
+            { model: Marca, as: 'marca' }
+        ]},
+        { model: Sucursal, as: 'sucursal' }
       ];
 
-      let inventarioFiltrado = inventarioDemo;
-
-      // Filtrar por stock bajo
-      if (stock_bajo === 'true') {
-        inventarioFiltrado = inventarioDemo.filter(item => item.stock_actual <= item.stock_minimo);
-      }
-
-      // Filtrar por sucursal
       if (sucursal_id) {
-        inventarioFiltrado = inventarioFiltrado.filter(item => item.sucursal.id == sucursal_id);
+        whereClause.sucursal_id = sucursal_id;
       }
+      if (stock_bajo === 'true') {
+        whereClause.stock_actual = { [Op.lte]: sequelize.col('stock_minimo') };
+      }
+      if (categoria_id) {
+        includeClause[0].where = { categoria_id: categoria_id };
+      }
+      if (q) {
+        includeClause[0].where = {
+          ...includeClause[0].where,
+          [Op.or]: [
+            { nombre: { [Op.like]: `%${q}%` } },
+            { codigo_sku: { [Op.like]: `%${q}%` } }
+          ]
+        };
+      }
+
+      const { count, rows: inventario } = await Inventario.findAndCountAll({
+        where: whereClause,
+        include: includeClause,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['updated_at', 'DESC']]
+      });
 
       res.json(formatearRespuesta(
         'Inventario obtenido exitosamente',
-        inventarioFiltrado,
+        inventario,
         {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: inventarioFiltrado.length,
-          totalPages: Math.ceil(inventarioFiltrado.length / limit)
+          current_page: parseInt(page),
+          total_pages: Math.ceil(count / limit),
+          total_items: count,
+          items_per_page: parseInt(limit)
         }
       ));
     } catch (error) {
       console.error('Error al listar inventario:', error);
-      res.status(500).json(formatearError('Error interno del servidor'));
+      res.status(500).json(formatearError('Error interno del servidor', error));
     }
   }
 
-  // Actualizar stock
-  async actualizarStock(req, res) {
+  /**
+   * Registrar un nuevo movimiento de inventario (entrada, salida, ajuste).
+   */
+  async registrarMovimiento(req, res) {
     try {
-      const { id } = req.params;
-      const { stock_actual, ubicacion, observaciones } = req.body;
+      const {
+        inventario_id,
+        tipo,
+        cantidad,
+        motivo,
+        observaciones
+      } = req.body;
+      
+      const usuario_id = req.usuario.id;
 
-      if (stock_actual === undefined || stock_actual < 0) {
-        return res.status(400).json(formatearError('Stock actual debe ser un número no negativo'));
+      if (!['entrada', 'salida', 'ajuste'].includes(tipo)) {
+        return res.status(400).json(formatearError('Tipo de movimiento no válido.'));
       }
 
-      // Simular actualización
-      const inventarioActualizado = {
-        id: parseInt(id),
-        stock_actual: parseInt(stock_actual),
-        ubicacion: ubicacion || 'Sin ubicación',
-        observaciones: observaciones || null,
-        updated_at: new Date().toISOString(),
-        producto: {
-          id: 1,
-          nombre: 'Taladro Eléctrico DeWalt 20V'
-        },
-        sucursal: {
-          id: 1,
-          nombre: 'FERREMAS Centro'
-        }
-      };
+      const movimiento = await MovimientoInventario.crearMovimiento({
+        inventario_id,
+        tipo,
+        cantidad,
+        motivo,
+        observaciones,
+        usuario_id
+      });
 
-      res.json(formatearRespuesta(
-        'Stock actualizado exitosamente',
-        inventarioActualizado
+      res.status(201).json(formatearRespuesta(
+        'Movimiento de inventario registrado exitosamente',
+        movimiento
       ));
     } catch (error) {
-      console.error('Error al actualizar stock:', error);
-      res.status(500).json(formatearError('Error interno del servidor'));
+      console.error('Error al registrar movimiento:', error);
+      res.status(400).json(formatearError(error.message));
     }
   }
 
-  // Alerta de stock bajo
+  /**
+   * Obtener el historial de movimientos de un item de inventario.
+   */
+  async obtenerHistorialProducto(req, res) {
+    try {
+      const { inventario_id } = req.params;
+      const { page = 1, limit = 15 } = req.query;
+      const offset = (page - 1) * limit;
+
+      const { count, rows: historial } = await MovimientoInventario.findAndCountAll({
+        where: { inventario_id },
+        include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'email'] }],
+        order: [['fecha', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+
+      res.json(formatearRespuesta(
+        'Historial de movimientos obtenido exitosamente',
+        historial,
+        {
+          current_page: parseInt(page),
+          total_pages: Math.ceil(count / limit),
+          total_items: count,
+          items_per_page: parseInt(limit)
+        }
+      ));
+    } catch (error) {
+      console.error('Error al obtener historial:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
+    }
+  }
+
+  /**
+   * Obtener productos con stock bajo.
+   */
   async alertaStockBajo(req, res) {
     try {
-      // Simular productos con stock bajo
-      const stockBajo = [
-        {
-          id: 2,
-          stock_actual: 3,
-          stock_minimo: 5,
-          ubicacion: 'Estante A2-Centro',
-          producto: {
-            id: 2,
-            nombre: 'Sierra Circular Bosch 7.25"',
-            codigo_sku: 'BSH-SIE-725-001'
-          },
-          sucursal: {
-            id: 1,
-            nombre: 'FERREMAS Centro'
-          },
-          diferencia: -2 // Stock actual - Stock mínimo
-        }
-      ];
-
+      const { sucursal_id } = req.query;
+      const productosBajos = await Inventario.getProductosStockBajo(sucursal_id);
+      
       res.json(formatearRespuesta(
         'Productos con stock bajo obtenidos exitosamente',
-        stockBajo
+        productosBajos
       ));
     } catch (error) {
-      console.error('Error al obtener alertas:', error);
-      res.status(500).json(formatearError('Error interno del servidor'));
-    }
-  }
-
-  // Obtener stock por producto
-  async obtenerStockProducto(req, res) {
-    try {
-      const { producto_id } = req.params;
-      const { sucursal_id } = req.query;
-
-      // Simular stock del producto
-      const stockProducto = [
-        {
-          id: 1,
-          producto_id: parseInt(producto_id),
-          sucursal_id: 1,
-          stock_actual: 25,
-          stock_minimo: 5,
-          stock_maximo: 50,
-          ubicacion: 'Estante A1-Superior',
-          producto: {
-            id: parseInt(producto_id),
-            nombre: 'Taladro Eléctrico DeWalt 20V',
-            codigo_sku: 'DW-TAL-20V-001'
-          },
-          sucursal: {
-            id: 1,
-            nombre: 'FERREMAS Centro'
-          }
-        }
-      ];
-
-      let stockFiltrado = stockProducto;
-      if (sucursal_id) {
-        stockFiltrado = stockProducto.filter(s => s.sucursal_id == sucursal_id);
-      }
-
-      res.json(formatearRespuesta(
-        'Stock del producto obtenido exitosamente',
-        stockFiltrado
-      ));
-    } catch (error) {
-      console.error('Error al obtener stock:', error);
-      res.status(500).json(formatearError('Error interno del servidor'));
+      console.error('Error al obtener alertas de stock bajo:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
     }
   }
 }

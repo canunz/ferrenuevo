@@ -1,7 +1,14 @@
 const express = require('express');
-const routerInventario = express.Router();
+const router = express.Router();
 const inventarioController = require('../controllers/inventario.controller');
-const auth = require('../middleware/auth');
+const { verificarToken, verificarRol } = require('../middleware/auth');
+
+/**
+ * @swagger
+ * tags:
+ *   name: Inventario
+ *   description: Gestión de inventario, movimientos y alertas de stock
+ */
 
 /**
  * @swagger
@@ -13,90 +20,126 @@ const auth = require('../middleware/auth');
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: sucursal_id
- *         schema:
- *           type: integer
+ *         name: page
+ *         schema: { type: integer, default: 1 }
  *       - in: query
- *         name: stock_bajo
- *         schema:
- *           type: boolean
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *       - in: query
+ *         name: sucursal_id
+ *         schema: { type: integer }
  *       - in: query
  *         name: categoria_id
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: stock_bajo
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: q
+ *         description: "Buscar por nombre o SKU del producto"
+ *         schema: { type: string }
  *     responses:
  *       200:
  *         description: Inventario obtenido exitosamente
  */
-routerInventario.get('/', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero', 'vendedor']), inventarioController.listarInventario);
+router.get(
+  '/',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero', 'vendedor']),
+  inventarioController.listarInventario
+);
 
 /**
  * @swagger
- * /api/v1/inventario/{id}:
- *   put:
- *     summary: Actualizar stock
+ * /api/v1/inventario/movimientos:
+ *   post:
+ *     summary: Registrar un nuevo movimiento de inventario
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [inventario_id, tipo, cantidad, motivo]
  *             properties:
- *               stock_actual:
+ *               inventario_id:
  *                 type: integer
- *                 example: 25
- *               ubicacion:
+ *               tipo:
  *                 type: string
- *                 example: "Estante A1-Superior"
+ *                 enum: [entrada, salida, ajuste]
+ *               cantidad:
+ *                 type: integer
+ *               motivo:
+ *                 type: string
  *               observaciones:
  *                 type: string
  *     responses:
- *       200:
- *         description: Stock actualizado exitosamente
+ *       201:
+ *         description: Movimiento registrado exitosamente
+ *       400:
+ *         description: Datos inválidos
  */
-routerInventario.put('/:id', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), inventarioController.actualizarStock);
+router.post(
+  '/movimientos',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.registrarMovimiento
+);
 
 /**
  * @swagger
- * /api/v1/inventario/producto/{producto_id}:
+ * /api/v1/inventario/historial/{inventario_id}:
  *   get:
- *     summary: Obtener stock por producto
+ *     summary: Obtener el historial de movimientos de un item de inventario
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: producto_id
+ *         name: inventario_id
  *         required: true
- *         schema:
- *           type: integer
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 15 }
  *     responses:
  *       200:
- *         description: Stock del producto obtenido exitosamente
+ *         description: Historial obtenido exitosamente
  */
-routerInventario.get('/producto/:producto_id', auth.verificarToken, inventarioController.obtenerStockProducto);
+router.get(
+  '/historial/:inventario_id',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.obtenerHistorialProducto
+);
 
 /**
  * @swagger
- * /api/v1/inventario/alertas/stock-bajo:
+ * /api/v1/inventario/alertas:
  *   get:
  *     summary: Obtener productos con stock bajo
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: sucursal_id
+ *         schema: { type: integer }
  *     responses:
  *       200:
- *         description: Productos con stock bajo obtenidos exitosamente
+ *         description: Alertas de stock bajo obtenidas exitosamente
  */
-routerInventario.get('/alertas/stock-bajo', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), inventarioController.alertaStockBajo);
+router.get(
+  '/alertas',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.alertaStockBajo
+);
 
-module.exports = routerInventario;
+module.exports = router;

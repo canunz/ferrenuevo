@@ -65,7 +65,7 @@ const ConfirmacionPago = () => {
       try {
         // Crear transacción con Transbank
         const transaccionData = {
-          monto: total,
+          monto: Math.round(total),
           ordenCompra: `ORD-${Date.now()}`,
           sessionId: `session-${Date.now()}`,
           returnUrl: `${window.location.origin}/pago-exitoso`,
