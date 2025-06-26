@@ -8,7 +8,9 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   BuildingOfficeIcon,
-  UserIcon
+  UserIcon,
+  TrashIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 import { servicioClientes } from '../../servicios/servicioClientes';
 
@@ -119,18 +121,6 @@ const ListaClientes = () => {
         </div>
         
         <select
-          value={filtros.segmento}
-          onChange={(e) => setFiltros({...filtros, segmento: e.target.value})}
-          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
-        >
-          <option value="">Todos los segmentos</option>
-          <option value="retail">Retail</option>
-          <option value="profesional">Profesional</option>
-          <option value="empresa">Empresa</option>
-          <option value="vip">VIP</option>
-        </select>
-
-        <select
           value={filtros.tipo_cliente}
           onChange={(e) => setFiltros({...filtros, tipo_cliente: e.target.value})}
           className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
@@ -166,7 +156,7 @@ const ListaClientes = () => {
                         Contacto
                       </th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Segmento
+                        Tipo
                       </th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Crédito
@@ -213,10 +203,8 @@ const ListaClientes = () => {
                             )}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                          <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getSegmentoBadgeColor(cliente.segmento)}`}>
-                            {cliente.segmento?.toUpperCase() || 'RETAIL'}
-                          </span>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
+                          {cliente.tipo_cliente === 'empresa' ? 'Empresa' : 'Persona'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           <div>
@@ -233,6 +221,36 @@ const ListaClientes = () => {
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/clientes/editar/${cliente.id}`);
+                            }}
+                            className="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:text-blue-800 mr-2"
+                            title="Editar cliente"
+                          >
+                            <PencilIcon className="h-5 w-5 mr-1" /> Editar
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
+                                try {
+                                  await servicioClientes.eliminar(cliente.id);
+                                  alert('Cliente eliminado exitosamente');
+                                  cargarClientes();
+                                } catch (error) {
+                                  alert('Error al eliminar el cliente');
+                                }
+                              }
+                            }}
+                            className="inline-flex items-center px-2 py-1 text-sm text-red-600 hover:text-red-800"
+                            title="Eliminar cliente"
+                          >
+                            <TrashIcon className="h-5 w-5 mr-1" /> Eliminar
+                          </button>
                         </td>
                       </tr>
                     ))}

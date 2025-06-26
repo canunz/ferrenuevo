@@ -19,10 +19,6 @@ const PaginaClientes = () => {
             Administra tu base de clientes
           </p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-          <PlusIcon className="w-5 h-5" />
-          <span>Nuevo Cliente</span>
-        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">

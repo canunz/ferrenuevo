@@ -3,14 +3,18 @@ import api from './api';
 export const servicioClientes = {
   // Obtener todos los clientes
   obtenerTodos: async (params = {}) => {
-    const response = await api.get('/clientes', { params });
+    // Filtra los parámetros vacíos
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== '')
+    );
+    const response = await api.get('/clientes', { params: cleanParams });
     return response.data;
   },
 
   // Obtener cliente por ID
   obtenerPorId: async (id) => {
     const response = await api.get(`/clientes/${id}`);
-    return response.data;
+    return response.data.data;
   },
 
   // Crear nuevo cliente

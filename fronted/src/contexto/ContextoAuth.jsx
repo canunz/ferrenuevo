@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { servicioAuth } from '../servicios/servicioAuth';
 
 const ContextoAuth = createContext();
 
@@ -30,29 +31,18 @@ export const AuthProvider = ({ children }) => {
     setCargando(true);
     
     try {
-      // Simular autenticación (aquí conectarías con tu backend)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Credenciales de ejemplo
-      if (credenciales.email === 'admin@ferremas.cl' && credenciales.password === 'password123') {
-        const usuarioData = {
-          id: 1,
-          nombre: 'Administrador FERREMAS',
-          email: 'admin@ferremas.cl',
-          rol: 'administrador',
-          avatar: null
-        };
-        
-        setUsuario(usuarioData);
-        localStorage.setItem('usuario', JSON.stringify(usuarioData));
-        localStorage.setItem('token', 'fake-jwt-token');
-        
+      const response = await servicioAuth.iniciarSesion(credenciales);
+      const data = response.data;
+      if (data && data.token && data.usuario) {
+        setUsuario(data.usuario);
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        localStorage.setItem('token', data.token);
         return { exito: true };
       } else {
-        return { exito: false, mensaje: 'Credenciales incorrectas' };
+        return { exito: false, mensaje: response?.message || 'Credenciales incorrectas' };
       }
     } catch (error) {
-      return { exito: false, mensaje: 'Error en el servidor' };
+      return { exito: false, mensaje: error?.response?.data?.mensaje || 'Error en el servidor' };
     } finally {
       setCargando(false);
     }

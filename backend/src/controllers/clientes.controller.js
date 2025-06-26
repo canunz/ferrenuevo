@@ -6,7 +6,6 @@ const {
     DireccionEnvio, 
     HistorialCompras, 
     PreferenciasCliente,
-    SegmentacionClientes,
     ComunicacionesCliente,
     Pedido,
     DetallePedido,
@@ -191,13 +190,25 @@ async listarClientes(req, res) {
 
 async listarClientes(req, res) {
   try {
-    // Solo buscar usuarios con rol cliente
     const rolCliente = await Rol.findOne({ where: { nombre: 'cliente' } });
-    
+    const where = { rol_id: rolCliente ? rolCliente.id : 3 };
+
+    // Filtro de búsqueda
+    if (req.query.busqueda) {
+      where[Op.or] = [
+        { nombre: { [Op.like]: `%${req.query.busqueda}%` } },
+        { email: { [Op.like]: `%${req.query.busqueda}%` } },
+        { telefono: { [Op.like]: `%${req.query.busqueda}%` } },
+        { rut: { [Op.like]: `%${req.query.busqueda}%` } }
+      ];
+    }
+    // Filtro de tipo_cliente
+    if (req.query.tipo_cliente) {
+      where.tipo_cliente = req.query.tipo_cliente;
+    }
+
     const usuarios = await Usuario.findAll({
-      where: { 
-        rol_id: rolCliente ? rolCliente.id : 3 
-      },
+      where,
       include: [
         {
           model: DireccionEnvio,
@@ -254,14 +265,8 @@ async listarClientes(req, res) {
               as: 'preferencias',
               include: [
                 { model: Categoria, as: 'categoria_preferida' },
-                { model: Marca, as: 'marca_preferida' }
+                { model: Marca, as: 'marca_preferida', attributes: ['id', 'nombre', 'descripcion', 'activo', 'created_at', 'updated_at'] }
               ],
-              required: false
-            },
-            {
-              model: SegmentacionClientes,
-              as: 'segmentos',
-              through: { attributes: [] },
               required: false
             },
             {
@@ -279,14 +284,14 @@ async listarClientes(req, res) {
         }
   
         // Obtener estadísticas completas
-        const estadisticas = await this.obtenerEstadisticasCompletas(cliente.id);
+        const estadisticas = await ClientesController.prototype.obtenerEstadisticasCompletas(cliente.id);
   
         res.json(formatearRespuesta(
-          'Cliente obtenido exitosamente',
           {
             ...cliente.toJSON(),
             estadisticas
-          }
+          },
+          'Cliente obtenido exitosamente'
         ));
   
       } catch (error) {
@@ -686,65 +691,6 @@ async listarClientes(req, res) {
     }
   
     // =====================
-    // SEGMENTACIÓN
-    // =====================
-  
-    // Aplicar segmentación automática
-    async aplicarSegmentacion(req, res) {
-      try {
-        const { clienteId } = req.params;
-  
-        // Obtener estadísticas del cliente
-        const estadisticas = await this.obtenerEstadisticasCompletas(clienteId);
-  
-        // Aplicar reglas de segmentación
-        const segmentosAplicables = [];
-  
-        // VIP: más de 1M en compras
-        if (estadisticas.compras.monto_total > 1000000) {
-          const segmentoVIP = await SegmentacionClientes.findOne({
-            where: { nombre: 'VIP' }
-          });
-          if (segmentoVIP) segmentosAplicables.push(segmentoVIP.id);
-        }
-  
-        // Frecuente: más de 6 compras en 3 meses
-        if (estadisticas.compras.ultimos_3_meses >= 6) {
-          const segmentoFrecuente = await SegmentacionClientes.findOne({
-            where: { nombre: 'Frecuente' }
-          });
-          if (segmentoFrecuente) segmentosAplicables.push(segmentoFrecuente.id);
-        }
-  
-        // En riesgo: sin compras en 90 días
-        if (estadisticas.compras.dias_sin_comprar > 90) {
-          const segmentoRiesgo = await SegmentacionClientes.findOne({
-            where: { nombre: 'En Riesgo' }
-          });
-          if (segmentoRiesgo) segmentosAplicables.push(segmentoRiesgo.id);
-        }
-  
-        // Actualizar segmentos del cliente
-        const cliente = await Usuario.findByPk(clienteId);
-        if (cliente) {
-          await cliente.setSegmentos(segmentosAplicables);
-        }
-  
-        res.json(formatearRespuesta(
-          'Segmentación aplicada exitosamente',
-          {
-            segmentos_aplicados: segmentosAplicables.length,
-            estadisticas
-          }
-        ));
-  
-      } catch (error) {
-        console.error('Error al aplicar segmentación:', error);
-        res.status(500).json(formatearError('Error interno del servidor'));
-      }
-    }
-  
-    // =====================
     // COMUNICACIONES
     // =====================
   
@@ -961,6 +907,20 @@ async listarClientes(req, res) {
         productos_favoritos: productosFavoritos,
         categorias_preferidas: categoriasPreferidas
       };
+    }
+
+    async eliminarCliente(req, res) {
+      try {
+        const { id } = req.params;
+        const cliente = await Usuario.findByPk(id);
+        if (!cliente) {
+          return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
+        }
+        await cliente.destroy();
+        res.json({ success: true, message: 'Cliente eliminado exitosamente' });
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Error al eliminar cliente' });
+      }
     }
   }
   

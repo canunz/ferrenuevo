@@ -36,6 +36,8 @@ import { useAuth } from './contexto/ContextoAuth';
 
 import TestBackend from './componentes/TestBackend';
 import DetalleProducto from './componentes/productos/DetalleProducto';
+import DetalleCliente from './componentes/clientes/DetalleCliente';
+import FormularioCliente from './componentes/clientes/FormularioCliente';
 
 // Wrapper para cargar el producto por ID y pasarlo a DetalleProducto
 import { useParams } from 'react-router-dom';
@@ -229,16 +231,49 @@ const ContenidoPrincipal = () => {
           } 
         />
 
-<Route 
-  path="/clientes" 
-  element={
-    <RutaProtegida>
-      <LayoutAdmin>
-        <PaginaClientes />
-      </LayoutAdmin>
-    </RutaProtegida>
-  } 
-/>
+        <Route 
+          path="/clientes" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaClientes />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        <Route 
+          path="/clientes/:id" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <DetalleCliente />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        <Route 
+          path="/clientes/nuevo" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <FormularioCliente />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        <Route 
+          path="/clientes/editar/:id" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <FormularioCliente modoEdicion={true} />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
 
         <Route 
           path="/proveedores" 

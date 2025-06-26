@@ -16,7 +16,6 @@ const HistorialPrecio = require('./HistorialPrecio');
 const DireccionEnvio = require('./DireccionEnvio');
 const HistorialCompras = require('./HistorialCompras');
 const PreferenciasCliente = require('./PreferenciasCliente');
-const SegmentacionClientes = require('./SegmentacionClientes');
 const ComunicacionesCliente = require('./ComunicacionesCliente');
 
 // DEFINIR TODAS LAS ASOCIACIONES CORRECTAMENTE
@@ -195,20 +194,6 @@ ComunicacionesCliente.belongsTo(Usuario, {
   as: 'usuario' 
 });
 
-// Usuario - Segmentación (Muchos a Muchos)
-Usuario.belongsToMany(SegmentacionClientes, { 
-  through: 'usuario_segmentos',
-  foreignKey: 'usuario_id',
-  otherKey: 'segmento_id',
-  as: 'segmentos' 
-});
-SegmentacionClientes.belongsToMany(Usuario, { 
-  through: 'usuario_segmentos',
-  foreignKey: 'segmento_id',
-  otherKey: 'usuario_id',
-  as: 'usuarios' 
-});
-
 console.log('✅ Asociaciones de modelos configuradas correctamente');
 
 // Exportar todos los modelos y sequelize
@@ -229,6 +214,5 @@ module.exports = {
   DireccionEnvio,
   HistorialCompras,
   PreferenciasCliente,
-  SegmentacionClientes,
   ComunicacionesCliente
 };

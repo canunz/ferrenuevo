@@ -7,6 +7,18 @@ const api = axios.create({
   }
 });
 
+// Agrega el token a cada petición si existe
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const testBackendConnection = async () => {
   try {
     const response = await api.get('/');

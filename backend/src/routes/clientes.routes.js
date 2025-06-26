@@ -161,8 +161,8 @@ router.post('/',
   [
     body('nombre').notEmpty().trim(),
     body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 }),
-    body('telefono').optional().isMobilePhone('es-CL'),
+    body('password').optional().isLength({ min: 6 }),
+    body('telefono').optional().isString().notEmpty(),
     body('rut').optional().trim(),
     body('tipo_cliente').optional().isIn(['persona', 'empresa']),
     body('segmento').optional().isIn(['retail', 'profesional', 'empresa', 'vip'])
@@ -187,7 +187,7 @@ router.put('/:id',
   [
     body('nombre').optional().notEmpty().trim(),
     body('email').optional().isEmail().normalizeEmail(),
-    body('telefono').optional().isMobilePhone('es-CL'),
+    body('telefono').optional().isString().notEmpty(),
     body('tipo_cliente').optional().isIn(['persona', 'empresa']),
     body('segmento').optional().isIn(['retail', 'profesional', 'empresa', 'vip']),
     body('credito_disponible').optional().isFloat({ min: 0 }),
@@ -195,6 +195,23 @@ router.put('/:id',
   ],
   validarResultados,
   clientesController.actualizarCliente
+);
+
+/**
+ * @swagger
+ * /api/v1/clientes/{id}:
+ *   delete:
+ *     summary: Eliminar cliente
+ *     tags: [Clientes]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/:id',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  param('id').isInt(),
+  validarResultados,
+  clientesController.eliminarCliente
 );
 
 // =====================
@@ -365,27 +382,6 @@ router.put('/:clienteId/preferencias',
   ],
   validarResultados,
   clientesController.actualizarPreferencias
-);
-
-// =====================
-// RUTAS DE SEGMENTACIÓN
-// =====================
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/aplicar-segmentacion:
- *   post:
- *     summary: Aplicar segmentación automática
- *     tags: [Clientes - Segmentación]
- *     security:
- *       - bearerAuth: []
- */
-router.post('/:clienteId/aplicar-segmentacion',
-  verificarToken,
-  verificarRol(['administrador']),
-  validarClienteId,
-  validarResultados,
-  clientesController.aplicarSegmentacion
 );
 
 // =====================

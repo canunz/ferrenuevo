@@ -73,10 +73,6 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.ENUM('masculino', 'femenino', 'otro', 'no_especifica'),
     defaultValue: 'no_especifica'
   },
-  segmento: {
-    type: DataTypes.ENUM('retail', 'profesional', 'empresa', 'vip'),
-    defaultValue: 'retail'
-  },
   credito_disponible: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0
