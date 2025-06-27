@@ -42,4 +42,10 @@ export const servicioClientes = {
     const response = await api.get(`/clientes/${id}/historial`);
     return response.data;
   },
+
+  listar: () => api.get('/clientes'),
+  obtenerPorId: (id) => api.get(`/clientes/${id}`),
+  crear: (datos) => api.post('/clientes', datos),
+  actualizar: (id, datos) => api.put(`/clientes/${id}`, datos),
+  eliminar: (id) => api.delete(`/clientes/${id}`)
 };

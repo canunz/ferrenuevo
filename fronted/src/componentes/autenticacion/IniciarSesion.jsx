@@ -29,11 +29,12 @@ const IniciarSesion = () => {
 
   const onSubmit = async (data) => {
     const resultado = await iniciarSesion(data);
+    console.log('Resultado login:', resultado);
     if (resultado.exito) {
       exito('¡Bienvenido a FERREMAS!');
       navigate('/tablero');
     } else {
-      error(resultado.mensaje || 'Error al iniciar sesión');
+      error(resultado.mensaje || resultado.error || 'Error al iniciar sesión');
     }
   };
 

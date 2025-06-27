@@ -3,57 +3,63 @@ const sequelize = require('./src/config/database');
 const Usuario = require('./src/models/Usuario');
 const Rol = require('./src/models/Rol');
 
-async function crearUsuarioFerremasnueva() {
+async function crearUsuariosIniciales() {
   try {
     // Conectar a la base de datos
     await sequelize.authenticate();
     console.log('✅ Conexión a la base de datos establecida');
 
-    // Verificar si el usuario ya existe
-    const usuarioExistente = await Usuario.findOne({
-      where: { email: 'ferremasnueva@ferremas.cl' }
-    });
+    // Buscar roles
+    const rolAdmin = await Rol.findOne({ where: { nombre: 'administrador' } });
+    const rolCliente = await Rol.findOne({ where: { nombre: 'cliente' } });
 
-    if (usuarioExistente) {
-      console.log('⚠️ El usuario ferremasnueva ya existe');
-      console.log('📧 Email: ferremasnueva@ferremas.cl');
-      console.log('🔑 Contraseña: emma2004');
+    if (!rolAdmin || !rolCliente) {
+      console.log('❌ No se encontraron los roles necesarios');
       return;
     }
 
-    // Buscar el rol de cliente
-    const rolCliente = await Rol.findOne({
-      where: { nombre: 'cliente' }
-    });
+    // Usuarios a crear
+    const usuarios = [
+      {
+        nombre: 'Cata Soledad',
+        email: 'catasoledad256@gmail.com',
+        password: 'emma2004',
+        rol_id: rolAdmin.id,
+        rol: 'Administrador'
+      },
+      {
+        nombre: 'Alex B',
+        email: 'alexb321401@gmail.com',
+        password: 'juanito2004',
+        rol_id: rolCliente.id,
+        rol: 'Cliente'
+      }
+    ];
 
-    if (!rolCliente) {
-      console.log('❌ No se encontró el rol de cliente');
-      return;
+    for (const u of usuarios) {
+      // Verificar si el usuario ya existe
+      const usuarioExistente = await Usuario.findOne({ where: { email: u.email } });
+      if (usuarioExistente) {
+        console.log(`⚠️ El usuario ${u.email} ya existe`);
+        continue;
+      }
+      // Hashear la contraseña
+      const passwordHash = await bcrypt.hash(u.password, 10);
+      // Crear el usuario
+      await Usuario.create({
+        nombre: u.nombre,
+        email: u.email,
+        password: passwordHash,
+        rol_id: u.rol_id,
+        activo: true
+      });
+      console.log(`✅ Usuario creado: ${u.email} (${u.rol})`);
     }
-
-    // Hashear la contraseña
-    const passwordHash = await bcrypt.hash('emma2004', 10);
-
-    // Crear el usuario
-    const nuevoUsuario = await Usuario.create({
-      nombre: 'Ferremas Nueva',
-      email: 'ferremasnueva@ferremas.cl',
-      password: passwordHash,
-      rol_id: rolCliente.id,
-      activo: true
-    });
-
-    console.log('✅ Usuario creado exitosamente');
-    console.log('📧 Email: ferremasnueva@ferremas.cl');
-    console.log('🔑 Contraseña: emma2004');
-    console.log('👤 Nombre: Ferremas Nueva');
-    console.log('🎭 Rol: Cliente');
-
   } catch (error) {
-    console.error('❌ Error al crear usuario:', error);
+    console.error('❌ Error al crear usuarios:', error);
   } finally {
     await sequelize.close();
   }
 }
 
-crearUsuarioFerremasnueva(); 
+crearUsuariosIniciales(); 

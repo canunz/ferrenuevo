@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -12,7 +12,22 @@ import {
 const PagoExitoso = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { ordenCompra, monto, fecha } = location.state || {};
+  const [detalle, setDetalle] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token_ws');
+    if (token) {
+      fetch('/api/v1/transbank/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token_ws: token })
+      })
+        .then(res => res.json())
+        .then(data => setDetalle(data.message || data))
+        .catch(() => setDetalle({ error: 'No se pudo obtener el detalle del pago' }));
+    }
+  }, [location.search]);
 
   const formatearPrecio = (precio) => {
     return new Intl.NumberFormat('es-CL', {
@@ -23,6 +38,7 @@ const PagoExitoso = () => {
   };
 
   const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
     return new Date(fecha).toLocaleDateString('es-CL', {
       year: 'numeric',
       month: 'long',
@@ -31,6 +47,9 @@ const PagoExitoso = () => {
       minute: '2-digit'
     });
   };
+
+  if (!detalle) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  if (detalle.error) return <div className="min-h-screen flex items-center justify-center text-red-600">{detalle.error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
@@ -60,7 +79,7 @@ const PagoExitoso = () => {
                 <ShoppingBagIcon className="h-5 w-5 text-blue-600 mr-2" />
                 <span className="text-gray-700">Orden de Compra:</span>
               </div>
-              <span className="font-medium text-gray-900">{ordenCompra || 'N/A'}</span>
+              <span className="font-medium text-gray-900">{detalle.orden_compra || detalle.ordenCompra || 'N/A'}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -69,7 +88,7 @@ const PagoExitoso = () => {
                 <span className="text-gray-700">Monto Total:</span>
               </div>
               <span className="font-bold text-green-600">
-                {monto ? formatearPrecio(monto) : 'N/A'}
+                {detalle.monto ? formatearPrecio(detalle.monto) : 'N/A'}
               </span>
             </div>
 
@@ -79,7 +98,7 @@ const PagoExitoso = () => {
                 <span className="text-gray-700">Fecha:</span>
               </div>
               <span className="font-medium text-gray-900">
-                {fecha ? formatearFecha(fecha) : 'N/A'}
+                {detalle.fecha ? formatearFecha(detalle.fecha) : 'N/A'}
               </span>
             </div>
           </div>

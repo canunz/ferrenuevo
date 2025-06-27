@@ -6,7 +6,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/pagos/crear-preferencia', {
         method: 'POST',
-        body: JSON.stringify({ items, comprador })
+        body: { items, comprador }
       });
       return response;
     } catch (error) {
@@ -20,7 +20,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/pagos/procesar-exitoso', {
         method: 'POST',
-        body: JSON.stringify({ paymentId, preferenceId })
+        body: { paymentId, preferenceId }
       });
       return response;
     } catch (error) {
@@ -34,7 +34,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/pagos/procesar-fallido', {
         method: 'POST',
-        body: JSON.stringify({ paymentId, preferenceId, error })
+        body: { paymentId, preferenceId, error }
       });
       return response;
     } catch (error) {
@@ -48,7 +48,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/transbank/crear', {
         method: 'POST',
-        body: JSON.stringify(datosTransaccion)
+        body: datosTransaccion
       });
       return response;
     } catch (error) {
@@ -62,7 +62,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/transbank/confirmar', {
         method: 'POST',
-        body: JSON.stringify({ token_ws: token })
+        body: { token_ws: token }
       });
       return response;
     } catch (error) {
@@ -87,7 +87,7 @@ export const servicioPagos = {
     try {
       const response = await apiRequest('/transbank/reembolsar', {
         method: 'POST',
-        body: JSON.stringify({ token, monto })
+        body: { token, monto }
       });
       return response;
     } catch (error) {

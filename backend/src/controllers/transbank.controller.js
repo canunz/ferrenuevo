@@ -1,5 +1,6 @@
 const { WebpayPlus, Options, Environment } = require('transbank-sdk');
 const { Pedido, Pago, sequelize } = require('../models'); // Importamos modelos y sequelize
+const { formatearRespuesta, formatearError } = require('../utils/helpers');
 
 // Configuración de Transbank para ambiente de integración
 const options = new Options(
@@ -10,8 +11,9 @@ const options = new Options(
 
 const transaction = new WebpayPlus.Transaction(options);
 
-// Crear transacción Webpay
+// Crear transacción Webpay y guardar pedido pendiente
 exports.crearTransaccion = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { 
             monto,
@@ -24,15 +26,35 @@ exports.crearTransaccion = async (req, res) => {
             metodoPago
         } = req.body;
 
-        // Validar datos requeridos
-        if (!monto || !ordenCompra || !sessionId || !returnUrl) {
-            return res.status(400).json({
-                success: false,
-                error: 'Faltan datos requeridos para crear la transacción'
-            });
+        if (!monto || !ordenCompra || !sessionId || !returnUrl || !items || !cliente) {
+            return res.status(400).json(formatearError('Faltan datos requeridos para crear la transacción'));
         }
 
-        // Crear transacción en Transbank
+        // 1. Crear el pedido en la base de datos
+        const pedido = await Pedido.create({
+            numero_pedido: ordenCompra,
+            usuario_id: cliente.id, // Asegúrate de enviar el id del usuario en "cliente"
+            estado: 'pendiente',
+            subtotal: monto, // Puedes calcular subtotal real si tienes descuentos, etc.
+            total: monto,
+            metodo_entrega: metodoEntrega === 'despacho' ? 'despacho_domicilio' : 'retiro_tienda',
+            direccion_entrega: cliente.direccion || '',
+            observaciones: ''
+        }, { transaction: t });
+
+        // 2. Guardar los detalles del pedido
+        const { DetallePedido } = require('../models');
+        for (const item of items) {
+            await DetallePedido.create({
+                pedido_id: pedido.id,
+                producto_id: item.id, // Asegúrate de enviar el id del producto en "items"
+                cantidad: item.cantidad,
+                precio_unitario: item.precio,
+                subtotal: item.precio * item.cantidad
+            }, { transaction: t });
+        }
+
+        // 3. Crear transacción en Transbank
         const resultado = await transaction.create(
             ordenCompra,
             sessionId,
@@ -40,23 +62,21 @@ exports.crearTransaccion = async (req, res) => {
             returnUrl
         );
 
-        res.json({
-            success: true,
-            message: 'Transacción creada exitosamente',
-            data: {
+        await t.commit();
+
+        res.json(formatearRespuesta(
+            'Transacción creada exitosamente',
+            {
                 token: resultado.token,
                 url: resultado.url,
                 orden_compra: ordenCompra
             }
-        });
+        ));
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al crear transacción:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            message: error.message
-        });
+        res.status(500).json(formatearError('Error interno del servidor'));
     }
 };
 
@@ -67,10 +87,7 @@ exports.confirmarTransaccion = async (req, res) => {
         const { token_ws } = req.body;
 
         if (!token_ws) {
-            return res.status(400).json({
-                success: false,
-                error: 'Token de transacción requerido'
-            });
+            return res.status(400).json(formatearError('Token de transacción requerido'));
         }
 
         const resultado = await transaction.commit(token_ws);
@@ -101,36 +118,31 @@ exports.confirmarTransaccion = async (req, res) => {
             
             await t.commit(); // Confirmamos la transacción en nuestra BD
 
-            res.json({
-                success: true,
-                message: 'Pago confirmado y pedido actualizado exitosamente',
-                data: {
+            res.json(formatearRespuesta(
+                'Pago confirmado y pedido actualizado exitosamente',
+                {
                     status: resultado.status,
                     orden_compra: resultado.buyOrder,
                     monto: resultado.amount,
                     pedido_id: pedido.id,
                     nuevo_estado_pedido: pedido.estado
                 }
-            });
+            ));
 
         } else {
             // El pago fue rechazado en Transbank
             await t.rollback(); // Deshacemos cualquier posible cambio en nuestra BD
-            res.json({
-                success: false,
-                message: 'Pago rechazado por Transbank',
-                data: resultado
-            });
+            res.json(formatearRespuesta(
+                'Pago rechazado por Transbank',
+                resultado,
+                false
+            ));
         }
 
     } catch (error) {
         await t.rollback(); // Si algo falla, deshacemos todo
         console.error('Error al confirmar transacción:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor al confirmar el pago',
-            message: error.message
-        });
+        res.status(500).json(formatearError('Error interno del servidor al confirmar el pago'));
     }
 };
 
@@ -141,18 +153,14 @@ exports.obtenerEstadoTransaccion = async (req, res) => {
 
         const resultado = await transaction.status(token);
 
-        res.json({
-            success: true,
-            data: resultado
-        });
+        res.json(formatearRespuesta(
+            'Estado de transacción obtenido exitosamente',
+            resultado
+        ));
 
     } catch (error) {
         console.error('Error al obtener estado de transacción:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            message: error.message
-        });
+        res.status(500).json(formatearError('Error interno del servidor'));
     }
 };
 
@@ -163,18 +171,13 @@ exports.reembolsarTransaccion = async (req, res) => {
 
         const resultado = await transaction.refund(token, monto);
 
-        res.json({
-            success: true,
-            message: 'Reembolso realizado exitosamente',
-            data: resultado
-        });
+        res.json(formatearRespuesta(
+            'Reembolso realizado exitosamente',
+            resultado
+        ));
 
     } catch (error) {
         console.error('Error al reembolsar transacción:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error interno del servidor',
-            message: error.message
-        });
+        res.status(500).json(formatearError('Error interno del servidor'));
     }
 }; 

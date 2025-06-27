@@ -1,8 +1,54 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UsersIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { servicioClientes } from '../servicios/servicioClientes';
+import FormularioCliente from '../componentes/clientes/FormularioCliente';
+import DetalleCliente from '../componentes/clientes/DetalleCliente';
 
 const PaginaClientes = () => {
+  const [clientes, setClientes] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [clienteEditar, setClienteEditar] = useState(null);
+  const [clienteDetalleId, setClienteDetalleId] = useState(null);
+
+  const cargarClientes = () => {
+    setCargando(true);
+    servicioClientes.listar()
+      .then(res => setClientes(res.data))
+      .finally(() => setCargando(false));
+  };
+
+  useEffect(() => {
+    cargarClientes();
+  }, []);
+
+  const handleGuardar = (datos) => {
+    const accion = datos.id ? servicioClientes.actualizar(datos.id, datos) : servicioClientes.crear(datos);
+    accion.then(() => {
+      setMostrarFormulario(false);
+      setClienteEditar(null);
+      cargarClientes();
+    });
+  };
+
+  const handleEliminar = (id) => {
+    if (window.confirm('¿Seguro que deseas eliminar este cliente?')) {
+      servicioClientes.eliminar(id).then(cargarClientes);
+    }
+  };
+
+  if (cargando) return <div className="p-8 text-center">Cargando...</div>;
+
+  if (clienteDetalleId) {
+    return (
+      <DetalleCliente
+        clienteId={clienteDetalleId}
+        onVolver={() => setClienteDetalleId(null)}
+      />
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,6 +77,67 @@ const PaginaClientes = () => {
             Módulo de Gestión de Clientes en desarrollo
           </p>
         </div>
+      </div>
+
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-4">Clientes</h2>
+        <button
+          className="mb-4 bg-green-600 text-white px-4 py-2 rounded"
+          onClick={() => { setMostrarFormulario(true); setClienteEditar(null); }}
+        >
+          Nuevo Cliente
+        </button>
+
+        {mostrarFormulario && (
+          <FormularioCliente
+            clienteInicial={clienteEditar}
+            onGuardar={handleGuardar}
+            onCancelar={() => { setMostrarFormulario(false); setClienteEditar(null); }}
+          />
+        )}
+
+        <table className="min-w-full bg-white mt-4">
+          <thead>
+            <tr>
+              <th className="py-2">ID</th>
+              <th className="py-2">Nombre</th>
+              <th className="py-2">Email</th>
+              <th className="py-2">Teléfono</th>
+              <th className="py-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clientes.map(cliente => (
+              <tr key={cliente.id}>
+                <td className="py-2">{cliente.id}</td>
+                <td className="py-2">
+                  <button
+                    className="text-blue-600 underline"
+                    onClick={() => setClienteDetalleId(cliente.id)}
+                  >
+                    {cliente.nombre}
+                  </button>
+                </td>
+                <td className="py-2">{cliente.email}</td>
+                <td className="py-2">{cliente.telefono}</td>
+                <td className="py-2 flex gap-2">
+                  <button
+                    className="bg-yellow-400 px-2 py-1 rounded"
+                    onClick={() => { setMostrarFormulario(true); setClienteEditar(cliente); }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                    onClick={() => handleEliminar(cliente.id)}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </motion.div>
   );

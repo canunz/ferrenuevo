@@ -70,11 +70,13 @@ const ConfirmacionPago = () => {
           sessionId: `session-${Date.now()}`,
           returnUrl: `${window.location.origin}/pago-exitoso`,
           items: carrito.map(item => ({
+            id: item.id,
             nombre: item.nombre,
             cantidad: item.cantidad,
             precio: item.precio
           })),
           cliente: {
+            id: usuario?.id,
             nombre: formData.nombre,
             email: formData.email,
             telefono: formData.telefono,
@@ -85,14 +87,34 @@ const ConfirmacionPago = () => {
           metodoEntrega,
           metodoPago
         };
+        
+        console.log('🔄 Enviando datos de transacción:', transaccionData);
+        
         const response = await servicioPagos.crearTransaccionTransbank(transaccionData);
-        if (response.success && response.data.url) {
-          window.location.href = response.data.url;
+        
+        console.log('📬 Respuesta de Transbank:', response);
+        
+        if (response.success && response.message && response.message.url && response.message.token) {
+          // Redirección segura a Webpay usando formulario POST
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = response.message.url;
+
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'token_ws';
+          input.value = response.message.token;
+          form.appendChild(input);
+
+          document.body.appendChild(form);
+          form.submit();
         } else {
-          setError('Error al procesar el pago. Inténtalo de nuevo.');
+          console.error('❌ Respuesta inválida de Transbank:', response);
+          setError(`Error al procesar el pago: ${response.message || 'Respuesta inválida del servidor'}`);
         }
       } catch (error) {
-        setError('Error al procesar el pago. Inténtalo de nuevo.');
+        console.error('❌ Error al crear transacción:', error);
+        setError(`Error al procesar el pago: ${error.message || 'Error de conexión'}`);
       } finally {
         setCargando(false);
       }
