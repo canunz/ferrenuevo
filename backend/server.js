@@ -13,6 +13,7 @@ const authRoutes = require('./src/routes/auth.routes');
 const productosRoutes = require('./src/routes/productos.routes');
 const pedidosRoutes = require('./src/routes/pedidos.routes'); // ← NUEVO
 const clientesRoutes = require('./src/routes/clientes.routes')
+const inventarioRoutes = require('./src/routes/inventario.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -171,6 +172,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/productos', productosRoutes);
 app.use('/api/v1/pedidos', pedidosRoutes); // ← NUEVO SISTEMA DE PEDIDOS
 app.use('/api/v1/clientes', clientesRoutes);
+app.use('/api/v1/inventario', inventarioRoutes);
 
 // Manejo de errores 404
 app.use('*', (req, res) => {

@@ -99,4 +99,10 @@ routerInventario.get('/producto/:producto_id', auth.verificarToken, inventarioCo
  */
 routerInventario.get('/alertas/stock-bajo', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), inventarioController.alertaStockBajo);
 
+// Rutas para movimientos de inventario
+routerInventario.post('/ingreso', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), (req, res) => inventarioController.ingresoStock(req, res));
+routerInventario.post('/egreso', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), (req, res) => inventarioController.egresoStock(req, res));
+routerInventario.post('/ajuste', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), (req, res) => inventarioController.ajusteStock(req, res));
+routerInventario.get('/movimientos/:productoId', auth.verificarToken, auth.verificarRol(['administrador', 'bodeguero']), (req, res) => inventarioController.historialMovimientos(req, res));
+
 module.exports = routerInventario;

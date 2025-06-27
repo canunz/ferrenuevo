@@ -255,7 +255,7 @@ async listarClientes(req, res) {
             },
             {
               model: HistorialCompras,
-              as: 'historial_compras',
+              as: 'historialCompras',
               order: [['fecha_compra', 'DESC']],
               limit: 10,
               required: false

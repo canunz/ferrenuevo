@@ -26,6 +26,7 @@ import Seguridad from './paginas/Seguridad';
 import Contacto from './paginas/Contacto';
 import Ofertas from './paginas/Ofertas';
 import PaginaClientes from './paginas/PaginaClientes';
+import PaginaInventario from './paginas/PaginaInventario';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -308,10 +309,7 @@ const ContenidoPrincipal = () => {
           element={
             <RutaProtegida>
               <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Control de Inventario" 
-                  icono="📦" 
-                />
+                <PaginaInventario />
               </LayoutAdmin>
             </RutaProtegida>
           } 

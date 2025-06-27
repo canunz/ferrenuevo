@@ -203,12 +203,13 @@ class ProductosController {
         activo: true
       });
 
-      // Crear inventario inicial
+      // Crear inventario inicial automáticamente
       await Inventario.create({
         producto_id: producto.id,
-        sucursal: 'Principal',
-        stock_actual: stock_inicial,
+        sucursal_id: 1, // Puedes ajustar según tu lógica de sucursales
+        stock_actual: stock_inicial || 0,
         stock_minimo: 5,
+        stock_maximo: 100,
         ubicacion: 'Bodega A'
       });
 
