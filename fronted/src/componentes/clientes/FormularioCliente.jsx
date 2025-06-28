@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { servicioClientes } from '../../servicios/servicioClientes';
 
-const FormularioCliente = ({ modoEdicion = false }) => {
+const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar, onCancelar }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [valores, setValores] = useState({
@@ -20,9 +20,16 @@ const FormularioCliente = ({ modoEdicion = false }) => {
     notas: '',
     credito_disponible: 0,
     descuento_personalizado: 0,
+    ...clienteInicial
   });
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(false);
+
+  useEffect(() => {
+    if (clienteInicial && Object.keys(clienteInicial).length > 0) {
+      setValores({ ...valores, ...clienteInicial });
+    }
+  }, [clienteInicial]);
 
   useEffect(() => {
     if (modoEdicion && id) {
@@ -72,22 +79,29 @@ const FormularioCliente = ({ modoEdicion = false }) => {
     const nuevosErrores = validar();
     setErrores(nuevosErrores);
     if (Object.keys(nuevosErrores).length > 0) return;
+    
     setCargando(true);
     try {
-      if (modoEdicion && id) {
-        const valoresEnviar = { ...valores };
-        if (!valoresEnviar.fecha_nacimiento || isNaN(new Date(valoresEnviar.fecha_nacimiento).getTime())) {
-          valoresEnviar.fecha_nacimiento = null;
-        }
-        await servicioClientes.actualizar(id, valoresEnviar);
-        alert('Cliente actualizado exitosamente');
+      if (onGuardar) {
+        // Si se pasa onGuardar como prop, usar esa función
+        await onGuardar(valores);
       } else {
-        const valoresEnviar = { ...valores };
-        delete valoresEnviar.password;
-        await servicioClientes.crear(valoresEnviar);
-        alert('Cliente creado exitosamente');
+        // Lógica por defecto
+        if (modoEdicion && id) {
+          const valoresEnviar = { ...valores };
+          if (!valoresEnviar.fecha_nacimiento || isNaN(new Date(valoresEnviar.fecha_nacimiento).getTime())) {
+            valoresEnviar.fecha_nacimiento = null;
+          }
+          await servicioClientes.actualizar(id, valoresEnviar);
+          alert('Cliente actualizado exitosamente');
+        } else {
+          const valoresEnviar = { ...valores };
+          delete valoresEnviar.password;
+          await servicioClientes.crear(valoresEnviar);
+          alert('Cliente creado exitosamente');
+        }
+        navigate('/clientes');
       }
-      navigate('/clientes');
     } catch (error) {
       let mensaje = modoEdicion ? 'Error al actualizar el cliente' : 'Error al crear el cliente';
       if (error.response && error.response.data && error.response.data.errors) {
@@ -101,9 +115,19 @@ const FormularioCliente = ({ modoEdicion = false }) => {
     }
   };
 
+  const handleCancelar = () => {
+    if (onCancelar) {
+      onCancelar();
+    } else {
+      navigate('/clientes');
+    }
+  };
+
   return (
     <div className="max-w-xl mx-auto bg-white p-8 rounded shadow">
-      <h2 className="text-2xl font-bold mb-6">Nuevo Cliente</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        {modoEdicion ? 'Editar Cliente' : 'Nuevo Cliente'}
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Nombre</label>
@@ -116,6 +140,7 @@ const FormularioCliente = ({ modoEdicion = false }) => {
           />
           {errores.nombre && <p className="text-red-600 text-xs mt-1">{errores.nombre}</p>}
         </div>
+        
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
           <input
@@ -127,6 +152,7 @@ const FormularioCliente = ({ modoEdicion = false }) => {
           />
           {errores.email && <p className="text-red-600 text-xs mt-1">{errores.email}</p>}
         </div>
+        
         <div>
           <label className="block text-sm font-medium mb-1">Teléfono</label>
           <input
@@ -137,6 +163,7 @@ const FormularioCliente = ({ modoEdicion = false }) => {
             className="w-full border rounded px-3 py-2 border-gray-300"
           />
         </div>
+        
         <div>
           <label className="block text-sm font-medium mb-1">Tipo de Cliente</label>
           <select
@@ -151,10 +178,86 @@ const FormularioCliente = ({ modoEdicion = false }) => {
           </select>
           {errores.tipo_cliente && <p className="text-red-600 text-xs mt-1">{errores.tipo_cliente}</p>}
         </div>
+
+        {valores.tipo_cliente === 'empresa' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">Razón Social</label>
+              <input
+                type="text"
+                name="razon_social"
+                value={valores.razon_social}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Giro</label>
+              <input
+                type="text"
+                name="giro"
+                value={valores.giro}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 border-gray-300"
+              />
+            </div>
+          </>
+        )}
+
+        {valores.tipo_cliente === 'persona' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">RUT</label>
+              <input
+                type="text"
+                name="rut"
+                value={valores.rut}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Fecha de Nacimiento</label>
+              <input
+                type="date"
+                name="fecha_nacimiento"
+                value={valores.fecha_nacimiento}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Género</label>
+              <select
+                name="genero"
+                value={valores.genero}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 border-gray-300"
+              >
+                <option value="no_especifica">No especifica</option>
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Notas</label>
+          <textarea
+            name="notas"
+            value={valores.notas}
+            onChange={handleChange}
+            rows="3"
+            className="w-full border rounded px-3 py-2 border-gray-300"
+          />
+        </div>
+
         <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
-            onClick={() => navigate('/clientes')}
+            onClick={handleCancelar}
             className="px-4 py-2 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50"
             disabled={cargando}
           >

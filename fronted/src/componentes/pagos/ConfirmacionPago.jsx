@@ -100,6 +100,26 @@ const ConfirmacionPago = () => {
                     </Button>
                 </Box>
             </Paper>
+
+            {/* Tarjetas de prueba Webpay */}
+            <Box mt={4} maxWidth={600} mx="auto">
+                <Paper elevation={1} sx={{ p: 2, background: '#f5faff' }}>
+                    <Typography variant="h6" gutterBottom color="primary">
+                        Tarjetas de Prueba Webpay (Integración)
+                    </Typography>
+                    <Typography variant="body2" gutterBottom>
+                        Puedes usar estos datos para probar pagos en el ambiente de integración de Webpay:
+                    </Typography>
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                        <li><b>Visa:</b> 4051 8856 0044 6623</li>
+                        <li><b>Mastercard:</b> 5186 0510 0998 5324</li>
+                        <li><b>Redcompra:</b> 4051 8856 0044 6623</li>
+                    </ul>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                        <b>CVV:</b> 123 &nbsp; | &nbsp; <b>Fecha:</b> Cualquiera &nbsp; | &nbsp; <b>Rut:</b> 11.111.111-1 &nbsp; | &nbsp; <b>Clave:</b> 123
+                    </Typography>
+                </Paper>
+            </Box>
         </Box>
     );
 };

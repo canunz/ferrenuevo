@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../contexto/ContextoAuth';
 import { servicioDashboard } from '../servicios/servicioDashboard';
 import { useSnackbar } from 'notistack';
+import PanelCliente from '../componentes/tablero/PanelCliente';
 
 const PaginaTablero = () => {
   const { usuario } = useAuth();
@@ -86,6 +87,10 @@ const PaginaTablero = () => {
   const obtenerColorTendencia = (tendencia) => {
     return tendencia === 'up' ? 'text-green-600' : 'text-red-600';
   };
+
+  if (usuario?.rol === 'cliente') {
+    return <PanelCliente />;
+  }
 
   if (cargando) {
     return (

@@ -111,10 +111,7 @@ const handleValidationErrors = (req, res, next) => {
  *       401:
  *         description: Credenciales inválidas
  */
-router.post('/login', [
-  body('email').isEmail().withMessage('El email no es válido'),
-  body('password').notEmpty().withMessage('La contraseña es requerida')
-], authController.login);
+router.post('/login', (req, res) => authController.login(req, res));
 
 /**
  * @swagger
@@ -152,11 +149,7 @@ router.post('/login', [
  *       409:
  *         description: El email ya está registrado
  */
-router.post('/registro', [
-  body('email').isEmail().withMessage('El email no es válido'),
-  body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
-  body('nombre').notEmpty().withMessage('El nombre es requerido')
-], authController.registro);
+router.post('/registro', (req, res) => authController.registro(req, res));
 
 /**
  * @swagger

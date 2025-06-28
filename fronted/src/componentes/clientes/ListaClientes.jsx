@@ -78,6 +78,23 @@ const ListaClientes = () => {
     return new Date(date).toLocaleDateString('es-CL');
   };
 
+  const handleEditar = (e, clienteId) => {
+    e.stopPropagation();
+    navigate(`/clientes/editar/${clienteId}`);
+  };
+
+  const handleEliminar = async (e, clienteId) => {
+    e.stopPropagation();
+    if (window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+      try {
+        await servicioClientes.eliminar(clienteId);
+        cargarClientes();
+      } catch (error) {
+        alert('Error al eliminar el cliente');
+      }
+    }
+  };
+
   if (error) {
     return (
       <div className="rounded-md bg-red-50 p-4 m-4">
@@ -121,6 +138,18 @@ const ListaClientes = () => {
         </div>
         
         <select
+          value={filtros.segmento}
+          onChange={(e) => setFiltros({...filtros, segmento: e.target.value})}
+          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+        >
+          <option value="">Todos los segmentos</option>
+          <option value="retail">Retail</option>
+          <option value="profesional">Profesional</option>
+          <option value="empresa">Empresa</option>
+          <option value="vip">VIP</option>
+        </select>
+
+        <select
           value={filtros.tipo_cliente}
           onChange={(e) => setFiltros({...filtros, tipo_cliente: e.target.value})}
           className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
@@ -156,7 +185,7 @@ const ListaClientes = () => {
                         Contacto
                       </th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Tipo
+                        Tipo/Segmento
                       </th>
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Crédito
@@ -165,7 +194,7 @@ const ListaClientes = () => {
                         Última Compra
                       </th>
                       <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span className="sr-only">Ver</span>
+                        <span className="sr-only">Acciones</span>
                       </th>
                     </tr>
                   </thead>
@@ -178,79 +207,65 @@ const ListaClientes = () => {
                       >
                         <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6">
                           <div className="flex items-center">
-                            {cliente.tipo_cliente === 'empresa' ? (
-                              <BuildingOfficeIcon className="h-8 w-8 text-gray-400" />
-                            ) : (
-                              <UserIcon className="h-8 w-8 text-gray-400" />
-                            )}
+                            <div className="h-10 w-10 flex-shrink-0">
+                              {cliente.tipo_cliente === 'empresa' ? (
+                                <BuildingOfficeIcon className="h-10 w-10 text-gray-400" />
+                              ) : (
+                                <UserIcon className="h-10 w-10 text-gray-400" />
+                              )}
+                            </div>
                             <div className="ml-4">
                               <div className="font-medium text-gray-900">{cliente.nombre}</div>
                               <div className="text-gray-500">{cliente.rut || 'Sin RUT'}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                          <div>
-                            <div className="flex items-center text-gray-900">
-                              <EnvelopeIcon className="h-4 w-4 mr-1 text-gray-400" />
-                              {cliente.email}
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <div className="flex items-center space-x-2">
+                            <EnvelopeIcon className="h-4 w-4 text-gray-400" />
+                            <span>{cliente.email}</span>
+                          </div>
+                          {cliente.telefono && (
+                            <div className="flex items-center space-x-2 mt-1">
+                              <PhoneIcon className="h-4 w-4 text-gray-400" />
+                              <span>{cliente.telefono}</span>
                             </div>
-                            {cliente.telefono && (
-                              <div className="flex items-center mt-1 text-gray-500">
-                                <PhoneIcon className="h-4 w-4 mr-1 text-gray-400" />
-                                {cliente.telefono}
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <div className="space-y-1">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getSegmentoBadgeColor(cliente.segmento)}`}>
+                              {cliente.tipo_cliente === 'empresa' ? 'Empresa' : 'Persona'}
+                            </span>
+                            {cliente.segmento && (
+                              <div className="text-xs text-gray-400">
+                                {cliente.segmento}
                               </div>
                             )}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
-                          {cliente.tipo_cliente === 'empresa' ? 'Empresa' : 'Persona'}
-                        </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          <div>
-                            <div className="font-medium">
-                              {formatCurrency((cliente.credito_disponible || 0) - (cliente.credito_usado || 0))}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              de {formatCurrency(cliente.credito_disponible)}
-                            </div>
-                          </div>
+                          {formatCurrency(cliente.credito_disponible)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {formatDate(cliente.ultima_compra)}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/clientes/editar/${cliente.id}`);
-                            }}
-                            className="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:text-blue-800 mr-2"
-                            title="Editar cliente"
-                          >
-                            <PencilIcon className="h-5 w-5 mr-1" /> Editar
-                          </button>
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if (window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-                                try {
-                                  await servicioClientes.eliminar(cliente.id);
-                                  alert('Cliente eliminado exitosamente');
-                                  cargarClientes();
-                                } catch (error) {
-                                  alert('Error al eliminar el cliente');
-                                }
-                              }
-                            }}
-                            className="inline-flex items-center px-2 py-1 text-sm text-red-600 hover:text-red-800"
-                            title="Eliminar cliente"
-                          >
-                            <TrashIcon className="h-5 w-5 mr-1" /> Eliminar
-                          </button>
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={(e) => handleEditar(e, cliente.id)}
+                              className="text-indigo-600 hover:text-indigo-900"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => handleEliminar(e, cliente.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                            <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                          </div>
                         </td>
                       </tr>
                     ))}

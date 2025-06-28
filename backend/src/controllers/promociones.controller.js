@@ -1,177 +1,258 @@
-const { Promocion, Cupon, Producto, Categoria, sequelize, Marca } = require('../models');
-const { Op } = require('sequelize');
-const { formatearRespuesta, formatearError } = require('../utils/helpers');
+// src/controllers/promociones.controller.js (ARCHIVO NUEVO)
+const mysql = require('mysql2/promise');
+
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'emma2004',
+  database: process.env.DB_NAME || 'ferremasnueva'
+};
 
 class PromocionesController {
-
-  // ========== PROMOCIONES ==========
-
-  async getAll(req, res) {
+  // 📋 LISTAR PROMOCIONES
+  async listarPromociones(req, res) {
+    let connection;
     try {
-      const promociones = await Promocion.findAll({
-        include: [
-          { model: Producto, as: 'producto', attributes: ['nombre'] },
-          { model: Categoria, as: 'categoria', attributes: ['nombre'] },
-          { model: Marca, as: 'marca', attributes: ['nombre'] },
-        ],
-        order: [['id', 'DESC']],
-      });
-      res.status(200).json({ success: true, data: promociones });
-    } catch (error) {
-      console.error('Error al obtener promociones:', error);
-      res.status(500).json({ success: false, error: 'Error interno del servidor.' });
-    }
-  }
-
-  async crearPromocion(req, res) {
-    const t = await sequelize.transaction();
-    try {
-      const { productos, categorias, ...promoData } = req.body;
+      connection = await mysql.createConnection(dbConfig);
       
-      const promocion = await Promocion.create(promoData, { transaction: t });
-
-      if (productos && productos.length > 0) {
-        await promocion.setProductos(productos, { transaction: t });
-      }
-      if (categorias && categorias.length > 0) {
-        await promocion.setCategorias(categorias, { transaction: t });
-      }
-      
-      await t.commit();
-      const resultado = await Promocion.findByPk(promocion.id, { include: ['productos', 'categorias'] });
-      res.status(201).json(formatearRespuesta('Promoción creada', resultado));
-    } catch (error) {
-      await t.rollback();
-      res.status(400).json(formatearError('Error al crear promoción', error));
-    }
-  }
-
-  async actualizarPromocion(req, res) {
-    const t = await sequelize.transaction();
-    try {
-      const { id } = req.params;
-      const { productos, categorias, ...promoData } = req.body;
-
-      const promocion = await Promocion.findByPk(id);
-      if (!promocion) return res.status(404).json(formatearError('Promoción no encontrada'));
-
-      await promocion.update(promoData, { transaction: t });
-      
-      if (productos) await promocion.setProductos(productos, { transaction: t });
-      if (categorias) await promocion.setCategorias(categorias, { transaction: t });
-
-      await t.commit();
-      const resultado = await Promocion.findByPk(id, { include: ['productos', 'categorias'] });
-      res.json(formatearRespuesta('Promoción actualizada', resultado));
-    } catch (error) {
-      await t.rollback();
-      res.status(400).json(formatearError('Error al actualizar promoción', error));
-    }
-  }
-
-  async eliminarPromocion(req, res) {
-    try {
-      const { id } = req.params;
-      const promocion = await Promocion.findByPk(id);
-      if (!promocion) return res.status(404).json(formatearError('Promoción no encontrada'));
-
-      await promocion.destroy();
-      res.json(formatearRespuesta('Promoción eliminada'));
-    } catch (error) {
-      res.status(500).json(formatearError('Error al eliminar promoción', error));
-    }
-  }
-
-  // ========== CUPONES ==========
-
-  async listarCupones(req, res) {
-    try {
-      const { page = 1, limit = 10, estado, q } = req.query;
+      const { page = 1, limit = 10, activo } = req.query;
       const offset = (page - 1) * limit;
-      let whereClause = {};
-
-      if (estado) whereClause.estado = estado;
-      if (q) whereClause.codigo = { [Op.like]: `%${q}%` };
-
-      const { count, rows: cupones } = await Cupon.findAndCountAll({
-        where: whereClause,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [['fecha_fin', 'DESC']],
-        include: ['usuario']
-      });
-
-      res.json(formatearRespuesta('Cupones obtenidos', cupones, {
-        current_page: parseInt(page),
-        total_pages: Math.ceil(count / limit),
-        total_items: count
-      }));
-    } catch (error) {
-      res.status(500).json(formatearError('Error al listar cupones', error));
-    }
-  }
-
-  async crearCupon(req, res) {
-    try {
-      const cupon = await Cupon.create(req.body);
-      res.status(201).json(formatearRespuesta('Cupón creado', cupon));
-    } catch (error) {
-      res.status(400).json(formatearError('Error al crear cupón', error));
-    }
-  }
-
-  // (Aquí irían actualizar y eliminar para cupones, si se necesitan)
-
-  // ========== LÓGICA DE APLICACIÓN ==========
-
-  async aplicarCodigo(req, res) {
-    try {
-      const { codigo, monto_total, items } = req.body;
-
-      // Buscar si es un cupón o una promoción
-      const cupon = await Cupon.findOne({ where: { codigo, estado: 'activo' }});
-      const promocion = await Promocion.findOne({ where: { codigo, estado: 'activa' }});
-
-      if (!cupon && !promocion) {
-        return res.status(404).json(formatearError('El código no es válido o ha expirado.'));
+      
+      let whereClause = '';
+      let params = [];
+      
+      if (activo !== undefined) {
+        whereClause = 'WHERE activo = ?';
+        params.push(parseInt(activo));
       }
       
-      const descuento = cupon || promocion;
-      const esCupon = !!cupon;
+      const [promociones] = await connection.execute(`
+        SELECT 
+          id, nombre, descripcion, tipo_descuento, valor_descuento,
+          fecha_inicio, fecha_fin, codigo_cupon, minimo_compra,
+          maximo_descuento, limite_usos, usos_actuales, activo,
+          created_at, updated_at
+        FROM promociones
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `, [...params, parseInt(limit), parseInt(offset)]);
 
-      // Validaciones comunes
-      if (new Date(descuento.fecha_fin) < new Date()) {
-        return res.status(400).json(formatearError('El código ha expirado.'));
-      }
-      if (monto_total < descuento.monto_minimo) {
-        return res.status(400).json(formatearError(`Se requiere una compra mínima de ${descuento.monto_minimo}.`));
-      }
-      if (descuento.usos_limite !== null && descuento.usos_totales >= descuento.usos_limite) {
-        return res.status(400).json(formatearError('Este código ha alcanzado su límite de usos.'));
-      }
+      // Contar total
+      const [countResult] = await connection.execute(`
+        SELECT COUNT(*) as total FROM promociones ${whereClause}
+      `, params);
 
-      // Lógica de cálculo de descuento
-      let montoDescuento = 0;
-      if (descuento.tipo === 'porcentaje') {
-        montoDescuento = (monto_total * descuento.valor) / 100;
-      } else if (descuento.tipo === 'monto_fijo') {
-        montoDescuento = descuento.valor;
-      } else if (descuento.tipo === 'envio_gratis') {
-        // Lógica de envío gratis (a implementar en el pedido)
-      }
-
-      res.json(formatearRespuesta('Código aplicado exitosamente', {
-        codigo: descuento.codigo,
-        descripcion: descuento.descripcion,
-        monto_descuento: montoDescuento,
-        total_con_descuento: monto_total - montoDescuento
-      }));
+      res.json({
+        success: true,
+        data: {
+          promociones,
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: Math.ceil(countResult[0].total / limit),
+            total_items: countResult[0].total
+          }
+        }
+      });
 
     } catch (error) {
-      res.status(500).json(formatearError('Error al aplicar el código', error));
+      console.error('Error al listar promociones:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener promociones',
+        error: error.message
+      });
+    } finally {
+      if (connection) await connection.end();
     }
   }
 
+  // ➕ CREAR PROMOCIÓN
+  async crearPromocion(req, res) {
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      
+      const {
+        nombre, descripcion, tipo_descuento, valor_descuento,
+        fecha_inicio, fecha_fin, codigo_cupon, minimo_compra = 0,
+        maximo_descuento = null, limite_usos = null
+      } = req.body;
+
+      // Validaciones
+      if (!nombre || !tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) {
+        return res.status(400).json({
+          success: false,
+          message: 'Campos requeridos: nombre, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin'
+        });
+      }
+
+      // Verificar código de cupón único
+      if (codigo_cupon) {
+        const [existing] = await connection.execute(
+          'SELECT id FROM promociones WHERE codigo_cupon = ? AND activo = 1',
+          [codigo_cupon]
+        );
+        
+        if (existing.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'El código de cupón ya existe'
+          });
+        }
+      }
+
+      const [result] = await connection.execute(`
+        INSERT INTO promociones (
+          nombre, descripcion, tipo_descuento, valor_descuento,
+          fecha_inicio, fecha_fin, codigo_cupon, minimo_compra,
+          maximo_descuento, limite_usos, usos_actuales, activo,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, NOW(), NOW())
+      `, [
+        nombre, descripcion, tipo_descuento, parseFloat(valor_descuento),
+        fecha_inicio, fecha_fin, codigo_cupon, parseFloat(minimo_compra),
+        maximo_descuento ? parseFloat(maximo_descuento) : null,
+        limite_usos ? parseInt(limite_usos) : null
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: 'Promoción creada exitosamente',
+        data: { id: result.insertId, ...req.body }
+      });
+
+    } catch (error) {
+      console.error('Error al crear promoción:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al crear promoción',
+        error: error.message
+      });
+    } finally {
+      if (connection) await connection.end();
+    }
+  }
+
+  // 🎫 VALIDAR CUPÓN
+  async validarCupon(req, res) {
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      const { codigo, monto_compra } = req.body;
+
+      if (!codigo || !monto_compra) {
+        return res.status(400).json({
+          success: false,
+          message: 'Código de cupón y monto de compra requeridos'
+        });
+      }
+
+      const [promociones] = await connection.execute(`
+        SELECT * FROM promociones 
+        WHERE codigo_cupon = ? AND activo = 1 
+        AND fecha_inicio <= NOW() AND fecha_fin >= NOW()
+      `, [codigo]);
+
+      if (promociones.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Cupón no válido o expirado'
+        });
+      }
+
+      const promocion = promociones[0];
+
+      // Verificar monto mínimo
+      if (monto_compra < promocion.minimo_compra) {
+        return res.status(400).json({
+          success: false,
+          message: `Monto mínimo de compra: $${promocion.minimo_compra}`
+        });
+      }
+
+      // Verificar límite de usos
+      if (promocion.limite_usos && promocion.usos_actuales >= promocion.limite_usos) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cupón agotado'
+        });
+      }
+
+      // Calcular descuento
+      let descuento = 0;
+      if (promocion.tipo_descuento === 'porcentaje') {
+        descuento = (monto_compra * promocion.valor_descuento) / 100;
+        if (promocion.maximo_descuento && descuento > promocion.maximo_descuento) {
+          descuento = promocion.maximo_descuento;
+        }
+      } else {
+        descuento = promocion.valor_descuento;
+      }
+
+      res.json({
+        success: true,
+        message: 'Cupón válido',
+        data: {
+          promocion_id: promocion.id,
+          nombre: promocion.nombre,
+          descuento: parseFloat(descuento.toFixed(2)),
+          monto_final: parseFloat((monto_compra - descuento).toFixed(2))
+        }
+      });
+
+    } catch (error) {
+      console.error('Error al validar cupón:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al validar cupón',
+        error: error.message
+      });
+    } finally {
+      if (connection) await connection.end();
+    }
+  }
+
+  // 🔄 APLICAR PROMOCIÓN
+  async aplicarPromocion(req, res) {
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      await connection.beginTransaction();
+
+      const { promocion_id, pedido_id } = req.body;
+
+      // Incrementar uso de la promoción
+      await connection.execute(
+        'UPDATE promociones SET usos_actuales = usos_actuales + 1 WHERE id = ?',
+        [promocion_id]
+      );
+
+      // Registrar uso de promoción
+      await connection.execute(`
+        INSERT INTO promociones_usadas (promocion_id, pedido_id, created_at)
+        VALUES (?, ?, NOW())
+      `, [promocion_id, pedido_id]);
+
+      await connection.commit();
+
+      res.json({
+        success: true,
+        message: 'Promoción aplicada exitosamente'
+      });
+
+    } catch (error) {
+      if (connection) await connection.rollback();
+      console.error('Error al aplicar promoción:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al aplicar promoción',
+        error: error.message
+      });
+    } finally {
+      if (connection) await connection.end();
+    }
+  }
 }
 
-module.exports = new PromocionesController(); 
+module.exports = new PromocionesController();

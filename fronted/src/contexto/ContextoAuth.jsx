@@ -29,19 +29,38 @@ export const AuthProvider = ({ children }) => {
 
   const iniciarSesion = async (credenciales) => {
     setCargando(true);
-    
     try {
-      const response = await servicioAuth.iniciarSesion(credenciales);
-      const data = response.data;
-      if (data && data.token && data.usuario) {
-        setUsuario(data.usuario);
-        localStorage.setItem('usuario', JSON.stringify(data.usuario));
-        localStorage.setItem('token', data.token);
+      console.log('🔐 Iniciando proceso de login con credenciales:', credenciales);
+      const res = await servicioAuth.iniciarSesion(credenciales);
+      console.log('📬 Respuesta completa del backend:', res);
+      console.log('✅ Success:', res.success);
+      console.log('📊 Data:', res.data);
+      console.log('🔑 Token:', res.token);
+      console.log('👤 Usuario:', res.usuario);
+      
+      // Manejar tanto la estructura nueva {success, data} como la actual {token, usuario}
+      if (res.success && res.data) {
+        // Estructura nueva
+        console.log('🎉 Login exitoso (estructura nueva), guardando datos...');
+        setUsuario(res.data.usuario);
+        localStorage.setItem('usuario', JSON.stringify(res.data.usuario));
+        localStorage.setItem('token', res.data.token);
+        console.log('💾 Datos guardados en localStorage');
+        return { exito: true };
+      } else if (res.token && res.usuario) {
+        // Estructura actual del backend
+        console.log('🎉 Login exitoso (estructura actual), guardando datos...');
+        setUsuario(res.usuario);
+        localStorage.setItem('usuario', JSON.stringify(res.usuario));
+        localStorage.setItem('token', res.token);
+        console.log('💾 Datos guardados en localStorage');
         return { exito: true };
       } else {
-        return { exito: false, mensaje: response?.message || 'Credenciales incorrectas' };
+        console.log('❌ Login fallido:', res.error || res.message);
+        return { exito: false, mensaje: res.error || res.message || 'Credenciales incorrectas' };
       }
     } catch (error) {
+      console.log('💥 Error en el proceso de login:', error);
       return { exito: false, mensaje: error?.response?.data?.mensaje || 'Error en el servidor' };
     } finally {
       setCargando(false);
@@ -50,24 +69,27 @@ export const AuthProvider = ({ children }) => {
 
   const registrarse = async (datosRegistro) => {
     setCargando(true);
-    
     try {
-      // Simular registro
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const usuarioData = {
-        id: Date.now(),
-        nombre: datosRegistro.nombre,
-        email: datosRegistro.email,
-        rol: 'cliente',
-        avatar: null
-      };
-      
-      setUsuario(usuarioData);
-      localStorage.setItem('usuario', JSON.stringify(usuarioData));
-      localStorage.setItem('token', 'fake-jwt-token');
-      
-      return { exito: true };
+      const res = await servicioAuth.registrarse(datosRegistro);
+      console.log('Respuesta registro backend:', res);
+      if (res.success) {
+        setUsuario({
+          id: res.data.id,
+          nombre: res.data.nombre,
+          email: res.data.email,
+          rol: res.data.rol
+        });
+        localStorage.setItem('usuario', JSON.stringify({
+          id: res.data.id,
+          nombre: res.data.nombre,
+          email: res.data.email,
+          rol: res.data.rol
+        }));
+        localStorage.setItem('token', res.data.token || '');
+        return { exito: true };
+      } else {
+        return { exito: false, mensaje: res.error || res.message || 'Error en el registro' };
+      }
     } catch (error) {
       return { exito: false, mensaje: 'Error en el registro' };
     } finally {

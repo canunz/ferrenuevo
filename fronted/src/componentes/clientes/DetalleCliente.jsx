@@ -3,19 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { servicioClientes } from '../../servicios/servicioClientes';
 import { ArrowLeftIcon, EnvelopeIcon, PhoneIcon, BuildingOfficeIcon, UserIcon } from '@heroicons/react/24/outline';
 
-const DetalleCliente = () => {
+const DetalleCliente = ({ clienteId, onVolver }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Usar clienteId si se pasa como prop, sino usar el id de la URL
+  const clienteIdToUse = clienteId || id;
+
   useEffect(() => {
     const fetchCliente = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await servicioClientes.obtenerPorId(id);
+        const data = await servicioClientes.obtenerPorId(clienteIdToUse);
         setCliente(data);
       } catch (err) {
         setError('Error al cargar el cliente');
@@ -23,8 +26,19 @@ const DetalleCliente = () => {
         setLoading(false);
       }
     };
-    fetchCliente();
-  }, [id]);
+    
+    if (clienteIdToUse) {
+      fetchCliente();
+    }
+  }, [clienteIdToUse]);
+
+  const handleVolver = () => {
+    if (onVolver) {
+      onVolver();
+    } else {
+      navigate(-1);
+    }
+  };
 
   if (loading) {
     return (
@@ -43,13 +57,13 @@ const DetalleCliente = () => {
   }
 
   if (!cliente) {
-    return null;
+    return <div className="p-8 text-center text-red-600">Cliente no encontrado</div>;
   }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <button
-        onClick={() => navigate(-1)}
+        onClick={handleVolver}
         className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6"
       >
         <ArrowLeftIcon className="h-5 w-5 mr-2" /> Volver a la lista
@@ -95,6 +109,9 @@ const DetalleCliente = () => {
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Información Adicional</h3>
             <div className="mb-1">
+              <span className="font-medium">ID:</span> {cliente.id}
+            </div>
+            <div className="mb-1">
               <span className="font-medium">Crédito disponible:</span> {cliente.credito_disponible ? `$${cliente.credito_disponible}` : 'No asignado'}
             </div>
             <div className="mb-1">
@@ -102,6 +119,20 @@ const DetalleCliente = () => {
             </div>
           </div>
         </div>
+
+        {/* Historial de Compras */}
+        {cliente.historialCompras && cliente.historialCompras.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Historial de Compras</h3>
+            <ul className="list-disc ml-6 space-y-1">
+              {cliente.historialCompras.map((compra, idx) => (
+                <li key={idx} className="text-gray-700">
+                  {compra.descripcion} - {compra.fecha}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,9 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@mercadopago/sdk-react": "^1.0.3",
+    "bcryptjs": "^3.0.2",
     "csv-parse": "^5.6.0",
+    "csv-parser": "^3.2.0",
     "multer": "^2.0.1",
     "react-hook-form": "^7.58.1",
     "swagger-jsdoc": "^6.2.8",
