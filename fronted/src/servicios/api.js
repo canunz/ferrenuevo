@@ -1,9 +1,31 @@
 // ==========================================
 // FRONTEND/SRC/SERVICIOS/API.JS - COMPLETO
 // ==========================================
+import axios from 'axios';
+
 const API_BASE_URL = 'http://localhost:3000/api/v1';
 
-// Función base
+// Configuración base de axios
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Agrega el token a cada petición si existe
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Función base para requests con fetch (como respaldo)
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
@@ -28,6 +50,17 @@ export const apiRequest = async (endpoint, options = {}) => {
     return data;
   } catch (error) {
     console.error(`❌ API Error: ${endpoint}`, error);
+    throw error;
+  }
+};
+
+// Función para probar conexión con el backend
+export const testBackendConnection = async () => {
+  try {
+    const response = await api.get('/test');
+    return response.data;
+  } catch (error) {
+    console.error('Error conectando con el backend:', error);
     throw error;
   }
 };
@@ -97,10 +130,11 @@ export const sistemaAPI = {
 };
 
 // EXPORTACIÓN DEFAULT
-const api = {
+const apiService = {
   productos: productosAPI,
   dashboard: dashboardAPI,
   sistema: sistemaAPI,
+  testConnection: testBackendConnection,
 };
 
-export default api;
+export default apiService;

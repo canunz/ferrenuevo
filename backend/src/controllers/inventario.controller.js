@@ -1,4 +1,4 @@
-const { Inventario, MovimientoInventario, Producto, Categoria, Marca, Sucursal, sequelize } = require('../models');
+const { Inventario, MovimientoInventario, Producto, Categoria, Marca, Sucursal, Usuario, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { formatearRespuesta, formatearError } = require('../utils/helpers');
 
@@ -143,19 +143,91 @@ class InventarioController {
   }
 
   /**
-   * Obtener productos con stock bajo.
+   * Obtener alertas de stock bajo.
    */
-  async alertaStockBajo(req, res) {
+  async obtenerAlertasStock(req, res) {
     try {
-      const { sucursal_id } = req.query;
-      const productosBajos = await Inventario.getProductosStockBajo(sucursal_id);
-      
+      const alertas = await Inventario.findAll({
+        where: {
+          stock_actual: { [Op.lte]: sequelize.col('stock_minimo') }
+        },
+        include: [
+          { model: Producto, as: 'producto', attributes: ['nombre', 'codigo_sku'] },
+          { model: Sucursal, as: 'sucursal', attributes: ['nombre'] }
+        ],
+        order: [['stock_actual', 'ASC']]
+      });
+
       res.json(formatearRespuesta(
-        'Productos con stock bajo obtenidos exitosamente',
-        productosBajos
+        'Alertas de stock obtenidas exitosamente',
+        alertas
       ));
     } catch (error) {
-      console.error('Error al obtener alertas de stock bajo:', error);
+      console.error('Error al obtener alertas:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
+    }
+  }
+
+  /**
+   * Actualizar stock de un item de inventario.
+   */
+  async actualizarStock(req, res) {
+    try {
+      const { id } = req.params;
+      const { stock_actual, stock_minimo, stock_maximo, ubicacion } = req.body;
+
+      const inventario = await Inventario.findByPk(id);
+      if (!inventario) {
+        return res.status(404).json(formatearError('Item de inventario no encontrado'));
+      }
+
+      await inventario.update({
+        stock_actual,
+        stock_minimo,
+        stock_maximo,
+        ubicacion
+      });
+
+      res.json(formatearRespuesta(
+        'Stock actualizado exitosamente',
+        inventario
+      ));
+    } catch (error) {
+      console.error('Error al actualizar stock:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
+    }
+  }
+
+  /**
+   * Obtener estadísticas del inventario.
+   */
+  async obtenerEstadisticas(req, res) {
+    try {
+      const totalItems = await Inventario.count();
+      const stockBajo = await Inventario.count({
+        where: {
+          stock_actual: { [Op.lte]: sequelize.col('stock_minimo') }
+        }
+      });
+      const stockAgotado = await Inventario.count({
+        where: { stock_actual: 0 }
+      });
+
+      const valorTotal = await Inventario.sum('stock_actual', {
+        include: [{ model: Producto, as: 'producto', attributes: ['precio'] }]
+      });
+
+      res.json(formatearRespuesta(
+        'Estadísticas obtenidas exitosamente',
+        {
+          total_items: totalItems,
+          stock_bajo: stockBajo,
+          stock_agotado: stockAgotado,
+          valor_total: valorTotal || 0
+        }
+      ));
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
       res.status(500).json(formatearError('Error interno del servidor', error));
     }
   }

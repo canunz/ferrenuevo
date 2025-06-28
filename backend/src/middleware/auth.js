@@ -69,7 +69,7 @@ const verificarRol = (rolesPermitidos) => {
       return res.status(403).json({
         success: false,
         error: 'Acceso denegado',
-        message: 'No tienes permisos suficientes para realizar esta acción',
+        message: `Se requiere uno de estos roles: ${rolesPermitidos.join(', ')}`,
         timestamp: new Date().toISOString()
       });
     }
@@ -78,7 +78,31 @@ const verificarRol = (rolesPermitidos) => {
   };
 };
 
+// Middleware para verificar si es administrador
+const adminOnly = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'No autenticado',
+      message: 'Se requiere autenticación',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (req.user.rol !== 'administrador') {
+    return res.status(403).json({
+      success: false,
+      error: 'Acceso denegado',
+      message: 'Se requiere rol de administrador',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   verificarToken,
-  verificarRol
+  verificarRol,
+  adminOnly
 };

@@ -190,10 +190,9 @@ module.exports = (sequelize) => {
       }
     };
 
-    // Agregar filtros adicionales
     if (filtros.tipo) where.tipo = filtros.tipo;
-    if (filtros.usuario_id) where.usuario_id = filtros.usuario_id;
     if (filtros.inventario_id) where.inventario_id = filtros.inventario_id;
+    if (filtros.usuario_id) where.usuario_id = filtros.usuario_id;
 
     return await this.findAll({
       where,
@@ -210,6 +209,24 @@ module.exports = (sequelize) => {
       ],
       order: [['fecha', 'DESC']]
     });
+  };
+
+  MovimientoInventario.getResumenMovimientos = async function(fechaInicio, fechaFin) {
+    const movimientos = await this.findAll({
+      where: {
+        fecha: {
+          [sequelize.Op.between]: [fechaInicio, fechaFin]
+        }
+      },
+      attributes: [
+        'tipo',
+        [sequelize.fn('SUM', sequelize.col('cantidad')), 'total_cantidad'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'total_movimientos']
+      ],
+      group: ['tipo']
+    });
+
+    return movimientos;
   };
 
   return MovimientoInventario;

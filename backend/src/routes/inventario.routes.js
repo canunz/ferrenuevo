@@ -142,4 +142,68 @@ router.get(
   inventarioController.alertaStockBajo
 );
 
+/**
+ * @swagger
+ * /api/v1/inventario/ingreso:
+ *   post:
+ *     summary: Registrar ingreso de stock
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  '/ingreso',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.ingresoStock
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/egreso:
+ *   post:
+ *     summary: Registrar egreso de stock
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  '/egreso',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.egresoStock
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/ajuste:
+ *   post:
+ *     summary: Registrar ajuste de stock
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  '/ajuste',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.ajusteStock
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/movimientos/{productoId}:
+ *   get:
+ *     summary: Obtener historial de movimientos por producto
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/movimientos/:productoId',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.historialMovimientos
+);
+
 module.exports = router;

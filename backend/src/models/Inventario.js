@@ -30,12 +30,12 @@ module.exports = (sequelize) => {
     },
     stock_minimo: {
       type: DataTypes.INTEGER,
-      defaultValue: 0,
+      defaultValue: 5,
       allowNull: false
     },
     stock_maximo: {
       type: DataTypes.INTEGER,
-      defaultValue: 0,
+      defaultValue: 100,
       allowNull: false
     },
     ubicacion: {

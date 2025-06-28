@@ -3,8 +3,18 @@
 // ==========================================
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2/promise');
+const { sequelize } = require('./src/models');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
+const path = require('path');
 require('dotenv').config();
+
+// Importar rutas funcionando + PEDIDOS
+const authRoutes = require('./src/routes/auth.routes');
+const productosRoutes = require('./src/routes/productos.routes');
+const pedidosRoutes = require('./src/routes/pedidos.routes'); // ← NUEVO
+const clientesRoutes = require('./src/routes/clientes.routes')
+const inventarioRoutes = require('./src/routes/inventario.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,245 +47,196 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configuración BD
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'emma2004',
-  database: process.env.DB_NAME || 'ferremasnueva'
-};
-
-// ==========================================
-// RUTAS
-// ==========================================
-
-// HEALTH CHECK
-app.get('/health', async (req, res) => {
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    await connection.execute('SELECT 1');
-    await connection.end();
-    
-    res.json({
-      success: true,
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-      database: { status: 'connected', dialect: 'mysql' }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      status: 'ERROR',
-      database: { status: 'disconnected', error: error.message }
-    });
-  }
-});
-
-// PRODUCTOS
-app.get('/api/productos', async (req, res) => {
-  let connection;
-  try {
-    connection = await mysql.createConnection(dbConfig);
-    
-    const [productos] = await connection.execute(`
-      SELECT 
-        p.id,
-        p.nombre,
-        p.descripcion,
-        p.precio,
-        p.codigo_sku,
-        p.categoria_id,
-        p.marca_id,
-        p.activo,
-        p.imagen,
-        p.created_at,
-        p.updated_at,
-        COALESCE(c.nombre, 'Sin categoría') as categoria_nombre,
-        COALESCE(m.nombre, 'Sin marca') as marca_nombre
-      FROM productos p
-      LEFT JOIN categorias c ON p.categoria_id = c.id
-      LEFT JOIN marcas m ON p.marca_id = m.id
-      WHERE p.activo = 1
-      ORDER BY p.created_at DESC
-    `);
-    
-    res.json({
-      success: true,
-      data: productos,
-      total: productos.length,
-      message: `${productos.length} productos encontrados`
-    });
-    
-  } catch (error) {
-    console.error('Error productos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener productos',
-      error: error.message
-    });
-  } finally {
-    if (connection) await connection.end();
-  }
-});
-
-// MARCAS
-app.get('/api/productos/marcas', async (req, res) => {
-  let connection;
-  try {
-    connection = await mysql.createConnection(dbConfig);
-    
-    const [marcas] = await connection.execute(`
-      SELECT 
-        m.id,
-        m.nombre,
-        m.descripcion,
-        m.activo,
-        COUNT(p.id) as total_productos
-      FROM marcas m
-      LEFT JOIN productos p ON m.id = p.marca_id AND p.activo = 1
-      WHERE m.activo = 1
-      GROUP BY m.id, m.nombre, m.descripcion, m.activo
-      ORDER BY m.nombre
-    `);
-    
-    res.json({
-      success: true,
-      data: marcas,
-      total: marcas.length
-    });
-    
-  } catch (error) {
-    console.error('Error marcas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener marcas',
-      error: error.message
-    });
-  } finally {
-    if (connection) await connection.end();
-  }
-});
-
-// CATEGORÍAS
-app.get('/api/productos/categorias', async (req, res) => {
-  let connection;
-  try {
-    connection = await mysql.createConnection(dbConfig);
-    
-    const [categorias] = await connection.execute(`
-      SELECT 
-        c.id,
-        c.nombre,
-        c.descripcion,
-        c.activo,
-        COUNT(p.id) as total_productos
-      FROM categorias c
-      LEFT JOIN productos p ON c.id = p.categoria_id AND p.activo = 1
-      WHERE c.activo = 1
-      GROUP BY c.id, c.nombre, c.descripcion, c.activo
-      ORDER BY c.nombre
-    `);
-    
-    res.json({
-      success: true,
-      data: categorias,
-      total: categorias.length
-    });
-    
-  } catch (error) {
-    console.error('Error categorías:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener categorías',
-      error: error.message
-    });
-  } finally {
-    if (connection) await connection.end();
-  }
-});
-
-// ESTADÍSTICAS DASHBOARD
-app.get('/api/dashboard/stats', async (req, res) => {
-  let connection;
-  try {
-    connection = await mysql.createConnection(dbConfig);
-    
-    const [productos] = await connection.execute('SELECT COUNT(*) as total FROM productos WHERE activo = 1');
-    const [marcas] = await connection.execute('SELECT COUNT(*) as total FROM marcas WHERE activo = 1');
-    const [categorias] = await connection.execute('SELECT COUNT(*) as total FROM categorias WHERE activo = 1');
-    const [valorInventario] = await connection.execute('SELECT SUM(precio) as valor_total FROM productos WHERE activo = 1');
-    
-    res.json({
-      success: true,
-      data: {
-        totalProductos: productos[0].total,
-        totalMarcas: marcas[0].total,
-        totalCategorias: categorias[0].total,
-        valorInventario: valorInventario[0].valor_total || 0
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas',
-      error: error.message
-    });
-  } finally {
-    if (connection) await connection.end();
-  }
-});
-
-// TEST
-app.get('/api/test', (req, res) => {
+// Health check
+app.get('/health', (req, res) => {
   res.json({
-    message: 'API funcionando correctamente',
+    message: '✅ FERREMAS API con Pedidos funcionando',
+    timestamp: new Date().toISOString(),
+    status: 'healthy',
+    database: 'connected',
+    modulos: ['Auth', 'Productos', 'Pedidos']
+  });
+});
+
+// Test de base de datos
+app.get('/test-db', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({
+      message: '✅ Conexión a base de datos exitosa',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: '❌ Error de conexión a base de datos',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Endpoint para configurar usuarios demo
+app.post('/setup-demo-data', async (req, res) => {
+  try {
+    const { Usuario, Rol } = require('./src/models');
+    const bcrypt = require('bcryptjs');
+
+    // Verificar si ya existe un admin
+    const adminExistente = await Usuario.findOne({ 
+      where: { email: 'admin@ferremas.cl' } 
+    });
+
+    if (adminExistente) {
+      return res.json({
+        success: true,
+        message: '✅ Usuarios demo ya existen',
+        data: {
+          admin: { email: 'admin@ferremas.cl', password: 'password123' },
+          cliente: { email: 'cliente@test.com', password: 'password123' }
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Buscar roles
+    const rolAdmin = await Rol.findOne({ where: { nombre: 'administrador' } });
+    const rolCliente = await Rol.findOne({ where: { nombre: 'cliente' } });
+
+    if (!rolAdmin || !rolCliente) {
+      return res.status(400).json({
+        success: false,
+        error: 'Roles no encontrados',
+        message: 'Ejecuta primero el script SQL',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Crear usuarios
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash('password123', salt);
+
+    const admin = await Usuario.create({
+      nombre: 'Administrador FERREMAS',
+      email: 'admin@ferremas.cl',
+      password: passwordHash,
+      rol_id: rolAdmin.id,
+      activo: true
+    });
+
+    const cliente = await Usuario.create({
+      nombre: 'Cliente Demo',
+      email: 'cliente@test.com',
+      password: passwordHash,
+      rol_id: rolCliente.id,
+      activo: true
+    });
+
+    res.json({
+      success: true,
+      message: '🎉 Usuarios demos creados exitosamente',
+      data: {
+        admin: { email: 'admin@ferremas.cl', password: 'password123' },
+        cliente: { email: 'cliente@test.com', password: 'password123' }
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error al crear usuarios demo:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// TODAS LAS RUTAS FUNCIONANDO
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/productos', productosRoutes);
+app.use('/api/v1/pedidos', pedidosRoutes); // ← NUEVO SISTEMA DE PEDIDOS
+app.use('/api/v1/clientes', clientesRoutes);
+app.use('/api/v1/inventario', inventarioRoutes);
+
+// Manejo de errores 404
+app.use('*', (req, res) => {
+  const rutasDisponibles = [
+    'GET /',
+    'GET /health', 
+    'GET /test-db',
+    'POST /setup-demo-data',
+    'GET /api-docs',
+    
+    // Autenticación
+    'POST /api/v1/auth/login',
+    'POST /api/v1/auth/registro',
+    'GET /api/v1/auth/perfil',
+    'PUT /api/v1/auth/perfil',
+    
+    // Productos
+    'GET /api/v1/productos',
+    'GET /api/v1/productos/:id',
+    'POST /api/v1/productos',
+    'PUT /api/v1/productos/:id',
+    'GET /api/v1/productos/buscar',
+    'GET /api/v1/productos/categorias',
+    'GET /api/v1/productos/marcas',
+    
+    // Pedidos
+    'GET /api/v1/pedidos',
+    'GET /api/v1/pedidos/:id',
+    'POST /api/v1/pedidos',
+    'PUT /api/v1/pedidos/:id',
+    'DELETE /api/v1/pedidos/:id',
+    
+    // Clientes
+    'GET /api/v1/clientes',
+    'GET /api/v1/clientes/:id',
+    'POST /api/v1/clientes',
+    'PUT /api/v1/clientes/:id',
+    'DELETE /api/v1/clientes/:id',
+    
+    // Inventario
+    'GET /api/v1/inventario',
+    'GET /api/v1/inventario/:id',
+    'POST /api/v1/inventario',
+    'PUT /api/v1/inventario/:id',
+    'DELETE /api/v1/inventario/:id'
+  ];
+
+  res.status(404).json({
+    error: 'Ruta no encontrada',
+    message: 'La ruta solicitada no existe',
+    ruta: req.originalUrl,
+    rutasDisponibles,
     timestamp: new Date().toISOString()
   });
 });
 
-// HOME
-app.get('/', (req, res) => {
-  res.json({
-    message: '🔥 FERREMAS API - FUNCIONANDO',
-    endpoints: [
-      'GET /api/productos',
-      'GET /api/productos/marcas',
-      'GET /api/productos/categorias',
-      'GET /api/dashboard/stats'
-    ]
-  });
-});
-
-// 404
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Ruta ${req.method} ${req.originalUrl} no encontrada`
-  });
-});
-
-// INICIAR SERVIDOR
-app.listen(PORT, async () => {
+// ==========================================
+// INICIO DEL SERVIDOR
+// ==========================================
+const iniciarServidor = async () => {
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    await connection.execute('SELECT 1');
-    await connection.end();
-    console.log('✅ Base de datos conectada');
+    // Sincronizar modelos con la base de datos
+    await sequelize.sync({ alter: true });
+    console.log('✅ Base de datos sincronizada');
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor FERREMAS API ejecutándose en puerto ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔍 Test DB: http://localhost:${PORT}/test-db`);
+      console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
+      console.log(`🎯 Setup Demo: http://localhost:${PORT}/setup-demo-data`);
+    });
+
   } catch (error) {
-    console.error('❌ Error BD:', error.message);
+    console.error('❌ Error al iniciar el servidor:', error);
+    process.exit(1);
   }
-  
-  console.log(`
-🚀 ==========================================
-        FERREMAS API FUNCIONANDO
-🚀 ==========================================
-🌐 Servidor: http://localhost:${PORT}
-📦 Productos: http://localhost:${PORT}/api/productos
-🏷️ Marcas: http://localhost:${PORT}/api/productos/marcas
-📁 Categorías: http://localhost:${PORT}/api/productos/categorias
-  `);
-});
+};
+
+iniciarServidor();
 
 module.exports = app;

@@ -14,6 +14,7 @@ import EncabezadoAdmin from './componentes/comun/EncabezadoAdmin';
 import BarraLateral from './componentes/comun/BarraLateral';
 import PiePagina from './componentes/comun/PiePagina';
 
+
 // Páginas principales
 import PaginaInicio from './paginas/PaginaInicio';  // NUEVA - Landing Page
 import PaginaPrincipal from './paginas/PaginaPrincipal';  // Catálogo/Ofertas
@@ -26,6 +27,8 @@ import Contacto from './paginas/Contacto';
 import Ofertas from './paginas/Ofertas';
 import ConfirmacionPago from './paginas/ConfirmacionPago';
 import PagoExitoso from './paginas/PagoExitoso';
+import PaginaClientes from './paginas/PaginaClientes';
+import PaginaInventario from './paginas/PaginaInventario';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -36,6 +39,8 @@ import { useAuth } from './contexto/ContextoAuth';
 
 import TestBackend from './componentes/TestBackend';
 import DetalleProducto from './componentes/productos/DetalleProducto';
+import DetalleCliente from './componentes/clientes/DetalleCliente';
+import FormularioCliente from './componentes/clientes/FormularioCliente';
 
 // Wrapper para cargar el producto por ID y pasarlo a DetalleProducto
 import { useParams } from 'react-router-dom';
@@ -205,39 +210,7 @@ const ContenidoPrincipal = () => {
           } 
         />
 
-        {/* Confirmación de Pago */}
-        <Route 
-          path="/confirmacion-pago" 
-          element={
-            <LayoutPublico>
-              <ConfirmacionPago />
-            </LayoutPublico>
-          } 
-        />
-
-        {/* Pago Exitoso */}
-        <Route 
-          path="/pago-exitoso" 
-          element={
-            <LayoutPublico>
-              <PagoExitoso />
-            </LayoutPublico>
-          } 
-        />
-
-        {/* Test Backend */}
-        <Route 
-          path="/test-backend" 
-          element={
-            <LayoutPublico>
-              <div className="container mx-auto px-4 py-8">
-                <TestBackend />
-              </div>
-            </LayoutPublico>
-          } 
-        />
-
-        {/* RUTAS ADMINISTRATIVAS */}
+        {/* Rutas administrativas protegidas */}
         <Route 
           path="/tablero" 
           element={
@@ -249,147 +222,74 @@ const ContenidoPrincipal = () => {
           } 
         />
 
+        {/* Gestión de Clientes */}
         <Route 
           path="/clientes" 
           element={
             <RutaProtegida>
               <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Clientes" 
-                  icono="👥" 
-                />
+                <PaginaClientes />
               </LayoutAdmin>
             </RutaProtegida>
           } 
         />
 
         <Route 
-          path="/proveedores" 
+          path="/clientes/nuevo" 
           element={
             <RutaProtegida>
               <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Proveedores" 
-                  icono="🏭" 
-                />
+                <FormularioCliente />
               </LayoutAdmin>
             </RutaProtegida>
           } 
         />
 
         <Route 
-          path="/productos" 
+          path="/clientes/:id" 
           element={
             <RutaProtegida>
               <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Productos" 
-                  icono="🔧" 
-                />
+                <DetalleCliente />
               </LayoutAdmin>
             </RutaProtegida>
           } 
         />
 
+        {/* Gestión de Inventario */}
         <Route 
           path="/inventario" 
           element={
             <RutaProtegida>
               <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Control de Inventario" 
-                  icono="📦" 
-                />
+                <PaginaInventario />
               </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Páginas de pago */}
+        <Route 
+          path="/confirmacion-pago" 
+          element={
+            <RutaProtegida>
+              <LayoutPublico>
+                <ConfirmacionPago />
+              </LayoutPublico>
             </RutaProtegida>
           } 
         />
 
         <Route 
-          path="/pedidos" 
+          path="/pago-exitoso" 
           element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Pedidos" 
-                  icono="📋" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
+            <LayoutPublico>
+              <PagoExitoso />
+            </LayoutPublico>
           } 
         />
 
-        <Route 
-          path="/facturas" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Facturación" 
-                  icono="🧾" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
-
-        <Route 
-          path="/pagos" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Gestión de Pagos" 
-                  icono="💳" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
-
-        <Route 
-          path="/descuentos" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Descuentos y Promociones" 
-                  icono="🏷️" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
-
-        <Route 
-          path="/reportes" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Reportes y Análisis" 
-                  icono="📊" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
-
-        <Route 
-          path="/integraciones" 
-          element={
-            <RutaProtegida>
-              <LayoutAdmin>
-                <PaginaEnDesarrollo 
-                  titulo="Integraciones y APIs" 
-                  icono="🔗" 
-                />
-              </LayoutAdmin>
-            </RutaProtegida>
-          } 
-        />
-
-        {/* PÁGINAS SECUNDARIAS */}
+        {/* Páginas de servicios */}
         <Route 
           path="/herramientas" 
           element={
@@ -398,6 +298,7 @@ const ContenidoPrincipal = () => {
             </LayoutPublico>
           } 
         />
+
         <Route 
           path="/construccion" 
           element={
@@ -406,6 +307,7 @@ const ContenidoPrincipal = () => {
             </LayoutPublico>
           } 
         />
+
         <Route 
           path="/seguridad" 
           element={
@@ -414,6 +316,7 @@ const ContenidoPrincipal = () => {
             </LayoutPublico>
           } 
         />
+
         <Route 
           path="/contacto" 
           element={
@@ -423,14 +326,38 @@ const ContenidoPrincipal = () => {
           } 
         />
 
-        {/* Ruta por defecto */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Ruta de prueba del backend */}
+        <Route 
+          path="/test-backend" 
+          element={<TestBackend />} 
+        />
+
+        {/* Ruta 404 */}
+        <Route 
+          path="*" 
+          element={
+            <LayoutPublico>
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+                  <p className="text-xl text-gray-600 mb-8">Página no encontrada</p>
+                  <a 
+                    href="/" 
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Volver al inicio
+                  </a>
+                </div>
+              </div>
+            </LayoutPublico>
+          } 
+        />
       </Routes>
     </Router>
   );
 };
 
-// Componente principal de la aplicación
+// Componente principal con providers
 const App = () => {
   return (
     <TemaProvider>
