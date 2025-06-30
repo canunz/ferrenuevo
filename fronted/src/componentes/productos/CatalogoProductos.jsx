@@ -49,8 +49,8 @@ const CatalogoProductos = ({
         servicioProductos.obtenerMarcas()
       ]);
       
-      console.log('PRODUCTOS DEL BACKEND:', productosRes.data?.productos);
-      setProductos(productosRes.data?.productos || []);
+      console.log('PRODUCTOS DEL BACKEND:', productosRes.data);
+      setProductos(productosRes.data || []);
       setCategorias(categoriasRes.data || []);
       setMarcas(marcasRes.data || []);
     } catch (error) {

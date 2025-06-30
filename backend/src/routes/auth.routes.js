@@ -111,7 +111,7 @@ const handleValidationErrors = (req, res, next) => {
  *       401:
  *         description: Credenciales inválidas
  */
-router.post('/login', (req, res) => authController.login(req, res));
+router.post('/login', authController.login);
 
 /**
  * @swagger
@@ -149,7 +149,7 @@ router.post('/login', (req, res) => authController.login(req, res));
  *       409:
  *         description: El email ya está registrado
  */
-router.post('/registro', (req, res) => authController.registro(req, res));
+router.post('/registro', authController.registro);
 
 /**
  * @swagger

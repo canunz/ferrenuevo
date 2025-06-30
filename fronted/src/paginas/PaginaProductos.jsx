@@ -16,9 +16,9 @@ const PaginaProductos = () => {
         const response = await servicioProductos.obtenerTodos();
         console.log('Respuesta de productos:', response);
         // Mostrar el array de productos en pantalla para depuración
-        window.__productosDebug = response.data?.productos;
-        if (response.success && response.data && response.data.productos) {
-          setProductos(response.data.productos);
+        window.__productosDebug = response.data;
+        if (response.success && response.data) {
+          setProductos(response.data);
         } else {
           console.error('Estructura de respuesta inesperada:', response);
           setProductos([]);
@@ -50,11 +50,6 @@ const PaginaProductos = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        {/* Renderizado mínimo para depuración */}
-        <div style={{background: '#ffe', color: '#333', padding: '10px', marginBottom: '20px', border: '1px solid #ccc'}}>
-          <strong>Debug productos:</strong>
-          <pre style={{fontSize: '12px', overflowX: 'auto'}}>{JSON.stringify(productos, null, 2)}</pre>
-        </div>
         {cargando ? (
           <div className="text-center py-12 text-gray-400">Cargando productos...</div>
         ) : error ? (
@@ -71,17 +66,6 @@ const PaginaProductos = () => {
           <div className="text-center py-12 text-gray-400">No hay productos disponibles.</div>
         ) : (
           <div>
-            {/* Renderizado mínimo para depuración */}
-            <h2 style={{fontWeight: 'bold', marginBottom: '10px'}}>Lista mínima de productos (debug):</h2>
-            <ul style={{marginBottom: '30px'}}>
-              {productos.map(producto => (
-                <li key={producto.id} style={{marginBottom: '5px'}}>
-                  <span style={{fontWeight: 'bold'}}>{producto.nombre}</span> (ID: {producto.id})
-                </li>
-              ))}
-            </ul>
-            {/* Renderizado original (comentado para depuración) */}
-            {/*
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {productos.map(producto => (
                 <div key={producto.id} className="bg-gray-50 rounded-lg shadow p-4 flex flex-col items-center">
@@ -105,7 +89,6 @@ const PaginaProductos = () => {
                 </div>
               ))}
             </div>
-            */}
           </div>
         )}
       </div>

@@ -51,6 +51,7 @@ const productosRoutes = require('./routes/productos.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
 const pedidosRoutes = require('./routes/pedidos.routes');
 const clientesRoutes = require('./routes/clientes.routes');
+const inventarioRoutes = require('./routes/inventario.routes');
 
 // ==========================================
 // NUEVOS MÓDULOS IMPLEMENTADOS
@@ -68,6 +69,9 @@ const divisasRoutes = require('./routes/divisas.routes');
 // Transbank - Sistema de pagos
 const transbankRoutes = require('./routes/transbank.routes');
 
+// Facturas
+const facturasRoutes = require('./routes/facturas.routes');
+
 // ==========================================
 // CONFIGURAR RUTAS - API V1
 // ==========================================
@@ -78,6 +82,7 @@ app.use('/api/v1/productos', productosRoutes);
 app.use('/api/v1/usuarios', usuariosRoutes);
 app.use('/api/v1/pedidos', pedidosRoutes);
 app.use('/api/v1/clientes', clientesRoutes);
+app.use('/api/v1/inventario', inventarioRoutes);
 
 // ==========================================
 // NUEVAS RUTAS IMPLEMENTADAS
@@ -94,6 +99,9 @@ app.use('/api/v1/divisas', divisasRoutes);
 
 // Transbank - Sistema de pagos
 app.use('/api/v1/transbank', transbankRoutes);
+
+// Facturas
+app.use('/api/v1/facturas', facturasRoutes);
 
 // ==========================================
 // RUTAS ESPECIALES Y UTILIDADES
@@ -355,12 +363,22 @@ app.use((error, req, res, next) => {
 
 const iniciarServidor = async () => {
   try {
-    // Sincronizar modelos con la base de datos
-    await sequelize.sync({ alter: true });
-    console.log('✅ Base de datos sincronizada');
+    // Verificar conexión a la base de datos sin modificar tablas
+    await sequelize.authenticate();
+    console.log('✅ Conexión a la base de datos establecida correctamente.');
     
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    // Solo sincronizar en desarrollo si las tablas no existen
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        await sequelize.sync({ force: false });
+        console.log('✅ Base de datos verificada');
+      } catch (syncError) {
+        console.warn('⚠️ Advertencia al sincronizar (tablas pueden existir):', syncError.message);
+      }
+    }
+    
+    const PORT = process.env.PORT || 3002;
+    const server = app.listen(PORT, () => {
       console.log(`
 🚀 ==========================================
      FERREMAS API COMPLETA FUNCIONANDO
@@ -374,7 +392,6 @@ const iniciarServidor = async () => {
 📊 API ENDPOINTS:
    http://localhost:${PORT}/api/v1/productos
    http://localhost:${PORT}/api/v1/clientes
-   http://localhost:${PORT}/api/v1/auth
 
 📚 Documentación completa:
    http://localhost:${PORT}/api-docs
@@ -387,6 +404,16 @@ const iniciarServidor = async () => {
       setTimeout(() => {
         console.log('✅ Servidor completamente inicializado');
       }, 1000);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`⚠️ Puerto ${PORT} está ocupado. Intentando puerto ${PORT + 1}...`);
+        const newPort = PORT + 1;
+        app.listen(newPort, () => {
+          console.log(`🚀 Servidor iniciado en puerto ${newPort}: http://localhost:${newPort}`);
+        });
+      } else {
+        console.error('❌ Error al iniciar servidor:', err);
+      }
     });
 
   } catch (error) {
@@ -394,39 +421,6 @@ const iniciarServidor = async () => {
     process.exit(1);
   }
 };
-
-// Función para inicializar la base de datos
-async function initializeDatabase() {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Conexión a la base de datos establecida correctamente.');
-    
-    // Sincronizar modelos (en desarrollo)
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Modelos sincronizados.');
-    }
-  } catch (error) {
-    console.error('❌ Error al inicializar la base de datos:', error);
-    throw error;
-  }
-}
-
-// Función para iniciar el servidor
-async function startServer() {
-  try {
-    await initializeDatabase();
-    
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`📚 Documentación API: http://localhost:${PORT}/api-docs`);
-    });
-  } catch (error) {
-    console.error('❌ Error al iniciar el servidor:', error);
-    process.exit(1);
-  }
-}
 
 // Iniciar servidor
 iniciarServidor();

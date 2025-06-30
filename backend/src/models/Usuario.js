@@ -1,5 +1,4 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const Usuario = sequelize.define('Usuario', {
@@ -10,83 +9,24 @@ module.exports = (sequelize, DataTypes) => {
     },
     nombre: {
       type: DataTypes.STRING(100),
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-        len: [2, 100]
-      }
+      allowNull: false
     },
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true
-      }
+      unique: true
     },
     password: {
       type: DataTypes.STRING(255),
-      allowNull: false,
-      validate: {
-        len: [6, 255]
-      }
+      allowNull: false
     },
     rol_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'roles',
-        key: 'id'
-      }
+      allowNull: false
     },
     activo: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
-    },
-    telefono: {
-      type: DataTypes.STRING(20),
-      allowNull: true
-    },
-    rut: {
-      type: DataTypes.STRING(12),
-      allowNull: true,
-      unique: true
-    },
-    tipo_cliente: {
-      type: DataTypes.ENUM('persona', 'empresa'),
-      defaultValue: 'persona'
-    },
-    razon_social: {
-      type: DataTypes.STRING(200),
-      allowNull: true
-    },
-    giro: {
-      type: DataTypes.STRING(200),
-      allowNull: true
-    },
-    fecha_nacimiento: {
-      type: DataTypes.DATEONLY,
-      allowNull: true
-    },
-    genero: {
-      type: DataTypes.ENUM('masculino', 'femenino', 'otro', 'no_especifica'),
-      defaultValue: 'no_especifica'
-    },
-    credito_disponible: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0
-    },
-    credito_usado: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0
-    },
-    descuento_personalizado: {
-      type: DataTypes.DECIMAL(5, 2),
-      defaultValue: 0
-    },
-    notas: {
-      type: DataTypes.TEXT,
-      allowNull: true
     }
   }, {
     tableName: 'usuarios',
@@ -96,10 +36,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Usuario.associate = function(models) {
-    Usuario.hasMany(models.DireccionEnvio, { foreignKey: 'usuario_id', as: 'direcciones' });
-    Usuario.hasMany(models.HistorialCompras, { foreignKey: 'usuario_id', as: 'historialCompras' });
-    Usuario.hasOne(models.PreferenciasCliente, { foreignKey: 'usuario_id', as: 'preferencias' });
-    Usuario.hasMany(models.ComunicacionesCliente, { foreignKey: 'usuario_id', as: 'comunicaciones' });
+    Usuario.belongsTo(models.Rol, { foreignKey: 'rol_id', as: 'rol' });
   };
 
   return Usuario;

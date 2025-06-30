@@ -1,6 +1,5 @@
 // backend/src/models/HistorialCompras.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const HistorialCompras = sequelize.define('HistorialCompras', {

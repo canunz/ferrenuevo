@@ -1,6 +1,5 @@
 // backend/src/models/PreferenciasCliente.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const PreferenciasCliente = sequelize.define('PreferenciasCliente', {

@@ -19,10 +19,6 @@ const validarResultados = (req, res, next) => {
   next();
 };
 
-// Validaciones comunes
-const validarClienteId = param('clienteId').isInt().withMessage('ID de cliente inválido');
-const validarDireccionId = param('direccionId').isInt().withMessage('ID de dirección inválido');
-
 // =====================
 // RUTAS DE CLIENTES
 // =====================
@@ -75,21 +71,6 @@ router.get('/',
   ],
   validarResultados,
   clientesController.listarClientes
-);
-
-/**
- * @swagger
- * /api/v1/clientes/busqueda-avanzada:
- *   get:
- *     summary: Búsqueda avanzada de clientes
- *     tags: [Clientes]
- *     security:
- *       - bearerAuth: []
- */
-router.get('/busqueda-avanzada',
-  verificarToken,
-  verificarRol(['administrador', 'vendedor']),
-  clientesController.busquedaAvanzada
 );
 
 /**
@@ -214,220 +195,19 @@ router.delete('/:id',
   clientesController.eliminarCliente
 );
 
-// =====================
-// RUTAS DE DIRECCIONES
-// =====================
-
 /**
  * @swagger
- * /api/v1/clientes/{clienteId}/direcciones:
+ * /api/v1/clientes/diagnostico:
  *   get:
- *     summary: Listar direcciones de un cliente
- *     tags: [Clientes - Direcciones]
+ *     summary: Diagnóstico de conexiones y modelos
+ *     tags: [Clientes]
  *     security:
  *       - bearerAuth: []
  */
-router.get('/:clienteId/direcciones',
+router.get('/diagnostico/conexiones',
   verificarToken,
-  validarClienteId,
-  validarResultados,
-  clientesController.listarDirecciones
-);
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/direcciones:
- *   post:
- *     summary: Crear nueva dirección
- *     tags: [Clientes - Direcciones]
- *     security:
- *       - bearerAuth: []
- */
-router.post('/:clienteId/direcciones',
-  verificarToken,
-  validarClienteId,
-  [
-    body('alias').optional().trim(),
-    body('nombre_receptor').notEmpty().trim(),
-    body('telefono_receptor').optional().isMobilePhone('es-CL'),
-    body('direccion').notEmpty().trim(),
-    body('numero').optional().trim(),
-    body('comuna').notEmpty().trim(),
-    body('ciudad').notEmpty().trim(),
-    body('region').notEmpty().trim(),
-    body('es_principal').optional().isBoolean()
-  ],
-  validarResultados,
-  clientesController.crearDireccion
-);
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/direcciones/{direccionId}:
- *   put:
- *     summary: Actualizar dirección
- *     tags: [Clientes - Direcciones]
- *     security:
- *       - bearerAuth: []
- */
-router.put('/:clienteId/direcciones/:direccionId',
-  verificarToken,
-  [validarClienteId, validarDireccionId],
-  validarResultados,
-  clientesController.actualizarDireccion
-);
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/direcciones/{direccionId}:
- *   delete:
- *     summary: Eliminar dirección (soft delete)
- *     tags: [Clientes - Direcciones]
- *     security:
- *       - bearerAuth: []
- */
-router.delete('/:clienteId/direcciones/:direccionId',
-  verificarToken,
-  [validarClienteId, validarDireccionId],
-  validarResultados,
-  clientesController.eliminarDireccion
-);
-
-// =====================
-// RUTAS DE HISTORIAL
-// =====================
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/historial-compras:
- *   get:
- *     summary: Obtener historial de compras
- *     tags: [Clientes - Historial]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: fecha_inicio
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: fecha_fin
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: monto_minimo
- *         schema:
- *           type: number
- *       - in: query
- *         name: monto_maximo
- *         schema:
- *           type: number
- */
-router.get('/:clienteId/historial-compras',
-  verificarToken,
-  validarClienteId,
-  [
-    query('fecha_inicio').optional().isISO8601(),
-    query('fecha_fin').optional().isISO8601(),
-    query('monto_minimo').optional().isFloat({ min: 0 }),
-    query('monto_maximo').optional().isFloat({ min: 0 })
-  ],
-  validarResultados,
-  clientesController.obtenerHistorialCompras
-);
-
-// =====================
-// RUTAS DE PREFERENCIAS
-// =====================
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/preferencias:
- *   get:
- *     summary: Obtener preferencias del cliente
- *     tags: [Clientes - Preferencias]
- *     security:
- *       - bearerAuth: []
- */
-router.get('/:clienteId/preferencias',
-  verificarToken,
-  validarClienteId,
-  validarResultados,
-  clientesController.obtenerPreferencias
-);
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/preferencias:
- *   put:
- *     summary: Actualizar preferencias
- *     tags: [Clientes - Preferencias]
- *     security:
- *       - bearerAuth: []
- */
-router.put('/:clienteId/preferencias',
-  verificarToken,
-  validarClienteId,
-  [
-    body('categoria_preferida_id').optional().isInt(),
-    body('marca_preferida_id').optional().isInt(),
-    body('metodo_pago_preferido').optional().trim(),
-    body('dia_preferido_entrega').optional().isIn(['lunes','martes','miercoles','jueves','viernes','sabado','domingo']),
-    body('horario_preferido_entrega').optional().trim(),
-    body('acepta_promociones').optional().isBoolean(),
-    body('acepta_email_marketing').optional().isBoolean(),
-    body('acepta_sms_marketing').optional().isBoolean()
-  ],
-  validarResultados,
-  clientesController.actualizarPreferencias
-);
-
-// =====================
-// RUTAS DE COMUNICACIONES
-// =====================
-
-/**
- * @swagger
- * /api/v1/clientes/{clienteId}/comunicaciones:
- *   post:
- *     summary: Enviar comunicación al cliente
- *     tags: [Clientes - Comunicaciones]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - tipo
- *               - mensaje
- *             properties:
- *               tipo:
- *                 type: string
- *                 enum: [email, sms, llamada, whatsapp, notificacion_app]
- *               asunto:
- *                 type: string
- *               mensaje:
- *                 type: string
- *               campaign_id:
- *                 type: string
- */
-router.post('/:clienteId/comunicaciones',
-  verificarToken,
-  verificarRol(['administrador', 'vendedor']),
-  validarClienteId,
-  [
-    body('tipo').isIn(['email', 'sms', 'llamada', 'whatsapp', 'notificacion_app']),
-    body('asunto').optional().trim(),
-    body('mensaje').notEmpty().trim(),
-    body('campaign_id').optional().trim()
-  ],
-  validarResultados,
-  clientesController.enviarComunicacion
+  verificarRol(['administrador']),
+  clientesController.diagnosticarConexiones
 );
 
 module.exports = router;

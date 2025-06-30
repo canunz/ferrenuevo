@@ -1,6 +1,5 @@
 // backend/src/models/ComunicacionesCliente.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const ComunicacionesCliente = sequelize.define('ComunicacionesCliente', {

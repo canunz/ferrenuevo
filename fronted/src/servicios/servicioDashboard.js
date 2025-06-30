@@ -3,41 +3,46 @@ import api from './api';
 export const servicioDashboard = {
     obtenerEstadisticasPrincipales: async () => {
         try {
-            const response = await api.get('/dashboard/estadisticas');
+            const response = await api.get('/dashboard/test/estadisticas');
             return response.data;
         } catch (error) {
             console.error('Error al obtener estadísticas:', error);
-            throw error;
+            return {
+                totalVentas: 0,
+                totalProductos: 0,
+                totalClientes: 0,
+                totalPedidos: 0
+            };
         }
     },
 
     obtenerVentasRecientes: async () => {
         try {
-            const response = await api.get('/dashboard/ventas-recientes');
+            const response = await api.get('/dashboard/test/ventas-recientes');
             return response.data;
         } catch (error) {
             console.error('Error al obtener ventas recientes:', error);
-            throw error;
+            return [];
         }
     },
 
     obtenerProductosPopulares: async () => {
         try {
-            const response = await api.get('/dashboard/productos-populares');
+            const response = await api.get('/dashboard/test/productos-populares');
             return response.data;
         } catch (error) {
             console.error('Error al obtener productos populares:', error);
-            throw error;
+            return [];
         }
     },
 
     obtenerAlertas: async () => {
         try {
-            const response = await api.get('/dashboard/alertas');
+            const response = await api.get('/dashboard/test/alertas');
             return response.data;
         } catch (error) {
             console.error('Error al obtener alertas:', error);
-            throw error;
+            return [];
         }
     }
 }; 

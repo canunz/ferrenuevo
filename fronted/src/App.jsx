@@ -29,6 +29,12 @@ import ConfirmacionPago from './paginas/ConfirmacionPago';
 import PagoExitoso from './paginas/PagoExitoso';
 import PaginaClientes from './paginas/PaginaClientes';
 import PaginaInventario from './paginas/PaginaInventario';
+import PaginaIntegraciones from './paginas/PaginaIntegraciones';
+import PaginaProductos from './paginas/PaginaProductos';
+import PaginaPedidos from './paginas/PaginaPedidos';
+import PaginaFacturas from './paginas/PaginaFacturas';
+import PaginaPagos from './paginas/PaginaPagos';
+import PaginaDescuentos from './paginas/PaginaDescuentos';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -246,6 +252,17 @@ const ContenidoPrincipal = () => {
         />
 
         <Route 
+          path="/clientes/editar/:id" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <FormularioCliente modoEdicion={true} />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        <Route 
           path="/clientes/:id" 
           element={
             <RutaProtegida>
@@ -263,6 +280,78 @@ const ContenidoPrincipal = () => {
             <RutaProtegida>
               <LayoutAdmin>
                 <PaginaInventario />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Productos */}
+        <Route 
+          path="/productos" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaProductos />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Integraciones */}
+        <Route 
+          path="/integraciones" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaIntegraciones />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Pedidos */}
+        <Route 
+          path="/pedidos" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaPedidos />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Facturas */}
+        <Route 
+          path="/facturas" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaFacturas />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Pagos */}
+        <Route 
+          path="/pagos" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaPagos />
+              </LayoutAdmin>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Gestión de Descuentos */}
+        <Route 
+          path="/descuentos" 
+          element={
+            <RutaProtegida>
+              <LayoutAdmin>
+                <PaginaDescuentos />
               </LayoutAdmin>
             </RutaProtegida>
           } 

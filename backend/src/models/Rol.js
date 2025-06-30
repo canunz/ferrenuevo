@@ -2,7 +2,6 @@
 // ARCHIVO: src/models/Rol.js (CORREGIDO)
 // ============================================
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const Rol = sequelize.define('Rol', {

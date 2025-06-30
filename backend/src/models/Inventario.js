@@ -85,12 +85,6 @@ module.exports = (sequelize) => {
       foreignKey: 'inventario_id',
       as: 'movimientos'
     });
-
-    // Un inventario puede tener alertas
-    Inventario.hasMany(models.AlertaStock, {
-      foreignKey: 'inventario_id',
-      as: 'alertas'
-    });
   };
 
   // Métodos de instancia

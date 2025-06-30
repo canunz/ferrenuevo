@@ -12,6 +12,21 @@ const { verificarToken, verificarRol } = require('../middleware/auth');
 
 /**
  * @swagger
+ * /api/v1/inventario/test:
+ *   get:
+ *     summary: Listar inventario (sin autenticación para pruebas)
+ *     tags: [Inventario]
+ *     responses:
+ *       200:
+ *         description: Inventario obtenido exitosamente
+ */
+router.get(
+  '/test',
+  inventarioController.listarInventario
+);
+
+/**
+ * @swagger
  * /api/v1/inventario:
  *   get:
  *     summary: Listar inventario
@@ -127,10 +142,6 @@ router.get(
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: sucursal_id
- *         schema: { type: integer }
  *     responses:
  *       200:
  *         description: Alertas de stock bajo obtenidas exitosamente
@@ -139,17 +150,135 @@ router.get(
   '/alertas',
   verificarToken,
   verificarRol(['administrador', 'bodeguero']),
-  inventarioController.alertaStockBajo
+  inventarioController.obtenerAlertasStock
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/estadisticas:
+ *   get:
+ *     summary: Obtener estadísticas del inventario
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Estadísticas obtenidas exitosamente
+ */
+router.get(
+  '/estadisticas',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.obtenerEstadisticas
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/{id}:
+ *   put:
+ *     summary: Actualizar stock de un item de inventario
+ *     tags: [Inventario]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               stock_actual:
+ *                 type: integer
+ *               stock_minimo:
+ *                 type: integer
+ *               stock_maximo:
+ *                 type: integer
+ *               ubicacion:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Stock actualizado exitosamente
+ */
+router.put(
+  '/:id',
+  verificarToken,
+  verificarRol(['administrador', 'bodeguero']),
+  inventarioController.actualizarStock
+);
+
+/**
+ * @swagger
+ * /api/v1/inventario/ingreso-test:
+ *   post:
+ *     summary: Ingresar stock a un producto del inventario (sin autenticación para pruebas)
+ *     tags: [Inventario]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [producto_id, cantidad]
+ *             properties:
+ *               producto_id:
+ *                 type: integer
+ *                 description: ID del producto
+ *               cantidad:
+ *                 type: integer
+ *                 description: Cantidad a ingresar
+ *               observaciones:
+ *                 type: string
+ *                 description: Observaciones del ingreso
+ *     responses:
+ *       200:
+ *         description: Stock ingresado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Producto no encontrado en inventario
+ */
+router.post(
+  '/ingreso-test',
+  inventarioController.ingresoStock
 );
 
 /**
  * @swagger
  * /api/v1/inventario/ingreso:
  *   post:
- *     summary: Registrar ingreso de stock
+ *     summary: Ingresar stock a un producto del inventario
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [producto_id, cantidad]
+ *             properties:
+ *               producto_id:
+ *                 type: integer
+ *                 description: ID del producto
+ *               cantidad:
+ *                 type: integer
+ *                 description: Cantidad a ingresar
+ *               observaciones:
+ *                 type: string
+ *                 description: Observaciones del ingreso
+ *     responses:
+ *       200:
+ *         description: Stock ingresado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Producto no encontrado en inventario
  */
 router.post(
   '/ingreso',
@@ -166,44 +295,70 @@ router.post(
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [producto_id, cantidad, motivo]
+ *             properties:
+ *               producto_id:
+ *                 type: integer
+ *               cantidad:
+ *                 type: integer
+ *               motivo:
+ *                 type: string
+ *               observaciones:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Egreso registrado exitosamente
+ *       400:
+ *         description: Datos inválidos
  */
 router.post(
   '/egreso',
   verificarToken,
   verificarRol(['administrador', 'bodeguero']),
-  inventarioController.egresoStock
+  inventarioController.registrarEgreso
 );
 
 /**
  * @swagger
- * /api/v1/inventario/ajuste:
+ * /api/v1/inventario/ingreso:
  *   post:
- *     summary: Registrar ajuste de stock
+ *     summary: Registrar ingreso de stock
  *     tags: [Inventario]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [producto_id, cantidad, motivo]
+ *             properties:
+ *               producto_id:
+ *                 type: integer
+ *               cantidad:
+ *                 type: integer
+ *               motivo:
+ *                 type: string
+ *               observaciones:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Ingreso registrado exitosamente
+ *       400:
+ *         description: Datos inválidos
  */
 router.post(
-  '/ajuste',
+  '/ingreso',
   verificarToken,
   verificarRol(['administrador', 'bodeguero']),
-  inventarioController.ajusteStock
-);
-
-/**
- * @swagger
- * /api/v1/inventario/movimientos/{productoId}:
- *   get:
- *     summary: Obtener historial de movimientos por producto
- *     tags: [Inventario]
- *     security:
- *       - bearerAuth: []
- */
-router.get(
-  '/movimientos/:productoId',
-  verificarToken,
-  verificarRol(['administrador', 'bodeguero']),
-  inventarioController.historialMovimientos
+  inventarioController.registrarIngreso
 );
 
 module.exports = router;

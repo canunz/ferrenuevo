@@ -139,42 +139,48 @@ const PaginaTablero = () => {
       <div className="p-6">
         {/* Estadísticas principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {estadisticasPrincipales.map((stat, index) => {
-            const Icono = stat.icono;
-            const IconoTendencia = obtenerIconoTendencia(stat.tendencia);
-            
-            return (
-              <motion.div
-                key={stat.titulo}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      {stat.titulo}
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {stat.valor}
-                    </p>
-                    <div className="flex items-center mt-2">
-                      <IconoTendencia className={`h-4 w-4 mr-1 ${obtenerColorTendencia(stat.tendencia)}`} />
-                      <span className={`text-sm font-medium ${obtenerColorTendencia(stat.tendencia)}`}>
-                        {stat.cambio}
-                      </span>
-                      <span className="text-gray-500 text-sm ml-1">vs mes anterior</span>
+          {Array.isArray(estadisticasPrincipales) && estadisticasPrincipales.length > 0 ? (
+            estadisticasPrincipales.map((stat, index) => {
+              const Icono = stat.icono;
+              const IconoTendencia = obtenerIconoTendencia(stat.tendencia);
+              
+              return (
+                <motion.div
+                  key={stat.titulo}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">
+                        {stat.titulo}
+                      </p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {stat.valor}
+                      </p>
+                      <div className="flex items-center mt-2">
+                        <IconoTendencia className={`h-4 w-4 mr-1 ${obtenerColorTendencia(stat.tendencia)}`} />
+                        <span className={`text-sm font-medium ${obtenerColorTendencia(stat.tendencia)}`}>
+                          {stat.cambio}
+                        </span>
+                        <span className="text-gray-500 text-sm ml-1">vs mes anterior</span>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded-full ${stat.color} bg-opacity-10`}>
+                      <Icono className={`h-8 w-8 ${stat.color.replace('bg-', 'text-')}`} />
                     </div>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.color} bg-opacity-10`}>
-                    <Icono className={`h-8 w-8 ${stat.color.replace('bg-', 'text-')}`} />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-3">{stat.descripcion}</p>
-              </motion.div>
-            );
-          })}
+                  <p className="text-xs text-gray-500 mt-3">{stat.descripcion}</p>
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="col-span-4 text-center text-gray-400 py-8">
+              No hay estadísticas disponibles.
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -194,20 +200,24 @@ const PaginaTablero = () => {
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  {ventasRecientes.map((venta) => (
-                    <div key={venta.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{venta.cliente}</p>
-                        <p className="text-sm text-gray-600">
-                          {venta.productos.join(', ')}
-                        </p>
+                  {Array.isArray(ventasRecientes) && ventasRecientes.length > 0 ? (
+                    ventasRecientes.map((venta) => (
+                      <div key={venta.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{venta.cliente}</p>
+                          <p className="text-sm text-gray-600">
+                            {venta.productos.join(', ')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900">{formatearPrecio(venta.total)}</p>
+                          <p className="text-sm text-gray-500">{venta.hora}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">{formatearPrecio(venta.total)}</p>
-                        <p className="text-sm text-gray-500">{venta.hora}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">No hay ventas recientes.</div>
+                  )}
                 </div>
                 <div className="mt-4 text-center">
                   <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
@@ -235,75 +245,75 @@ const PaginaTablero = () => {
               </div>
               <div className="p-6">
                 <div className="space-y-6">
-                  {productosPopulares.map((producto, index) => (
-                    <div key={producto.nombre}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium text-gray-900 truncate">
-                          {producto.nombre}
-                        </h4>
-                        <span className="text-sm text-blue-600 font-medium">
-                          {producto.vendidos} vendidos
-                        </span>
+                  {Array.isArray(productosPopulares) && productosPopulares.length > 0 ? (
+                    productosPopulares.map((producto, index) => (
+                      <div key={producto.nombre}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {producto.nombre}
+                          </h4>
+                          <span className="text-sm text-blue-600 font-medium">
+                            {producto.vendidos} vendidos
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-500">
+                            Stock: {producto.stock}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {producto.progreso}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <motion.div
+                            className="bg-blue-600 h-2 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${producto.progreso}%` }}
+                            transition={{ delay: 0.6 + index * 0.1, duration: 0.8 }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-500">
-                          Stock: {producto.stock}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {producto.progreso}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <motion.div
-                          className="bg-blue-600 h-2 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${producto.progreso}%` }}
-                          transition={{ delay: 0.6 + index * 0.1, duration: 0.8 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">No hay productos populares.</div>
+                  )}
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* Alertas y Notificaciones */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mt-8"
-        >
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Alertas y Notificaciones</h3>
+        {/* Alertas */}
+        <div className="mt-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200"
+          >
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Alertas</h3>
+              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {alertas.map((alerta, index) => {
-                  const Icono = alerta.icono;
-                  const colorClases = {
-                    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-                    success: 'bg-green-50 border-green-200 text-green-800',
-                    info: 'bg-blue-50 border-blue-200 text-blue-800'
-                  };
-                  
-                  return (
-                    <div
-                      key={index}
-                      className={`flex items-center p-4 rounded-lg border ${colorClases[alerta.tipo]}`}
-                    >
-                      <Icono className="h-5 w-5 mr-3 flex-shrink-0" />
-                      <p className="text-sm font-medium">{alerta.mensaje}</p>
+                {Array.isArray(alertas) && alertas.length > 0 ? (
+                  alertas.map((alerta, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg">
+                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />
+                      <div>
+                        <p className="font-medium text-yellow-900">{alerta.titulo}</p>
+                        <p className="text-sm text-yellow-800">{alerta.descripcion}</p>
+                      </div>
                     </div>
-                  );
-                })}
+                  ))
+                ) : (
+                  <div className="text-center text-gray-400 py-8">No hay alertas.</div>
+                )}
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         {/* Resumen de Operaciones Diarias */}
         <motion.div

@@ -8,6 +8,7 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
   const [valores, setValores] = useState({
     nombre: '',
     email: '',
+    password: '',
     telefono: '',
     tipo_cliente: '',
     rut: '',
@@ -66,6 +67,7 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
     const nuevosErrores = {};
     if (!valores.nombre) nuevosErrores.nombre = 'El nombre es obligatorio';
     if (!valores.email) nuevosErrores.email = 'El email es obligatorio';
+    if (!modoEdicion && !valores.password) nuevosErrores.password = 'La contraseña es obligatoria';
     if (!valores.tipo_cliente) nuevosErrores.tipo_cliente = 'Selecciona un tipo de cliente';
     return nuevosErrores;
   };
@@ -96,7 +98,10 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
           alert('Cliente actualizado exitosamente');
         } else {
           const valoresEnviar = { ...valores };
-          delete valoresEnviar.password;
+          // Solo incluir password si no está en modo edición
+          if (modoEdicion) {
+            delete valoresEnviar.password;
+          }
           await servicioClientes.crear(valoresEnviar);
           alert('Cliente creado exitosamente');
         }
@@ -152,6 +157,21 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
           />
           {errores.email && <p className="text-red-600 text-xs mt-1">{errores.email}</p>}
         </div>
+        
+        {!modoEdicion && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <input
+              type="password"
+              name="password"
+              value={valores.password}
+              onChange={handleChange}
+              className={`w-full border rounded px-3 py-2 ${errores.password ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Ingresa una contraseña"
+            />
+            {errores.password && <p className="text-red-600 text-xs mt-1">{errores.password}</p>}
+          </div>
+        )}
         
         <div>
           <label className="block text-sm font-medium mb-1">Teléfono</label>

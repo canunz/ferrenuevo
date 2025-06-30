@@ -227,9 +227,9 @@ class ProductosController {
       }
 
       const includeClause = [
-        { model: Categoria, as: 'categoria' },
-        { model: Marca, as: 'marca' },
-        { model: Inventario, as: 'inventario' }
+        { model: Categoria, as: 'categoria', required: false },
+        { model: Marca, as: 'marca', required: false },
+        { model: Inventario, as: 'inventario', required: false }
       ];
 
       const { count, rows: productos } = await Producto.findAndCountAll({
@@ -237,7 +237,7 @@ class ProductosController {
         include: includeClause,
         limit: parseInt(limit),
         offset: parseInt(offset),
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
 
       // Aplicar promociones a cada producto
@@ -276,9 +276,9 @@ class ProductosController {
 
       const producto = await Producto.findByPk(id, {
         include: [
-          { model: Categoria, as: 'categoria' },
-          { model: Marca, as: 'marca' },
-          { model: Inventario, as: 'inventario' }
+          { model: Categoria, as: 'categoria', required: false },
+          { model: Marca, as: 'marca', required: false },
+          { model: Inventario, as: 'inventario', required: false }
         ]
       });
 
@@ -313,12 +313,12 @@ class ProductosController {
       const productos = await Producto.findAll({
         where: { activo: true },
         include: [
-          { model: Categoria, as: 'categoria' },
-          { model: Marca, as: 'marca' },
-          { model: Inventario, as: 'inventario' }
+          { model: Categoria, as: 'categoria', required: false },
+          { model: Marca, as: 'marca', required: false },
+          { model: Inventario, as: 'inventario', required: false }
         ],
         limit: 10,
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
 
       // Aplicar promociones y filtrar solo los que tienen ofertas

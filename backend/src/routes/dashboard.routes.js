@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboard.controller');
+const { verificarToken } = require('../middleware/auth');
+const { Pedido, Producto, Usuario, DetallePedido } = require('../models');
+const { Op, fn, col } = require('sequelize');
 
 // ==========================================
 // MIDDLEWARE DE LOGGING PARA DEBUG
@@ -27,25 +30,53 @@ router.use((req, res, next) => {
  * GET /api/v1/dashboard/estadisticas
  * Obtener estadísticas principales del dashboard
  */
-router.get('/estadisticas', dashboardController.obtenerEstadisticas);
+router.get('/estadisticas', verificarToken, dashboardController.obtenerEstadisticas);
 
 /**
  * GET /api/v1/dashboard/ventas-recientes
  * Obtener las ventas más recientes
  */
-router.get('/ventas-recientes', dashboardController.obtenerVentasRecientes);
+router.get('/ventas-recientes', verificarToken, dashboardController.obtenerVentasRecientes);
 
 /**
  * GET /api/v1/dashboard/productos-populares
  * Obtener los productos más populares
  */
-router.get('/productos-populares', dashboardController.obtenerProductosPopulares);
+router.get('/productos-populares', verificarToken, dashboardController.obtenerProductosPopulares);
 
 /**
  * GET /api/v1/dashboard/alertas
  * Obtener alertas del sistema
  */
-router.get('/alertas', dashboardController.obtenerAlertas);
+router.get('/alertas', verificarToken, dashboardController.obtenerAlertas);
+
+// ==========================================
+// RUTAS DE PRUEBA SIN AUTENTICACIÓN
+// ==========================================
+
+/**
+ * GET /api/v1/dashboard/test/estadisticas
+ * Obtener estadísticas principales del dashboard (sin auth para pruebas)
+ */
+router.get('/test/estadisticas', dashboardController.obtenerEstadisticas);
+
+/**
+ * GET /api/v1/dashboard/test/ventas-recientes
+ * Obtener las ventas más recientes (sin auth para pruebas)
+ */
+router.get('/test/ventas-recientes', dashboardController.obtenerVentasRecientes);
+
+/**
+ * GET /api/v1/dashboard/test/productos-populares
+ * Obtener los productos más populares (sin auth para pruebas)
+ */
+router.get('/test/productos-populares', dashboardController.obtenerProductosPopulares);
+
+/**
+ * GET /api/v1/dashboard/test/alertas
+ * Obtener alertas del sistema (sin auth para pruebas)
+ */
+router.get('/test/alertas', dashboardController.obtenerAlertas);
 
 // ==========================================
 // RUTAS ADICIONALES OPCIONALES

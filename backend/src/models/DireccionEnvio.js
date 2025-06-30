@@ -1,6 +1,5 @@
 // backend/src/models/DireccionEnvio.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
 module.exports = (sequelize, DataTypes) => {
   const DireccionEnvio = sequelize.define('DireccionEnvio', {

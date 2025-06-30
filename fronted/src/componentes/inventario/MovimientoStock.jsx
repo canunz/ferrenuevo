@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { registrarIngresoStock, registrarEgresoStock } from '../../servicios/servicioInventario';
+import { registrarIngresoStockTest, registrarEgresoStock } from '../../servicios/servicioInventario';
 
 const MovimientoStock = ({ productoId, modoCompacto, onMovimientoExitoso }) => {
   const [cantidad, setCantidad] = useState(0);
@@ -10,9 +10,18 @@ const MovimientoStock = ({ productoId, modoCompacto, onMovimientoExitoso }) => {
     setMensaje('');
     setCargando(true);
     try {
-      const data = { productoId, cantidad: Number(cantidad) };
+      const data = { 
+        producto_id: productoId, 
+        cantidad: Number(cantidad),
+        motivo: tipo === 'ingreso' ? 'Ingreso manual de stock' : 'Egreso manual de stock'
+      };
+      console.log('🔍 Datos a enviar:', data);
+      console.log('🔍 productoId:', productoId);
+      console.log('🔍 cantidad:', cantidad);
+      console.log('🔍 Token disponible:', !!localStorage.getItem('token'));
+      
       let res;
-      if (tipo === 'ingreso') res = await registrarIngresoStock(data);
+      if (tipo === 'ingreso') res = await registrarIngresoStockTest(data);
       if (tipo === 'egreso') res = await registrarEgresoStock(data);
       setMensaje('✅ Movimiento registrado');
       setCantidad(0);
@@ -20,6 +29,8 @@ const MovimientoStock = ({ productoId, modoCompacto, onMovimientoExitoso }) => {
         onMovimientoExitoso(res.data.inventario);
       }
     } catch (err) {
+      console.error('❌ Error en handleMovimiento:', err);
+      console.error('❌ Error response:', err.response);
       let errorMsg = 'No se pudo registrar el movimiento';
       if (err.response && err.response.data) {
         errorMsg = err.response.data.error || err.response.data.message || errorMsg;

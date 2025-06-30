@@ -21,20 +21,19 @@ const BancoCentral = () => {
 
   // Obtener tipos de cambio
   const obtenerTiposCambio = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await fetch('http://localhost:3000/api/v1/divisas/tipos-cambio');
-      const data = await response.json();
-      
-      if (data.success) {
-        setTiposCambio(data.data);
-      } else {
-        setError('Error al obtener tipos de cambio');
+      setLoading(true);
+      const response = await fetch('http://localhost:3004/api/v1/divisas/tipos-cambio');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      console.error('Error:', err);
+      const data = await response.json();
+      setTiposCambio(data.data || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Error al obtener tipos de cambio: ' + error.message);
+      setTiposCambio([]);
     } finally {
       setLoading(false);
     }
@@ -56,17 +55,22 @@ const BancoCentral = () => {
         hacia: formData.hacia
       });
 
-      const response = await fetch(`http://localhost:3000/api/v1/divisas/convertir?${params}`);
+      const response = await fetch(`http://localhost:3004/api/v1/divisas/convertir?${params}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
       
       if (data.success) {
-        setConversion(data.data);
+        // El backend devuelve los datos en data.message
+        setConversion(data.message || data.data);
       } else {
         setError('Error al convertir moneda');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error en conversión:', error);
       setError('Error de conexión con el servidor');
-      console.error('Error:', err);
+      setConversion(null);
     } finally {
       setLoading(false);
     }
@@ -77,7 +81,7 @@ const BancoCentral = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3000/api/v1/divisas/actualizar', {
+      const response = await fetch('http://localhost:3004/api/v1/divisas/actualizar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,6 +118,19 @@ const BancoCentral = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     convertirMoneda();
+  };
+
+  const formatearValor = (valor) => {
+    if (valor === undefined || valor === null || valor === '') {
+      return 'N/D';
+    }
+    
+    const num = Number(valor);
+    if (!Number.isFinite(num) || isNaN(num)) {
+      return 'N/D';
+    }
+    
+    return `$${num.toLocaleString('es-CL')}`;
   };
 
   return (
@@ -185,7 +202,7 @@ const BancoCentral = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      ${divisa.valor.toLocaleString('es-CL')}
+                      {formatearValor(divisa?.valor)}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       CLP
@@ -291,19 +308,19 @@ const BancoCentral = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Monto original:</span>
                   <span className="font-medium">
-                    {conversion.monto_original.toLocaleString('es-CL')} {conversion.divisa_origen}
+                    {formatearValor(conversion.monto_original)} {conversion.divisa_origen}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Monto convertido:</span>
                   <span className="font-bold text-green-700 dark:text-green-300">
-                    {conversion.monto_convertido.toLocaleString('es-CL')} {conversion.divisa_destino}
+                    {formatearValor(conversion.monto_convertido)} {conversion.divisa_destino}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Tasa de cambio:</span>
                   <span className="font-medium">
-                    1 {conversion.divisa_origen} = {conversion.tasa_cambio} {conversion.divisa_destino}
+                    1 {conversion.divisa_origen} = {formatearValor(conversion.tasa_cambio)} {conversion.divisa_destino}
                   </span>
                 </div>
               </div>

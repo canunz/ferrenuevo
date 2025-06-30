@@ -39,5 +39,18 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   });
+
+  DetallePedido.associate = function(models) {
+    DetallePedido.belongsTo(models.Pedido, {
+      foreignKey: 'pedido_id',
+      as: 'pedido'
+    });
+    
+    DetallePedido.belongsTo(models.Producto, {
+      foreignKey: 'producto_id',
+      as: 'Producto'
+    });
+  };
+
   return DetallePedido;
 };

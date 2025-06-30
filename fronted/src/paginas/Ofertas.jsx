@@ -24,36 +24,46 @@ const Ofertas = () => {
     const cargar = async () => {
       setCargando(true);
       try {
-        // Usar la ruta específica de ofertas
-        const res = await fetch('http://localhost:3000/api/v1/productos/ofertas');
-        const data = await res.json();
-        console.log('Respuesta de ofertas:', data); // Debug
-        
-        let productosConOfertas = [];
-        if (data.success && data.data) {
-          productosConOfertas = data.data.ofertas || [];
-          console.log('Productos con ofertas:', productosConOfertas); // Debug
-          setProductos(productosConOfertas);
-          setEstadisticas(data.data.estadisticas || {});
+        // Obtener todos los productos sin paginación (el backend ya aplica las promociones automáticamente)
+        const res = await servicioProductos.obtenerTodos({ limit: 1000 }); // Obtener muchos productos
+        let todosLosProductos = [];
+        if (res.success && Array.isArray(res.data)) {
+          todosLosProductos = res.data;
+          setProductos(todosLosProductos);
+          
+          // Calcular estadísticas
+          const productosConOferta = todosLosProductos.filter(p => p.tiene_promocion);
+          const mejorDescuento = productosConOferta.length > 0 
+            ? Math.max(...productosConOferta.map(p => p.descuento_porcentaje || 0))
+            : 0;
+          const ahorroTotal = productosConOferta.reduce((total, p) => total + (p.ahorro_total || 0), 0);
+          const porcentajeEnOferta = todosLosProductos.length > 0 
+            ? Math.round((productosConOferta.length / todosLosProductos.length) * 100)
+            : 0;
+          
+          setEstadisticas({
+            productos_con_oferta: productosConOferta.length,
+            mejor_descuento: mejorDescuento,
+            ahorro_total_disponible: ahorroTotal,
+            porcentaje_en_oferta: porcentajeEnOferta
+          });
         } else {
-          console.error('Error en respuesta de ofertas:', data);
           setProductos([]);
           setEstadisticas({});
         }
-        
+
         // Cargar marcas
         const marcasData = await servicioProductos.obtenerMarcas();
         setMarcas([{ id: 'todas', nombre: 'Todas las Marcas' }, ...(marcasData.data || [])]);
-        
-        // Calcular rangos de precio de productos en oferta
-        if (productosConOfertas && productosConOfertas.length > 0) {
-          const preciosFinales = productosConOfertas.map(p => p.precio_final || p.precio);
+
+        // Calcular rangos de precio de todos los productos
+        if (todosLosProductos && todosLosProductos.length > 0) {
+          const preciosFinales = todosLosProductos.map(p => p.precio_final || p.precio);
           setPrecioMin(Math.min(...preciosFinales));
           setPrecioMax(Math.max(...preciosFinales));
           setFiltroPrecioMin(Math.min(...preciosFinales));
           setFiltroPrecioMax(Math.max(...preciosFinales));
         }
-        
       } catch (error) {
         console.error('Error al cargar ofertas:', error);
         setProductos([]);
@@ -66,8 +76,8 @@ const Ofertas = () => {
     cargar();
   }, [mostrarNotificacion]);
 
-  // Aplicar filtros a productos en oferta
-  let productosEnOferta = productos.filter(producto => {
+  // Aplicar filtros a todos los productos
+  let productosFiltrados = productos.filter(producto => {
     const precioFinal = producto.precio_final || producto.precio;
     const cumpleBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       (producto.marca_nombre?.toLowerCase().includes(busqueda.toLowerCase()));
@@ -81,7 +91,7 @@ const Ofertas = () => {
   });
 
   // Ordenar productos
-  productosEnOferta = [...productosEnOferta].sort((a, b) => {
+  productosFiltrados = [...productosFiltrados].sort((a, b) => {
     switch (ordenamiento) {
       case 'descuento':
         return (b.descuento_porcentaje || 0) - (a.descuento_porcentaje || 0);
@@ -99,7 +109,7 @@ const Ofertas = () => {
   });
 
   // Agrupar por categoría
-  const productosPorCategoria = productosEnOferta.reduce((acc, prod) => {
+  const productosPorCategoria = productosFiltrados.reduce((acc, prod) => {
     const cat = prod.categoria_nombre || 'Otros';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
@@ -129,6 +139,17 @@ const Ofertas = () => {
     mostrarNotificacion(mensaje, 'success');
   };
 
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-xl font-semibold text-gray-700">Cargando ofertas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
       <div className="container mx-auto px-4 py-8">
@@ -141,7 +162,7 @@ const Ofertas = () => {
             <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg p-4 mx-auto max-w-4xl">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold">{estadisticas.productos_con_oferta || productosEnOferta.length}</div>
+                  <div className="text-2xl font-bold">{estadisticas.productos_con_oferta || 0}</div>
                   <div className="text-sm opacity-90">Productos en Oferta</div>
                 </div>
                 <div>
@@ -223,138 +244,135 @@ const Ofertas = () => {
               >
                 <option value="descuento">Mayor Descuento</option>
                 <option value="ahorro">Mayor Ahorro</option>
-                <option value="precio-asc">Precio: Menor a Mayor</option>
-                <option value="precio-desc">Precio: Mayor a Menor</option>
+                <option value="precio-asc">Precio Menor</option>
+                <option value="precio-desc">Precio Mayor</option>
                 <option value="nombre">Nombre A-Z</option>
               </select>
             </div>
 
-            <div className="text-center">
-              <div className="text-sm text-gray-600 mb-1">Total</div>
-              <div className="text-lg font-bold text-red-600">{productosEnOferta.length} ofertas</div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600 mb-1">Total</p>
+              <p className="text-lg font-bold text-red-600">{productosFiltrados.length} productos</p>
             </div>
           </div>
         </div>
 
-        {/* Contenido principal */}
-        {cargando ? (
-          <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-500 mx-auto mb-4"></div>
-            <div className="text-gray-600 text-lg">Cargando ofertas increíbles...</div>
-          </div>
-        ) : productosEnOferta.length === 0 ? (
-          <div className="text-center py-20">
-            <FireIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <div className="text-xl text-gray-600 mb-2">No hay ofertas que coincidan con tus filtros</div>
-            <div className="text-gray-500">Prueba ajustando los filtros de búsqueda</div>
-          </div>
-        ) : (
-          Object.entries(productosPorCategoria).map(([categoria, productos]) => (
-            <div key={categoria} className="mb-12">
-              <div className="flex items-center gap-3 mb-6">
-                <TagIcon className="h-6 w-6 text-orange-500" />
-                <h2 className="text-3xl font-bold text-gray-800">{categoria}</h2>
-                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {productos.length} ofertas
-                </span>
+        {/* Productos */}
+        <div className="space-y-8">
+          {Object.entries(productosPorCategoria).map(([categoria, productos]) => (
+            <div key={categoria} className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <TagIcon className="w-6 h-6" />
+                  {categoria}
+                </h2>
+                <p className="text-sm opacity-90">{productos.length} productos</p>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {productos.map(producto => (
-                  <div key={producto.id} className="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                    <div className="relative">
-                      <img
-                        src={producto.imagen ? `/assets/imagenes/productos/${producto.imagen}` : '/assets/imagenes/productos/placeholder.jpg'}
-                        alt={producto.nombre}
-                        className="w-full h-48 object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-300"
-                      />
-                      
-                      {/* Badge de descuento */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {productos.map(producto => (
+                    <div key={producto.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                      {/* Badge de oferta */}
                       {producto.tiene_promocion && (
-                        <div className="absolute top-2 left-2">
+                        <div className="relative">
                           <div 
-                            className="text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg"
+                            className="absolute top-2 left-2 z-10 px-2 py-1 text-xs font-bold text-white rounded"
                             style={{ backgroundColor: producto.color_promocion || '#e74c3c' }}
                           >
                             -{producto.descuento_porcentaje}% OFF
                           </div>
+                          <div 
+                            className="absolute top-2 right-2 z-10 px-2 py-1 text-xs font-bold text-white rounded"
+                            style={{ backgroundColor: producto.color_promocion || '#e74c3c' }}
+                          >
+                            {producto.etiqueta_promocion}
+                          </div>
                         </div>
                       )}
                       
-                      {/* Etiqueta de promoción */}
-                      {producto.etiqueta_promocion && (
-                        <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-bold">
-                          {producto.etiqueta_promocion}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">
-                          {producto.marca_nombre}
-                        </span>
-                        {producto.tiene_stock && (
-                          <span className="text-xs text-green-600 font-medium">✓ En Stock</span>
-                        )}
-                      </div>
-                      
-                      <h3 className="font-bold text-gray-900 mb-3 line-clamp-2 text-lg leading-tight">
-                        {producto.nombre}
-                      </h3>
-                      
-                      {/* Promoción activa */}
-                      {producto.badge_promocion && (
-                        <div className="mb-3 p-2 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-200">
-                          <div className="text-xs font-medium text-red-700">{producto.badge_promocion}</div>
-                          {producto.vigencia_promocion && (
-                            <div className="text-xs text-red-600">{producto.vigencia_promocion}</div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Precios */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-2xl font-bold text-gray-900">
-                            {formatearPrecio(producto.precio_final || producto.precio)}
-                          </span>
-                          {producto.precio_original && producto.precio_original !== (producto.precio_final || producto.precio) && (
-                            <span className="text-sm text-gray-500 line-through">
-                              {formatearPrecio(producto.precio_original)}
-                            </span>
-                          )}
-                        </div>
-                        {producto.ahorro_total > 0 && (
-                          <div className="text-sm font-medium text-green-600">
-                            💰 Ahorras {formatearPrecio(producto.ahorro_total)}
+                      {/* Imagen del producto */}
+                      <div className="h-48 bg-gray-100 flex items-center justify-center">
+                        {producto.imagen_url ? (
+                          <img 
+                            src={producto.imagen_url} 
+                            alt={producto.nombre}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-center">
+                            <TagIcon className="w-12 h-12 mx-auto mb-2" />
+                            <p className="text-sm">Sin imagen</p>
                           </div>
                         )}
                       </div>
                       
-                      {/* Botones */}
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => manejarAgregarCarrito(producto)}
-                          className="w-full flex items-center justify-center px-4 py-3 rounded-lg font-semibold transition-all bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transform hover:scale-105"
-                        >
-                          <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                          Agregar al carrito
-                        </button>
+                      {/* Información del producto */}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                          {producto.nombre}
+                        </h3>
                         
-                        <Link
-                          to={`/producto/${producto.id}`}
-                          className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          Ver detalles
-                        </Link>
+                        {producto.tiene_promocion && (
+                          <div className="mb-2">
+                            <p className="text-xs text-gray-600 mb-1">{producto.badge_promocion}</p>
+                            <p className="text-xs text-gray-500">{producto.vigencia_promocion}</p>
+                          </div>
+                        )}
+                        
+                        {/* Precios */}
+                        <div className="mb-3">
+                          {producto.tiene_promocion ? (
+                            <>
+                              <p className="text-lg font-bold text-red-600">
+                                {formatearPrecio(producto.precio_final)}
+                              </p>
+                              <p className="text-sm text-gray-500 line-through">
+                                {formatearPrecio(producto.precio_original)}
+                              </p>
+                              <p className="text-xs text-green-600 font-medium">
+                                💰 Ahorras {formatearPrecio(producto.ahorro_total)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-lg font-bold text-gray-900">
+                              {formatearPrecio(producto.precio)}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Botones */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => manejarAgregarCarrito(producto)}
+                            className="flex-1 bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                          >
+                            <ShoppingCartIcon className="w-4 h-4" />
+                            Agregar al carrito
+                          </button>
+                          <Link
+                            to={`/productos/${producto.id}`}
+                            className="bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                          >
+                            Ver detalles
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          ))
+          ))}
+        </div>
+
+        {/* Mensaje si no hay productos */}
+        {productosFiltrados.length === 0 && !cargando && (
+          <div className="text-center py-12">
+            <FireIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron productos</h3>
+            <p className="text-gray-500">Intenta ajustar los filtros de búsqueda</p>
+          </div>
         )}
       </div>
     </div>

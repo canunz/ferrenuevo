@@ -22,9 +22,11 @@ const reportesRoutes = require('./src/routes/reportes.routes');
 const sistemaRoutes = require('./src/routes/sistema.routes');
 const divisasRoutes = require('./src/routes/divisas.routes');
 const usuariosRoutes = require('./src/routes/usuarios.routes');
+const facturasRoutes = require('./src/routes/facturas.routes'); // ← NUEVO
+const dashboardRoutes = require('./src/routes/dashboard.routes'); // ← NUEVO
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3004;
 
 // Middleware
 app.use(cors({
@@ -37,6 +39,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Servir archivos estáticos
 app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+app.use('/favicon.ico', express.static(path.join(__dirname, 'public/favicon.ico')));
+app.use('/logo192.png', express.static(path.join(__dirname, 'public/logo192.png')));
+app.use('/logo512.png', express.static(path.join(__dirname, 'public/logo512.png')));
+
+// Servir archivos estáticos de forma más robusta
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 // Documentación Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -54,6 +64,8 @@ app.use('/api/v1/reportes', reportesRoutes);
 app.use('/api/v1/sistema', sistemaRoutes);
 app.use('/api/v1/divisas', divisasRoutes);
 app.use('/api/v1/usuarios', usuariosRoutes);
+app.use('/api/v1/facturas', facturasRoutes); // ← NUEVO
+app.use('/api/v1/dashboard', dashboardRoutes); // ← NUEVO
 
 // Ruta de prueba
 app.get('/', (req, res) => {

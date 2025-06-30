@@ -1,32 +1,68 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import ListaFacturas from '../componentes/facturas/ListaFacturas';
+import DetalleFactura from '../componentes/facturas/DetalleFactura';
+import FormularioFactura from '../componentes/facturas/FormularioFactura';
 
 const PaginaFacturas = () => {
+  const [vista, setVista] = useState('lista'); // 'lista', 'detalle', 'formulario'
+  const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
+
+  const handleVerFactura = (facturaId) => {
+    setFacturaSeleccionada(facturaId);
+    setVista('detalle');
+  };
+
+  const handleEmitirFactura = () => {
+    setVista('formulario');
+  };
+
+  const handleVolver = () => {
+    setVista('lista');
+    setFacturaSeleccionada(null);
+  };
+
+  const handleFacturaEmitida = () => {
+    setVista('lista');
+    // Recargar la lista de facturas
+  };
+
+  const renderVista = () => {
+    switch (vista) {
+      case 'detalle':
+        return (
+          <DetalleFactura
+            facturaId={facturaSeleccionada}
+            onVolver={handleVolver}
+          />
+        );
+      case 'formulario':
+        return (
+          <FormularioFactura
+            onGuardar={handleFacturaEmitida}
+            onCancelar={handleVolver}
+          />
+        );
+      default:
+        return (
+          <ListaFacturas
+            onVerFactura={handleVerFactura}
+            onEmitirFactura={handleEmitirFactura}
+          />
+        );
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Emisión de Facturas
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Gestiona facturas y documentos tributarios
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Gestión de Facturas</h1>
+        <p className="text-gray-600 mt-2">
+          Emite, visualiza y gestiona las facturas de la empresa
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <div className="text-center py-12">
-          <DocumentTextIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">
-            Módulo de Emisión de Facturas en desarrollo
-          </p>
-        </div>
-      </div>
-    </motion.div>
+      {renderVista()}
+    </div>
   );
 };
 

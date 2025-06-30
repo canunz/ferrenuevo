@@ -13,10 +13,25 @@ const ListaInventario = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get('/inventario');
-        setInventario(res.data.data || []);
+        const res = await api.get('/inventario/test');
+        console.log('📥 Respuesta del inventario:', res.data);
+        
+        // Asegurar que inventario sea siempre un array
+        let inventarioData = [];
+        if (res.data && Array.isArray(res.data.data)) {
+          inventarioData = res.data.data;
+        } else if (res.data && Array.isArray(res.data.message)) {
+          inventarioData = res.data.message;
+        } else if (Array.isArray(res.data)) {
+          inventarioData = res.data;
+        }
+        
+        console.log('📋 Inventario procesado:', inventarioData);
+        setInventario(inventarioData);
       } catch (err) {
-        setError('Error al cargar el inventario');
+        console.error('❌ Error al cargar inventario:', err);
+        setError('Error al cargar el inventario: ' + (err.response?.data?.error || err.message));
+        setInventario([]); // Asegurar que sea un array vacío
       } finally {
         setLoading(false);
       }
@@ -30,7 +45,11 @@ const ListaInventario = () => {
   if (error) {
     return <div className="p-8 text-center text-red-500">{error}</div>;
   }
-  if (!inventario.length) {
+  
+  // Asegurar que inventario sea un array
+  const inventarioArray = Array.isArray(inventario) ? inventario : [];
+  
+  if (!inventarioArray.length) {
     return <div className="p-8 text-center text-gray-500">No hay productos en inventario.</div>;
   }
 
@@ -44,7 +63,7 @@ const ListaInventario = () => {
         <div className="text-xs text-gray-500">Máximo</div>
       </div>
       <div className="grid grid-cols-1 gap-3">
-        {inventario.map(item => (
+        {inventarioArray.map(item => (
           <div
             key={item.id}
             className="bg-white rounded-xl shadow p-4"
@@ -90,9 +109,12 @@ const ListaInventario = () => {
                   productoId={item.producto?.id}
                   modoCompacto
                   onMovimientoExitoso={(nuevoInventario) => {
-                    setInventario(prev => prev.map(inv =>
-                      inv.id === item.id ? { ...inv, stock_actual: nuevoInventario.stock_actual } : inv
-                    ));
+                    setInventario(prev => {
+                      const prevArray = Array.isArray(prev) ? prev : [];
+                      return prevArray.map(inv =>
+                        inv.id === item.id ? { ...inv, stock_actual: nuevoInventario.stock_actual } : inv
+                      );
+                    });
                   }}
                 />
               </div>

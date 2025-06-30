@@ -5,7 +5,7 @@
 import axios from 'axios';
 
 // Configuración de la API
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_BASE_URL = 'http://localhost:3004/api/v1';
 
 // Configuración base de axios
 const api = axios.create({
@@ -84,7 +84,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     
     // Mejorar los mensajes de error para el usuario
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:3000');
+      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:3004');
     }
     
     if (error.name === 'AbortError') {
@@ -111,7 +111,7 @@ export const testBackendConnection = async () => {
 const verificarServidor = async () => {
   try {
     console.log('🏥 Verificando salud del servidor...');
-    const response = await fetch('http://localhost:3000/health', {
+    const response = await fetch('http://localhost:3004/health', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -181,7 +181,7 @@ export const productosAPI = {
 // API SISTEMA (exportación nombrada)
 export const sistemaAPI = {
   healthCheck: async () => {
-    const response = await fetch('http://localhost:3000/health');
+    const response = await fetch('http://localhost:3004/health');
     return await response.json();
   },
   

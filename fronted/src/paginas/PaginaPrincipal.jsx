@@ -52,9 +52,9 @@ const PaginaPrincipal = () => {
         const productosResponse = await servicioProductos.obtenerTodos();
         console.log('✅ Productos recibidos:', productosResponse);
         
-        if (productosResponse.success && productosResponse.data && productosResponse.data.productos) {
-          setProductos(productosResponse.data.productos);
-          console.log('✅ Productos establecidos:', productosResponse.data.productos.length);
+        if (productosResponse.success && Array.isArray(productosResponse.data)) {
+          setProductos(productosResponse.data);
+          console.log('✅ Productos establecidos:', productosResponse.data.length);
         } else {
           setProductos([]);
         }

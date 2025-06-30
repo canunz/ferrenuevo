@@ -198,22 +198,38 @@ const IntegracionesExternas = () => {
             sandbox: true
           },
           banco_central: {
-            api_key: '',
-            base_url: 'https://si3.bcentral.cl/SieteRestWS',
-            cache_duration: 3600
+            api_key: 'bcentral_api_key_123',
+            base_url: 'https://si3.bcentral.cl',
+            timeout: 5000,
+            retry_attempts: 3
           },
           sii: {
             rut_empresa: '12345678-9',
-            ambiente: 'certificacion',
-            certificado: null,
-            clave_privada: null
+            certificado_digital: 'certificado.p12',
+            password_certificado: '********',
+            ambiente: 'certificacion'
+          },
+          correos_chile: {
+            api_key: 'correos_api_key_456',
+            usuario: 'ferremas',
+            password: '********',
+            sucursal_origen: 'Santiago Centro'
+          },
+          google_analytics: {
+            measurement_id: 'G-XXXXXXXXXX',
+            api_secret: 'ga_api_secret_789',
+            property_id: '123456789'
+          },
+          mailchimp: {
+            api_key: 'mailchimp_api_key_abc',
+            server_prefix: 'us1',
+            audience_id: 'audience_123456'
           }
         });
-
         setCargando(false);
       }, 1000);
-    } catch (err) {
-      error('Error al cargar integraciones');
+    } catch (error) {
+      console.error('Error al cargar integraciones:', error);
       setCargando(false);
     }
   };
