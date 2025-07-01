@@ -19,6 +19,7 @@ import { HeartIcon as HeartSolid, StarIcon as StarSolid } from '@heroicons/react
 import { useCarrito } from '../contexto/ContextoCarrito';
 import { useAuth } from '../contexto/ContextoAuth';
 import { servicioProductos } from '../servicios/servicioProductos';
+import TarjetaProducto from '../componentes/productos/TarjetaProducto';
 
 console.log('PAGINA PRINCIPAL SE MONTA');
 
@@ -392,82 +393,14 @@ const PaginaPrincipal = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {productosOrdenados.map((producto) => (
-              <motion.div
+              <TarjetaProducto
                 key={producto.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-              >
-                <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg overflow-hidden">
-                  {producto.imagen ? (
-                    <img
-                      src={`/assets/imagenes/productos/${producto.imagen}`}
-                      alt={producto.nombre}
-                      className="w-full h-48 object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className="w-full h-48 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                    <div className="text-center">
-                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                      <p className="text-xs text-gray-500">{producto.categoria_nombre}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                      {producto.nombre}
-                    </h3>
-                    <button
-                      onClick={() => toggleFavorito(producto.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      {favoritos.includes(producto.id) ? (
-                        <HeartSolid className="h-5 w-5 text-red-500" />
-                      ) : (
-                        <HeartIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-2">
-                    {producto.marca_nombre && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        {producto.marca_nombre}
-                      </span>
-                    )}
-                    {producto.codigo_sku && (
-                      <span className="text-xs text-gray-400">
-                        SKU: {producto.codigo_sku}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {producto.descripcion || 'Descripción no disponible'}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatearPrecio(producto.precio)}
-                    </div>
-                    <button
-                      onClick={() => manejarAgregarCarrito(producto)}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-                    >
-                      <ShoppingCartIcon className="h-4 w-4 mr-2" />
-                      Agregar
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+                producto={producto}
+                onAgregarAlCarrito={manejarAgregarCarrito}
+                onToggleFavorito={toggleFavorito}
+                esFavorito={favoritos.includes(producto.id)}
+                mostrarAcciones={true}
+              />
             ))}
           </div>
         )}

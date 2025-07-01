@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, query, validationResult } = require('express-validator');
 const pedidosController = require('../controllers/pedidos.controller');
-const { verificarToken } = require('../middleware/auth');
+const { verificarToken, verificarRol } = require('../middleware/auth');
 
 // Middleware para manejar errores de validación
 const handleValidationErrors = (req, res, next) => {
@@ -235,6 +235,25 @@ router.put('/:id/estado',
     handleValidationErrors
   ],
   pedidosController.cambiarEstado
+);
+
+/**
+ * @swagger
+ * /api/v1/pedidos/ventas-hoy:
+ *   get:
+ *     summary: Obtener ventas del día
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de pedidos obtenida exitosamente
+ */
+router.get(
+  '/ventas-hoy',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  pedidosController.ventasHoy
 );
 
 module.exports = router;

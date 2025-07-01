@@ -23,15 +23,27 @@ const BancoCentral = () => {
   const obtenerTiposCambio = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Obteniendo tipos de cambio...');
       const response = await fetch('http://localhost:3004/api/v1/divisas/tipos-cambio');
+      console.log('📡 Response status:', response.status);
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
       const data = await response.json();
-      setTiposCambio(data.data || []);
+      console.log('📊 Datos recibidos:', data);
+      
+      // Asegurar que siempre sea un array
+      const tiposCambioData = Array.isArray(data.data) ? data.data : 
+                             Array.isArray(data) ? data : 
+                             Array.isArray(data.tiposCambio) ? data.tiposCambio : [];
+      
+      console.log('✅ Tipos de cambio procesados:', tiposCambioData);
+      setTiposCambio(tiposCambioData);
       setError(null);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error:', error);
       setError('Error al obtener tipos de cambio: ' + error.message);
       setTiposCambio([]);
     } finally {
@@ -180,7 +192,7 @@ const BancoCentral = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {tiposCambio.map((divisa) => (
+              {Array.isArray(tiposCambio) && tiposCambio.map((divisa) => (
                 <div
                   key={divisa.id}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
@@ -210,6 +222,11 @@ const BancoCentral = () => {
                   </div>
                 </div>
               ))}
+              {(!Array.isArray(tiposCambio) || tiposCambio.length === 0) && !loading && !error && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No hay tipos de cambio disponibles</p>
+                </div>
+              )}
             </div>
           )}
         </div>

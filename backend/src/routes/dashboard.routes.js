@@ -30,25 +30,25 @@ router.use((req, res, next) => {
  * GET /api/v1/dashboard/estadisticas
  * Obtener estadísticas principales del dashboard
  */
-router.get('/estadisticas', verificarToken, dashboardController.obtenerEstadisticas);
+router.get('/estadisticas', dashboardController.obtenerEstadisticas);
 
 /**
  * GET /api/v1/dashboard/ventas-recientes
  * Obtener las ventas más recientes
  */
-router.get('/ventas-recientes', verificarToken, dashboardController.obtenerVentasRecientes);
+router.get('/ventas-recientes', dashboardController.obtenerVentasRecientes);
 
 /**
  * GET /api/v1/dashboard/productos-populares
  * Obtener los productos más populares
  */
-router.get('/productos-populares', verificarToken, dashboardController.obtenerProductosPopulares);
+router.get('/productos-populares', dashboardController.obtenerProductosPopulares);
 
 /**
  * GET /api/v1/dashboard/alertas
  * Obtener alertas del sistema
  */
-router.get('/alertas', verificarToken, dashboardController.obtenerAlertas);
+router.get('/alertas', dashboardController.obtenerAlertas);
 
 // ==========================================
 // RUTAS DE PRUEBA SIN AUTENTICACIÓN

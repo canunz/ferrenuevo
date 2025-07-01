@@ -1,5 +1,5 @@
 const { Inventario, MovimientoInventario, Producto, Categoria, Marca, Sucursal, Usuario, sequelize } = require('../models');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const { formatearRespuesta, formatearError } = require('../utils/helpers');
 
 class InventarioController {
@@ -43,55 +43,6 @@ class InventarioController {
         order: [['updated_at', 'DESC']]
       });
 
-      // Crear datos de ejemplo si no hay inventario
-      if (count === 0) {
-        const inventarioEjemplo = [
-          {
-            id: 1,
-            producto_id: 1,
-            sucursal_id: 1,
-            stock_actual: 50,
-            stock_minimo: 10,
-            stock_maximo: 100,
-            ubicacion: 'Estante A1',
-            created_at: new Date(),
-            updated_at: new Date(),
-            producto: {
-              id: 1,
-              nombre: 'Taladro Eléctrico DeWalt',
-              codigo_sku: 'TAL-DEWALT-001'
-            }
-          },
-          {
-            id: 2,
-            producto_id: 2,
-            sucursal_id: 1,
-            stock_actual: 5,
-            stock_minimo: 10,
-            stock_maximo: 50,
-            ubicacion: 'Estante B2',
-            created_at: new Date(),
-            updated_at: new Date(),
-            producto: {
-              id: 2,
-              nombre: 'Sierra Circular Bosch',
-              codigo_sku: 'SIE-BOSCH-001'
-            }
-          }
-        ];
-
-        return res.json(formatearRespuesta(
-          'Inventario obtenido exitosamente (datos de ejemplo)',
-          inventarioEjemplo,
-          {
-            current_page: parseInt(page),
-            total_pages: 1,
-            total_items: inventarioEjemplo.length,
-            items_per_page: parseInt(limit)
-          }
-        ));
-      }
-
       res.json(formatearRespuesta(
         'Inventario obtenido exitosamente',
         inventario,
@@ -115,6 +66,7 @@ class InventarioController {
     try {
       const {
         inventario_id,
+        producto_id,
         tipo,
         cantidad,
         motivo,
@@ -127,8 +79,30 @@ class InventarioController {
         return res.status(400).json(formatearError('Tipo de movimiento no válido.'));
       }
 
+      let inventarioRealId = inventario_id;
+      // Si no se pasa inventario_id pero sí producto_id, buscar o crear inventario
+      if (!inventario_id && producto_id) {
+        let inventario = await Inventario.findOne({ where: { producto_id } });
+        if (!inventario) {
+          // Crear inventario si no existe
+          inventario = await Inventario.create({
+            producto_id,
+            sucursal_id: 1, // Sucursal por defecto
+            stock_actual: tipo === 'salida' ? 0 : cantidad,
+            stock_minimo: 5,
+            stock_maximo: 100,
+            ubicacion: 'Bodega Principal'
+          });
+        } else if (tipo === 'entrada' || tipo === 'ajuste') {
+          // Si existe y es entrada/ajuste, sumar stock
+          inventario.stock_actual += Number(cantidad);
+          await inventario.save();
+        }
+        inventarioRealId = inventario.id;
+      }
+
       const movimiento = await MovimientoInventario.crearMovimiento({
-        inventario_id,
+        inventario_id: inventarioRealId,
         tipo,
         cantidad,
         motivo,
@@ -468,6 +442,307 @@ class InventarioController {
       ));
     } catch (error) {
       console.error('Error al registrar ingreso:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
+    }
+  }
+
+  /**
+   * Listar TODOS los productos con su inventario y ofertas
+   */
+  async listarTodosProductosConInventario(req, res) {
+    try {
+      const { 
+        page = 1, 
+        limit = 20, 
+        categoria_id, 
+        marca_id,
+        stock_bajo,
+        en_oferta,
+        q 
+      } = req.query;
+
+      const offset = (page - 1) * limit;
+      let whereClause = { activo: true };
+
+      // Filtros
+      if (categoria_id) whereClause.categoria_id = categoria_id;
+      if (marca_id) whereClause.marca_id = marca_id;
+      if (q) {
+        whereClause[Op.or] = [
+          { nombre: { [Op.like]: `%${q}%` } },
+          { codigo_sku: { [Op.like]: `%${q}%` } }
+        ];
+      }
+
+      // Obtener todos los productos con sus relaciones
+      const { count, rows: productos } = await Producto.findAndCountAll({
+        where: whereClause,
+        include: [
+          { model: Categoria, as: 'categoria', required: false },
+          { model: Marca, as: 'marca', required: false },
+          { model: Inventario, as: 'inventario', required: false }
+        ],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['nombre', 'ASC']]
+      });
+
+      // LOG para depuración
+      console.log('=== PRODUCTOS ENCONTRADOS EN BD (con inventario) ===');
+      console.log(productos.map(p => p.toJSON()));
+
+      // Función para aplicar promociones (copiada del controlador de productos)
+      const aplicarPromociones = (producto) => {
+        const precio = parseFloat(producto.precio);
+        const descuentoManual = parseFloat(producto.descuento) || 0;
+        
+        // 🚨 PRIORIDAD 1: Si hay descuento manual, aplicarlo primero
+        if (descuentoManual > 0) {
+          const precioConDescuentoManual = Math.round(precio * (1 - descuentoManual / 100));
+          const ahorroManual = Math.round(precio * (descuentoManual / 100));
+          
+          return {
+            ...producto,
+            tiene_promocion: true,
+            promocion_activa: {
+              tipo: 'manual',
+              nombre: `Descuento Manual ${descuentoManual}%`,
+              descuento_porcentaje: descuentoManual,
+              precio_original: precio,
+              precio_oferta: precioConDescuentoManual,
+              ahorro: ahorroManual,
+              etiqueta: `MANUAL${descuentoManual}`
+            },
+            precio_original: precio,
+            precio_final: precioConDescuentoManual,
+            descuento_porcentaje: descuentoManual,
+            etiqueta_promocion: `MANUAL${descuentoManual}`,
+            descuento_manual: true
+          };
+        }
+        
+        // 🚨 PRIORIDAD 2: Si no hay descuento manual, aplicar promociones automáticas
+        let promociones = [];
+        
+        // Promociones por marca
+        if (producto.marca?.nombre === 'Stanley') {
+          promociones.push({
+            tipo: 'marca',
+            nombre: 'Mega Sale Stanley 25%',
+            descuento_porcentaje: 25,
+            precio_original: precio,
+            precio_oferta: Math.round(precio * 0.75),
+            ahorro: Math.round(precio * 0.25),
+            etiqueta: 'STANLEY25'
+          });
+        }
+        
+        if (producto.marca?.nombre === 'Bosch') {
+          promociones.push({
+            tipo: 'marca',
+            nombre: 'Oferta Bosch 20%',
+            descuento_porcentaje: 20,
+            precio_original: precio,
+            precio_oferta: Math.round(precio * 0.8),
+            ahorro: Math.round(precio * 0.2),
+            etiqueta: 'BOSCH20'
+          });
+        }
+        
+        if (producto.marca?.nombre === 'DeWalt') {
+          promociones.push({
+            tipo: 'marca',
+            nombre: 'DeWalt Power Tools 18%',
+            descuento_porcentaje: 18,
+            precio_original: precio,
+            precio_oferta: Math.round(precio * 0.82),
+            ahorro: Math.round(precio * 0.18),
+            etiqueta: 'DEWALT18'
+          });
+        }
+        
+        if (producto.marca?.nombre === 'Makita') {
+          promociones.push({
+            tipo: 'marca',
+            nombre: 'Makita Professional 15%',
+            descuento_porcentaje: 15,
+            precio_original: precio,
+            precio_oferta: Math.round(precio * 0.85),
+            ahorro: Math.round(precio * 0.15),
+            etiqueta: 'MAKITA15'
+          });
+        }
+
+        // Seleccionar la mejor promoción
+        if (promociones.length > 0) {
+          const mejorPromocion = promociones.reduce((mejor, actual) => 
+            actual.descuento_porcentaje > mejor.descuento_porcentaje ? actual : mejor
+          );
+          
+          return {
+            ...producto,
+            tiene_promocion: true,
+            promocion_activa: mejorPromocion,
+            precio_original: precio,
+            precio_final: mejorPromocion.precio_oferta,
+            descuento_porcentaje: mejorPromocion.descuento_porcentaje,
+            etiqueta_promocion: mejorPromocion.etiqueta,
+            descuento_manual: false
+          };
+        }
+        
+        return {
+          ...producto,
+          tiene_promocion: false,
+          precio_original: precio,
+          precio_final: precio,
+          descuento_porcentaje: 0,
+          descuento_manual: false
+        };
+      };
+
+      // Procesar cada producto
+      const productosProcesados = productos.map(producto => {
+        const productoData = producto.toJSON();
+        
+        // Calcular stock total
+        const stockTotal = Array.isArray(productoData.inventario)
+          ? productoData.inventario.reduce((sum, inv) => sum + (inv.stock_actual ? Number(inv.stock_actual) : 0), 0)
+          : 0;
+        
+        // Aplicar promociones
+        const productoConPromocion = aplicarPromociones(productoData);
+        
+        return {
+          ...productoConPromocion,
+          stock_total: stockTotal,
+          stock_disponible: stockTotal > 0 ? 'Disponible' : 'Sin stock',
+          estado_stock: stockTotal === 0 ? 'agotado' : 
+                       stockTotal <= 5 ? 'bajo' : 'normal'
+        };
+      });
+
+      // Aplicar filtros adicionales SOLO si el usuario lo pide
+      let productosFiltrados = productosProcesados;
+      
+      if (stock_bajo === 'true') {
+        productosFiltrados = productosFiltrados.filter(p => p.stock_total <= 5);
+      }
+      
+      if (en_oferta === 'true') {
+        productosFiltrados = productosFiltrados.filter(p => p.tiene_promocion);
+      }
+
+      res.json(formatearRespuesta(
+        'Productos con inventario obtenidos exitosamente',
+        productosFiltrados,
+        {
+          current_page: parseInt(page),
+          total_pages: Math.ceil(count / limit),
+          total_items: count,
+          items_per_page: parseInt(limit),
+          estadisticas: {
+            total_productos: count,
+            productos_con_stock: productosProcesados.filter(p => p.stock_total > 0).length,
+            productos_en_oferta: productosProcesados.filter(p => p.tiene_promocion).length,
+            productos_sin_stock: productosProcesados.filter(p => p.stock_total === 0).length
+          }
+        }
+      ));
+
+    } catch (error) {
+      console.error('Error al listar productos con inventario:', error);
+      res.status(500).json(formatearError('Error interno del servidor', error));
+    }
+  }
+
+  // Endpoint para cantidad de productos con stock bajo
+  async cantidadStockBajo(req, res) {
+    try {
+      const cantidad = await Inventario.count({
+        where: {
+          stock_actual: { [Op.lte]: Sequelize.col('stock_minimo') }
+        }
+      });
+      res.json({ success: true, cantidad });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * Actualizar stock de un producto específico.
+   */
+  async actualizarStockProducto(req, res) {
+    try {
+      const { producto_id, nuevo_stock, observaciones, tipo_movimiento } = req.body;
+      const usuario_id = req.user?.id;
+
+      if (!producto_id || nuevo_stock === undefined) {
+        return res.status(400).json(formatearError('Faltan datos requeridos: producto_id y nuevo_stock'));
+      }
+
+      if (nuevo_stock < 0) {
+        return res.status(400).json(formatearError('El stock no puede ser negativo'));
+      }
+
+      // Buscar el producto
+      const producto = await Producto.findByPk(producto_id);
+      if (!producto) {
+        return res.status(404).json(formatearError('Producto no encontrado'));
+      }
+
+      // Buscar o crear el registro de inventario
+      let inventario = await Inventario.findOne({ where: { producto_id } });
+      
+      if (!inventario) {
+        // Crear nuevo registro de inventario si no existe
+        inventario = await Inventario.create({
+          producto_id,
+          sucursal_id: 1, // Sucursal por defecto
+          stock_actual: nuevo_stock,
+          stock_minimo: 5,
+          stock_maximo: 100,
+          ubicacion: 'Bodega Principal'
+        });
+      } else {
+        // Guardar el stock anterior para el historial
+        const stockAnterior = inventario.stock_actual;
+        
+        // Actualizar el stock
+        await inventario.update({ stock_actual: nuevo_stock });
+
+        // Registrar el movimiento en el historial
+        try {
+          if (usuario_id) {
+            await MovimientoInventario.create({
+              inventario_id: inventario.id,
+              tipo: tipo_movimiento || 'ajuste',
+              cantidad: Math.abs(nuevo_stock - stockAnterior),
+              motivo: `Ajuste de stock: ${stockAnterior} → ${nuevo_stock}`,
+              observaciones: observaciones || 'Ajuste manual de stock',
+              usuario_id,
+              fecha: new Date(),
+              stock_anterior: stockAnterior,
+              stock_nuevo: nuevo_stock
+            });
+          }
+        } catch (movimientoError) {
+          console.warn('No se pudo registrar el movimiento:', movimientoError);
+        }
+      }
+
+      res.json(formatearRespuesta(
+        'Stock actualizado exitosamente',
+        {
+          producto_id,
+          stock_anterior: inventario.stock_actual,
+          stock_nuevo: nuevo_stock,
+          inventario
+        }
+      ));
+    } catch (error) {
+      console.error('Error al actualizar stock del producto:', error);
       res.status(500).json(formatearError('Error interno del servidor', error));
     }
   }

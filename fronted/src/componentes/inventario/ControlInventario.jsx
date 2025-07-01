@@ -44,7 +44,8 @@ const ControlInventario = () => {
   const cargarInventario = async () => {
     setCargando(true);
     try {
-      const response = await fetch('/api/v1/inventario', {
+      // 🚨 CAMBIO: Usar la ruta correcta que devuelve TODOS los productos
+      const response = await fetch('/api/v1/inventario/productos-completos', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -55,10 +56,11 @@ const ControlInventario = () => {
       }
       const data = await response.json();
       
-      if (data.exito) {
-        setInventario(data.datos);
+      if (data.success) {
+        console.log('=== PRODUCTOS CARGADOS EN INVENTARIO ===', data.message);
+        setInventario(data.message);
       } else {
-        throw new Error(data.mensaje || 'Error al cargar el inventario');
+        throw new Error(data.message || 'Error al cargar el inventario');
       }
     } catch (err) {
       error('Error al cargar inventario: ' + err.message);
@@ -95,42 +97,65 @@ const ControlInventario = () => {
   };
 
   const inventarioFiltrado = inventario.filter(item => {
-    const cumpleBusqueda = item.producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-                          item.producto.codigo_sku.toLowerCase().includes(busqueda.toLowerCase()) ||
-                          item.producto.marca.toLowerCase().includes(busqueda.toLowerCase());
+    // 🚨 CAMBIO: Adaptar a la nueva estructura de datos de productos-completos
+    const cumpleBusqueda = item.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                          item.codigo_sku.toLowerCase().includes(busqueda.toLowerCase()) ||
+                          (item.marca?.nombre || '').toLowerCase().includes(busqueda.toLowerCase());
     
     const cumpleFiltroStock = filtroStock === 'todos' ||
-                             (filtroStock === 'bajo' && item.estado === 'bajo') ||
-                             (filtroStock === 'agotado' && item.estado === 'agotado') ||
-                             (filtroStock === 'normal' && item.estado === 'normal');
+                             (filtroStock === 'bajo' && item.estado_stock === 'bajo') ||
+                             (filtroStock === 'agotado' && item.estado_stock === 'agotado') ||
+                             (filtroStock === 'normal' && item.estado_stock === 'normal');
     
-    const cumpleSucursal = sucursalSeleccionada === 'todas' || 
-                          item.sucursal.id === parseInt(sucursalSeleccionada);
+    // 🚨 CAMBIO: Por ahora no filtramos por sucursal ya que productos-completos no incluye sucursal
+    const cumpleSucursal = true; // sucursalSeleccionada === 'todas' || item.sucursal?.id === parseInt(sucursalSeleccionada);
 
     return cumpleBusqueda && cumpleFiltroStock && cumpleSucursal;
   });
 
   const estadisticasInventario = {
     totalProductos: inventario.length,
-    stockBajo: inventario.filter(item => item.estado === 'bajo').length,
-    agotados: inventario.filter(item => item.estado === 'agotado').length,
-    valorTotal: inventario.reduce((sum, item) => sum + item.valor_total, 0)
+    stockBajo: inventario.filter(item => item.estado_stock === 'bajo').length,
+    agotados: inventario.filter(item => item.estado_stock === 'agotado').length,
+    valorTotal: inventario.reduce((sum, item) => sum + (item.stock_total * item.precio_final), 0)
   };
 
   const manejarAjusteStock = async (datos) => {
     try {
-      // Simular ajuste de stock
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🔄 Actualizando stock para producto:', modalAjuste.item.id);
+      console.log('📊 Nuevo stock:', datos.nuevoStock);
       
+      // Llamar a la API para actualizar el stock
+      const response = await fetch(`/api/v1/inventario/actualizar-stock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          producto_id: modalAjuste.item.id,
+          nuevo_stock: datos.nuevoStock,
+          observaciones: datos.observaciones,
+          tipo_movimiento: 'ajuste'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al actualizar stock');
+      }
+
+      const result = await response.json();
+      console.log('✅ Stock actualizado:', result);
+
+      // Actualizar el estado local
       setInventario(prev => prev.map(item => 
         item.id === modalAjuste.item.id 
           ? { 
               ...item, 
-              stock_actual: datos.nuevoStock,
-              ultimo_movimiento: new Date().toISOString().split('T')[0],
-              estado: datos.nuevoStock === 0 ? 'agotado' : 
-                     datos.nuevoStock <= item.stock_minimo ? 'bajo' : 'normal',
-              valor_total: datos.nuevoStock * item.producto.precio
+              stock_total: datos.nuevoStock,
+              estado_stock: datos.nuevoStock === 0 ? 'agotado' : 
+                           datos.nuevoStock <= 5 ? 'bajo' : 'normal'
             }
           : item
       ));
@@ -138,49 +163,63 @@ const ControlInventario = () => {
       exito('Stock actualizado correctamente');
       setModalAjuste({ abierto: false, item: null });
     } catch (err) {
-      error('Error al actualizar stock');
+      console.error('❌ Error al actualizar stock:', err);
+      error('Error al actualizar stock: ' + err.message);
     }
   };
 
   const manejarMovimiento = async (datos) => {
     try {
-      // Simular movimiento de stock
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🔄 Registrando movimiento de stock:', modalMovimiento.tipo);
+      console.log('📊 Datos:', datos);
       
-      setInventario(prev => prev.map(item => 
-        item.producto.id === parseInt(datos.producto_id)
-          ? {
-              ...item,
-              stock_actual: modalMovimiento.tipo === 'entrada' 
-                ? item.stock_actual + parseInt(datos.cantidad)
-                : item.stock_actual - parseInt(datos.cantidad),
-              ultimo_movimiento: new Date().toISOString().split('T')[0],
-              estado: item.stock_actual === 0 ? 'agotado' :
-                     item.stock_actual <= item.stock_minimo ? 'bajo' : 'normal',
-              valor_total: item.stock_actual * item.producto.precio
-            }
-          : item
-      ));
+      // Llamar a la API para registrar el movimiento
+      const response = await fetch(`/api/v1/inventario/movimientos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          producto_id: parseInt(datos.producto_id),
+          tipo: modalMovimiento.tipo,
+          cantidad: parseInt(datos.cantidad),
+          motivo: datos.motivo || `${modalMovimiento.tipo} de stock`,
+          observaciones: datos.observaciones || ''
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al registrar movimiento');
+      }
+
+      const result = await response.json();
+      console.log('✅ Movimiento registrado:', result);
+
+      // Recargar el inventario para obtener datos actualizados
+      await cargarInventario();
 
       exito(`Movimiento de ${modalMovimiento.tipo} registrado correctamente`);
       setModalMovimiento({ abierto: false, tipo: null });
     } catch (err) {
-      error('Error al procesar el movimiento');
+      console.error('❌ Error al registrar movimiento:', err);
+      error('Error al procesar el movimiento: ' + err.message);
     }
   };
 
   const exportarInventario = () => {
     const csv = [
-      ['Producto', 'SKU', 'Sucursal', 'Stock Actual', 'Stock Mínimo', 'Stock Máximo', 'Ubicación', 'Valor Total'],
+      ['Producto', 'SKU', 'Marca', 'Stock Total', 'Precio Unitario', 'Precio Final', 'Descuento', 'Valor Total'],
       ...inventarioFiltrado.map(item => [
-        item.producto.nombre,
-        item.producto.codigo_sku,
-        item.sucursal.nombre,
-        item.stock_actual,
-        item.stock_minimo,
-        item.stock_maximo,
-        item.ubicacion,
-        item.valor_total
+        item.nombre,
+        item.codigo_sku,
+        item.marca?.nombre || 'Sin marca',
+        item.stock_total,
+        item.precio_original,
+        item.precio_final,
+        item.tiene_promocion ? `${item.descuento_porcentaje}%` : '0%',
+        item.stock_total * item.precio_final
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -383,35 +422,41 @@ const ControlInventario = () => {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      {obtenerIconoEstado(item.estado)}
+                      {obtenerIconoEstado(item.estado_stock)}
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
-                          {item.producto.nombre}
+                          {item.nombre}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {item.producto.codigo_sku} • {item.producto.marca}
+                          {item.codigo_sku} • {item.marca?.nombre || 'Sin marca'}
                         </div>
+                        {/* Mostrar descuento si existe */}
+                        {item.tiene_promocion && (
+                          <div className="text-xs text-green-600 font-medium">
+                            {item.descuento_manual ? 'Descuento Manual' : 'En Oferta'} - {item.descuento_porcentaje}%
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.sucursal.nombre}</div>
+                    <div className="text-sm text-gray-900">Todas las sucursales</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${obtenerColorStock(item)}`}>
-                      {item.stock_actual} / {item.stock_maximo}
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${obtenerColorStock({ stock_actual: item.stock_total })}`}>
+                      {item.stock_total} unidades
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.ubicacion}</div>
+                    <div className="text-sm text-gray-900">-</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {formatearPrecio(item.valor_total)}
+                        {formatearPrecio(item.stock_total * item.precio_final)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {formatearPrecio(item.producto.precio)} c/u
+                        {formatearPrecio(item.precio_final)} c/u
                       </div>
                     </div>
                   </td>
@@ -457,7 +502,7 @@ const ModalAjusteStock = ({ abierto, item, onCerrar, onGuardar }) => {
 
   useEffect(() => {
     if (item) {
-      setNuevoStock(item.stock_actual.toString());
+      setNuevoStock(item.stock_total.toString());
       setObservaciones('');
     }
   }, [item]);
@@ -494,13 +539,13 @@ const ModalAjusteStock = ({ abierto, item, onCerrar, onGuardar }) => {
 
           <div className="space-y-4">
             <div>
-              <h4 className="font-medium text-gray-900">{item.producto.nombre}</h4>
-              <p className="text-sm text-gray-600">{item.producto.codigo_sku}</p>
+              <h4 className="font-medium text-gray-900">{item.nombre}</h4>
+              <p className="text-sm text-gray-600">{item.codigo_sku}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock Actual: {item.stock_actual}
+                Stock Actual: {item.stock_total}
               </label>
               <input
                 type="number"

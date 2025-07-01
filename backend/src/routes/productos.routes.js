@@ -515,6 +515,27 @@ router.put('/:id', productosController.actualizarProducto);
  */
 router.delete('/:id', productosController.eliminarProducto);
 
+/**
+ * @swagger
+ * /api/v1/productos/{id}/descuento:
+ *   put:
+ *     summary: Actualizar el descuento de un producto
+ *     tags: [Productos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del producto
+ *     responses:
+ *       200:
+ *         description: Descuento actualizado exitosamente
+ *       404:
+ *         description: Producto no encontrado
+ */
+router.put('/:id/descuento', productosController.actualizarDescuento);
+
 // RUTAS ESPECIALES PARA ADMINISTRACIÓN
 
 /**
@@ -599,5 +620,47 @@ router.get('/plantilla-csv', (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="plantilla-productos.csv"');
   res.send(csvContent);
 });
+
+/**
+ * @swagger
+ * /api/v1/productos/descuento-categoria:
+ *   post:
+ *     summary: Actualizar descuento por categoría
+ *     tags: [Productos]
+ *     parameters:
+ *       - in: query
+ *         name: categoria_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la categoría
+ *     responses:
+ *       200:
+ *         description: Descuento actualizado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ */
+router.post('/descuento-categoria', productosController.actualizarDescuentoCategoria);
+
+/**
+ * @swagger
+ * /api/v1/productos/descuento-marca:
+ *   post:
+ *     summary: Actualizar descuento por marca
+ *     tags: [Productos]
+ *     parameters:
+ *       - in: query
+ *         name: marca_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la marca
+ *     responses:
+ *       200:
+ *         description: Descuento actualizado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ */
+router.post('/descuento-marca', productosController.actualizarDescuentoMarca);
 
 module.exports = router;

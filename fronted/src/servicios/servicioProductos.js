@@ -4,8 +4,16 @@ export const servicioProductos = {
   // Obtener todos los productos
   obtenerTodos: async (params = {}) => {
     try {
+      // Usar el endpoint público de productos
       const response = await productosAPI.obtenerTodos(params);
-      return response;
+      // Adaptar la respuesta para que sea compatible con el resto del frontend
+      if (response.data && Array.isArray(response.data.data)) {
+        return { success: true, data: response.data.data };
+      } else if (response.data && Array.isArray(response.data)) {
+        return { success: true, data: response.data };
+      } else {
+        return { success: false, data: [] };
+      }
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw error;

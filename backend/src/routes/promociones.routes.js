@@ -10,5 +10,8 @@ router.post('/', promocionesController.crearPromocion);
 // RUTAS ESPECIALES
 router.post('/validar-cupon', promocionesController.validarCupon);
 router.post('/aplicar', promocionesController.aplicarPromocion);
+router.post('/asociar-producto', promocionesController.asociarPromocionAProducto);
+
+router.get('/por-producto', promocionesController.listarPromocionesPorProducto);
 
 module.exports = router;

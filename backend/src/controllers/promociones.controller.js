@@ -15,16 +15,20 @@ class PromocionesController {
     try {
       connection = await mysql.createConnection(dbConfig);
       
-      const { page = 1, limit = 10, activo } = req.query;
-      const offset = (page - 1) * limit;
+      const { page = 1, limit = 20, activo } = req.query;
+      const offset = ((parseInt(page) || 1) - 1) * (parseInt(limit) || 20);
       
       let whereClause = '';
       let params = [];
       
-      if (activo !== undefined) {
+      if (typeof activo !== 'undefined') {
         whereClause = 'WHERE activo = ?';
         params.push(parseInt(activo));
       }
+      
+      // Siempre pasar limit y offset como parámetros
+      params.push(parseInt(limit));
+      params.push(offset);
       
       const [promociones] = await connection.execute(`
         SELECT 
@@ -36,12 +40,12 @@ class PromocionesController {
         ${whereClause}
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `, [...params, parseInt(limit), parseInt(offset)]);
+      `, params);
 
       // Contar total
       const [countResult] = await connection.execute(`
         SELECT COUNT(*) as total FROM promociones ${whereClause}
-      `, params);
+      `, typeof activo !== 'undefined' ? [parseInt(activo)] : []);
 
       res.json({
         success: true,
@@ -79,6 +83,11 @@ class PromocionesController {
         maximo_descuento = null, limite_usos = null
       } = req.body;
 
+      // Asegurar que los opcionales sean null si vienen como undefined
+      const safeCodigoCupon = typeof codigo_cupon === 'undefined' ? null : codigo_cupon;
+      const safeMaximoDescuento = typeof maximo_descuento === 'undefined' ? null : maximo_descuento;
+      const safeLimiteUsos = typeof limite_usos === 'undefined' ? null : limite_usos;
+
       // Validaciones
       if (!nombre || !tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) {
         return res.status(400).json({
@@ -111,9 +120,9 @@ class PromocionesController {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, NOW(), NOW())
       `, [
         nombre, descripcion, tipo_descuento, parseFloat(valor_descuento),
-        fecha_inicio, fecha_fin, codigo_cupon, parseFloat(minimo_compra),
-        maximo_descuento ? parseFloat(maximo_descuento) : null,
-        limite_usos ? parseInt(limite_usos) : null
+        fecha_inicio, fecha_fin, safeCodigoCupon, parseFloat(minimo_compra),
+        safeMaximoDescuento ? parseFloat(safeMaximoDescuento) : null,
+        safeLimiteUsos ? parseInt(safeLimiteUsos) : null
       ]);
 
       res.status(201).json({
@@ -249,6 +258,60 @@ class PromocionesController {
         message: 'Error al aplicar promoción',
         error: error.message
       });
+    } finally {
+      if (connection) await connection.end();
+    }
+  }
+
+  // Asociar promoción a producto
+  async asociarPromocionAProducto(req, res) {
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      const { promocion_id, producto_id } = req.body;
+      if (!promocion_id || !producto_id) {
+        return res.status(400).json({ success: false, message: 'promocion_id y producto_id requeridos' });
+      }
+      // Verificar si ya existe la asociación
+      const [existing] = await connection.execute(
+        'SELECT * FROM promocion_productos WHERE promocion_id = ? AND producto_id = ?',
+        [promocion_id, producto_id]
+      );
+      if (existing.length > 0) {
+        return res.status(400).json({ success: false, message: 'La promoción ya está asociada a este producto' });
+      }
+      await connection.execute(
+        'INSERT INTO promocion_productos (promocion_id, producto_id) VALUES (?, ?)',
+        [promocion_id, producto_id]
+      );
+      res.json({ success: true, message: 'Promoción asociada al producto correctamente' });
+    } catch (error) {
+      console.error('Error al asociar promoción a producto:', error);
+      res.status(500).json({ success: false, message: 'Error al asociar promoción a producto', error: error.message });
+    } finally {
+      if (connection) await connection.end();
+    }
+  }
+
+  // Listar promociones asociadas a un producto
+  async listarPromocionesPorProducto(req, res) {
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      const { producto_id } = req.query;
+      if (!producto_id) {
+        return res.status(400).json({ success: false, message: 'producto_id requerido' });
+      }
+      const [promociones] = await connection.execute(`
+        SELECT p.* FROM promociones p
+        JOIN promocion_productos pp ON pp.promocion_id = p.id
+        WHERE pp.producto_id = ? AND p.activo = 1
+        ORDER BY p.fecha_inicio DESC
+      `, [producto_id]);
+      res.json({ success: true, data: promociones });
+    } catch (error) {
+      console.error('Error al listar promociones por producto:', error);
+      res.status(500).json({ success: false, message: 'Error al listar promociones por producto', error: error.message });
     } finally {
       if (connection) await connection.end();
     }

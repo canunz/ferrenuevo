@@ -51,6 +51,11 @@ module.exports = (sequelize) => {
     imagen: {
       type: DataTypes.STRING(255),
       allowNull: true
+    },
+    descuento: {
+      type: DataTypes.DECIMAL(5,2),
+      allowNull: false,
+      defaultValue: 0
     }
   }, {
     tableName: 'productos',

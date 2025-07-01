@@ -16,13 +16,18 @@ const PaginaProductos = () => {
         const response = await servicioProductos.obtenerTodos();
         console.log('Respuesta de productos:', response);
         // Mostrar el array de productos en pantalla para depuración
-        window.__productosDebug = response.data;
-        if (response.success && response.data) {
-          setProductos(response.data);
+        let productosArray = [];
+        if (response.success && Array.isArray(response.data)) {
+          productosArray = response.data;
+        } else if (response.success && response.data && Array.isArray(response.data.productos)) {
+          productosArray = response.data.productos;
+        } else if (response.success && response.data && Array.isArray(response.data.data)) {
+          productosArray = response.data.data;
         } else {
-          console.error('Estructura de respuesta inesperada:', response);
-          setProductos([]);
+          console.warn('Estructura de respuesta inesperada:', response);
         }
+        window.__productosDebug = productosArray;
+        setProductos(productosArray);
       } catch (e) {
         console.error('Error al cargar productos:', e);
         setError(e.message);

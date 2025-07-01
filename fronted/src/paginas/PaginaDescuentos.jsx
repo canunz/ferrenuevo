@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TicketIcon } from '@heroicons/react/24/outline';
+import GestorPromociones from '../componentes/descuentos/GestorPromociones';
 
 const PaginaDescuentos = () => {
   return (
@@ -11,21 +11,15 @@ const PaginaDescuentos = () => {
     >
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Descuentos y Promociones
+          Gestión de Promociones y Descuentos
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Gestiona descuentos, cupones y promociones especiales
+          Asigna promociones a productos o categorías y gestiona los descuentos.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <div className="text-center py-12">
-          <TicketIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">
-            Módulo de Descuentos y Promociones en desarrollo
-          </p>
-        </div>
-      </div>
+      <GestorPromociones />
+      
     </motion.div>
   );
 };

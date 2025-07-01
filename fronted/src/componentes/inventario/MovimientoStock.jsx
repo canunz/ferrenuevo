@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { registrarIngresoStockTest, registrarEgresoStock } from '../../servicios/servicioInventario';
+import api from '../../servicios/api';
 
 const MovimientoStock = ({ productoId, modoCompacto, onMovimientoExitoso }) => {
   const [cantidad, setCantidad] = useState(0);
@@ -10,23 +10,24 @@ const MovimientoStock = ({ productoId, modoCompacto, onMovimientoExitoso }) => {
     setMensaje('');
     setCargando(true);
     try {
-      const data = { 
-        producto_id: productoId, 
+      const data = {
+        producto_id: productoId,
         cantidad: Number(cantidad),
-        motivo: tipo === 'ingreso' ? 'Ingreso manual de stock' : 'Egreso manual de stock'
+        tipo: tipo === 'ingreso' ? 'entrada' : 'salida',
+        motivo: tipo === 'ingreso' ? 'Ingreso manual de stock' : 'Egreso manual de stock',
+        observaciones: ''
       };
       console.log('🔍 Datos a enviar:', data);
       console.log('🔍 productoId:', productoId);
       console.log('🔍 cantidad:', cantidad);
       console.log('🔍 Token disponible:', !!localStorage.getItem('token'));
-      
-      let res;
-      if (tipo === 'ingreso') res = await registrarIngresoStockTest(data);
-      if (tipo === 'egreso') res = await registrarEgresoStock(data);
+
+      // Usar la API real de movimientos
+      const res = await api.post('/inventario/movimientos', data);
       setMensaje('✅ Movimiento registrado');
       setCantidad(0);
-      if (onMovimientoExitoso && res && res.data && res.data.inventario) {
-        onMovimientoExitoso(res.data.inventario);
+      if (onMovimientoExitoso && res && res.data && res.data.datos) {
+        onMovimientoExitoso(res.data.datos);
       }
     } catch (err) {
       console.error('❌ Error en handleMovimiento:', err);

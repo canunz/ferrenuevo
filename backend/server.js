@@ -26,7 +26,7 @@ const facturasRoutes = require('./src/routes/facturas.routes'); // ← NUEVO
 const dashboardRoutes = require('./src/routes/dashboard.routes'); // ← NUEVO
 
 const app = express();
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors({

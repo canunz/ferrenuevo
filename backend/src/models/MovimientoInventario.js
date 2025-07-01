@@ -161,7 +161,37 @@ module.exports = (sequelize) => {
     const options = transaction ? { transaction } : {};
     
     try {
+      // Si no se proporcionan stock_anterior y stock_nuevo, calcularlos
+      if (!data.stock_anterior || !data.stock_nuevo) {
+        const { Inventario } = sequelize.models;
+        const inventario = await Inventario.findByPk(data.inventario_id);
+        
+        if (!inventario) {
+          throw new Error('Inventario no encontrado');
+        }
+
+        data.stock_anterior = inventario.stock_actual;
+        
+        switch (data.tipo) {
+          case 'entrada':
+            data.stock_nuevo = data.stock_anterior + Math.abs(data.cantidad);
+            break;
+          case 'salida':
+            data.stock_nuevo = data.stock_anterior - Math.abs(data.cantidad);
+            break;
+          case 'ajuste':
+            data.stock_nuevo = data.cantidad;
+            break;
+        }
+      }
+
       const movimiento = await this.create(data, options);
+      
+      // Actualizar el stock en el inventario
+      await sequelize.models.Inventario.update(
+        { stock_actual: data.stock_nuevo },
+        { where: { id: data.inventario_id }, ...options }
+      );
       
       // Cargar el movimiento con sus relaciones
       return await this.findByPk(movimiento.id, {

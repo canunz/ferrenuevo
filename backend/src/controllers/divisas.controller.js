@@ -5,8 +5,10 @@ class DivisasController {
   // Obtener tipos de cambio del Banco Central
   async obtenerTiposCambio(req, res) {
     try {
+      console.log('🔄 Endpoint /tipos-cambio llamado');
       const { fecha } = req.query;
       const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
+      console.log('📅 Fecha consulta:', fechaConsulta);
 
       // Simular datos del Banco Central de Chile
       const divisas = [
@@ -39,12 +41,15 @@ class DivisasController {
         }
       ];
 
-      res.json(formatearRespuesta(
-        'Tipos de cambio obtenidos exitosamente',
-        divisas
-      ));
+      console.log('✅ Divisas generadas:', divisas);
+      const respuesta = formatearRespuesta(
+        divisas,
+        'Tipos de cambio obtenidos exitosamente'
+      );
+      console.log('📤 Respuesta enviada:', respuesta);
+      res.json(respuesta);
     } catch (error) {
-      console.error('Error al obtener tipos de cambio:', error);
+      console.error('❌ Error al obtener tipos de cambio:', error);
       res.status(500).json(formatearError('Error interno del servidor'));
     }
   }

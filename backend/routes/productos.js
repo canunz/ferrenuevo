@@ -40,11 +40,44 @@ router.get('/', async (req, res) => {
         p.created_at,
         p.updated_at,
         c.nombre as categoria_nombre,
-        m.nombre as marca_nombre
+        m.nombre as marca_nombre,
+        -- PROMOCIÓN ACTIVA MÁS RECIENTE
+        promo.id AS promocion_id,
+        promo.nombre AS promocion_nombre,
+        promo.tipo_descuento,
+        promo.valor_descuento,
+        promo.fecha_inicio,
+        promo.fecha_fin,
+        (promo.id IS NOT NULL AND promo.activo = 1 AND promo.fecha_inicio <= NOW() AND promo.fecha_fin >= NOW()) AS tiene_promocion,
+        CASE 
+          WHEN promo.id IS NOT NULL AND promo.activo = 1 AND promo.fecha_inicio <= NOW() AND promo.fecha_fin >= NOW() AND promo.tipo_descuento = 'porcentaje'
+            THEN ROUND(p.precio * (1 - promo.valor_descuento / 100), 0)
+          WHEN promo.id IS NOT NULL AND promo.activo = 1 AND promo.fecha_inicio <= NOW() AND promo.fecha_fin >= NOW() AND promo.tipo_descuento = 'monto_fijo'
+            THEN GREATEST(p.precio - promo.valor_descuento, 0)
+          ELSE NULL
+        END AS precio_oferta,
+        CASE 
+          WHEN promo.id IS NOT NULL AND promo.activo = 1 AND promo.fecha_inicio <= NOW() AND promo.fecha_fin >= NOW() AND promo.tipo_descuento = 'porcentaje'
+            THEN promo.valor_descuento
+          WHEN promo.id IS NOT NULL AND promo.activo = 1 AND promo.fecha_inicio <= NOW() AND promo.fecha_fin >= NOW() AND promo.tipo_descuento = 'monto_fijo'
+            THEN ROUND(100 * promo.valor_descuento / p.precio, 0)
+          ELSE 0
+        END AS descuento_porcentaje
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN marcas m ON p.marca_id = m.id
-      WHERE p.activo = 1
+      LEFT JOIN (
+        SELECT pr.* FROM promociones pr
+        JOIN promociones_productos pp ON pp.promocion_id = pr.id
+        WHERE pr.activo = 1 AND pr.fecha_inicio <= NOW() AND pr.fecha_fin >= NOW()
+        ORDER BY pr.fecha_inicio DESC
+      ) promo ON promo.id = (
+        SELECT pr2.id FROM promociones pr2
+        JOIN promociones_productos pp2 ON pp2.promocion_id = pr2.id
+        WHERE pp2.producto_id = p.id AND pr2.activo = 1 AND pr2.fecha_inicio <= NOW() AND pr2.fecha_fin >= NOW()
+        ORDER BY pr2.fecha_inicio DESC LIMIT 1
+      )
+    WHERE p.activo = 1
     `;
     
     const params = [];
@@ -121,9 +154,17 @@ router.get('/:id', async (req, res) => {
       });
     }
     
+    const producto = productos[0];
+    // Obtener inventario asociado a este producto
+    const [inventario] = await connection.execute(
+      'SELECT * FROM inventario WHERE producto_id = ?',
+      [producto.id]
+    );
+    producto.inventario = inventario;
+
     res.json({
       success: true,
-      data: productos[0]
+      data: producto
     });
     
   } catch (error) {

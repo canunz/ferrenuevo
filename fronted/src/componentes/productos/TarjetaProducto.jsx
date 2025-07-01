@@ -41,6 +41,14 @@ const TarjetaProducto = ({
 
   const tieneDescuento = producto.precio_oferta && producto.precio_oferta < producto.precio;
 
+  // Calcular el stock total sumando todos los inventarios
+  let stockTotal = 0;
+  if (Array.isArray(producto.inventario) && producto.inventario.length > 0) {
+    stockTotal = producto.inventario.reduce((sum, inv) => sum + (inv.stock_actual || 0), 0);
+  } else if (typeof producto.stock_actual === 'number') {
+    stockTotal = producto.stock_actual;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -162,9 +170,8 @@ const TarjetaProducto = ({
 
         {/* Stock */}
         <div className="text-sm text-gray-600 mb-3">
-          {/* MUESTRA STOCK NUMÉRICO */}
-          {producto.stock_actual > 0 ? (
-            <span className="text-green-600 font-semibold">✓ Stock: {producto.stock_actual}</span>
+          {stockTotal > 0 ? (
+            <span className="text-green-600 font-semibold">✓ Stock: {stockTotal}</span>
           ) : (
             <span className="text-red-600 font-semibold">✗ Agotado</span>
           )}
@@ -172,20 +179,19 @@ const TarjetaProducto = ({
 
         {/* Botones de acción */}
         <div className="space-y-2">
-          {mostrarAcciones && producto.stock_actual > 0 && (
-            <button
-              onClick={() => onAgregarAlCarrito(producto)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-            >
-              <ShoppingCartIcon className="w-5 h-5" />
-              <span>Agregar</span>
-            </button>
-          )}
-
-          {/* BOTÓN "VER DETALLE" AÑADIDO */}
+          <button
+            onClick={() => stockTotal > 0 && onAgregarAlCarrito(producto)}
+            className={`w-full py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors font-semibold ${stockTotal > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+            disabled={stockTotal === 0}
+          >
+            <ShoppingCartIcon className="w-5 h-5" />
+            <span>Agregar al carrito</span>
+          </button>
+          {/* BOTÓN "VER DETALLE" SIEMPRE VISIBLE */}
           <Link
             to={`/producto/${producto.id}`}
-            className="w-full block text-center bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg transition-colors"
+            className="w-full block text-center bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg transition-colors border border-yellow-500 shadow"
+            style={{ marginTop: '0.5rem' }}
           >
             Ver Detalle
           </Link>

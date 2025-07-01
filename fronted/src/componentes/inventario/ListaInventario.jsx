@@ -3,40 +3,33 @@ import MovimientoStock from './MovimientoStock';
 import api from '../../servicios/api';
 
 const ListaInventario = () => {
-  const [inventario, setInventario] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [formAbierto, setFormAbierto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchInventario = async () => {
+    const fetchProductos = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get('/inventario/test');
-        console.log('📥 Respuesta del inventario:', res.data);
-        
-        // Asegurar que inventario sea siempre un array
-        let inventarioData = [];
-        if (res.data && Array.isArray(res.data.data)) {
-          inventarioData = res.data.data;
-        } else if (res.data && Array.isArray(res.data.message)) {
-          inventarioData = res.data.message;
+        const res = await api.get('/inventario/productos-completos?limit=1000');
+        // La API devuelve los productos en res.data.message
+        let productosData = [];
+        if (res.data && Array.isArray(res.data.message)) {
+          productosData = res.data.message;
         } else if (Array.isArray(res.data)) {
-          inventarioData = res.data;
+          productosData = res.data;
         }
-        
-        console.log('📋 Inventario procesado:', inventarioData);
-        setInventario(inventarioData);
+        setProductos(productosData);
       } catch (err) {
-        console.error('❌ Error al cargar inventario:', err);
-        setError('Error al cargar el inventario: ' + (err.response?.data?.error || err.message));
-        setInventario([]); // Asegurar que sea un array vacío
+        setError('Error al cargar los productos: ' + (err.response?.data?.error || err.message));
+        setProductos([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchInventario();
+    fetchProductos();
   }, []);
 
   if (loading) {
@@ -45,11 +38,8 @@ const ListaInventario = () => {
   if (error) {
     return <div className="p-8 text-center text-red-500">{error}</div>;
   }
-  
-  // Asegurar que inventario sea un array
-  const inventarioArray = Array.isArray(inventario) ? inventario : [];
-  
-  if (!inventarioArray.length) {
+
+  if (!productos.length) {
     return <div className="p-8 text-center text-gray-500">No hay productos en inventario.</div>;
   }
 
@@ -63,20 +53,20 @@ const ListaInventario = () => {
         <div className="text-xs text-gray-500">Máximo</div>
       </div>
       <div className="grid grid-cols-1 gap-3">
-        {inventarioArray.map(item => (
+        {productos.map(item => (
           <div
             key={item.id}
             className="bg-white rounded-xl shadow p-4"
           >
             <div className="grid grid-cols-4 gap-2 items-center">
               <div>
-                <div className="font-bold text-gray-800 text-base leading-tight">{item.producto?.nombre || 'Sin nombre'}</div>
-                <div className="text-xs text-gray-500 leading-tight">ID: {item.producto?.id || '-'}</div>
+                <div className="font-bold text-gray-800 text-base leading-tight">{item.nombre || 'Sin nombre'}</div>
+                <div className="text-xs text-gray-500 leading-tight">ID: {item.id || '-'}</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 text-sm">{item.stock_actual}</div>
+                <div className="font-semibold text-gray-900 text-sm">{item.stock_total ?? 0}</div>
                 <div style={{ minHeight: '18px' }}>
-                  {item.stock_actual <= item.stock_minimo ? (
+                  {item.stock_total <= 5 ? (
                     <div className="text-red-600 flex items-center text-xs font-bold mt-0.5" title="Stock bajo">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: 2 }}>
                         <path d="M7.938 2.016a.13.13 0 0 1 .125 0l6.857 11.856c.027.047.04.1.04.153a.267.267 0 0 1-.267.267H1.307a.267.267 0 0 1-.267-.267.266.266 0 0 1 .04-.153L7.938 2.016zm.562-1.032a1.13 1.13 0 0 0-1 0L.643 12.84A1.267 1.267 0 0 0 1.307 15h13.386a1.267 1.267 0 0 0 1.267-2.16L8.5.984zM8 6c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 6.995A.905.905 0 0 1 8 6zm.002 6a1 1 0 1 1-2.002 0 1 1 0 0 1 2.002 0z" />
@@ -89,10 +79,10 @@ const ListaInventario = () => {
                 </div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 text-sm">{item.stock_minimo}</div>
+                <div className="font-semibold text-gray-900 text-sm">5</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 text-sm">{item.stock_maximo}</div>
+                <div className="font-semibold text-gray-900 text-sm">100</div>
               </div>
             </div>
             <div className="flex justify-end mt-2">
@@ -106,15 +96,24 @@ const ListaInventario = () => {
             {formAbierto === item.id && (
               <div className="mt-2 border-t pt-2">
                 <MovimientoStock
-                  productoId={item.producto?.id}
+                  productoId={item.id}
                   modoCompacto
-                  onMovimientoExitoso={(nuevoInventario) => {
-                    setInventario(prev => {
-                      const prevArray = Array.isArray(prev) ? prev : [];
-                      return prevArray.map(inv =>
-                        inv.id === item.id ? { ...inv, stock_actual: nuevoInventario.stock_actual } : inv
-                      );
-                    });
+                  onMovimientoExitoso={() => {
+                    // Recargar productos después de un movimiento
+                    setLoading(true);
+                    setError(null);
+                    api.get('/inventario/productos-completos?limit=1000').then(res => {
+                      let productosData = [];
+                      if (res.data && Array.isArray(res.data.message)) {
+                        productosData = res.data.message;
+                      } else if (Array.isArray(res.data)) {
+                        productosData = res.data;
+                      }
+                      setProductos(productosData);
+                    }).catch(err => {
+                      setError('Error al cargar los productos: ' + (err.response?.data?.error || err.message));
+                      setProductos([]);
+                    }).finally(() => setLoading(false));
                   }}
                 />
               </div>

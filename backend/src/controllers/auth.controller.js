@@ -48,7 +48,7 @@ class AuthController {
           rol_id: usuario.rol_id 
         },
         process.env.JWT_SECRET || 'ferremas_secret_key',
-        { expiresIn: '24h' }
+        { expiresIn: '30d' } // Extender a 30 días para desarrollo
       );
 
       console.log(`✅ Login exitoso para: ${email} Rol: ${rol ? rol.nombre : 'sin_rol'}`);

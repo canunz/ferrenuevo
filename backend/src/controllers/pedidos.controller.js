@@ -2,7 +2,7 @@
 // src/controllers/pedidos.controller.js - ESTRUCTURA EXACTA DE TU DB
 // ============================================
 const { Pedido, DetallePedido, Producto, Usuario, Rol } = require('../models');
-const { Op } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
 
 const formatearError = (mensaje) => ({
   success: false,
@@ -351,6 +351,17 @@ class PedidosController {
       res.status(500).json(formatearError('Error interno del servidor'));
     }
   }
+
+  ventasHoy = async (req, res) => {
+    try {
+      const total = await Pedido.sum('total', {
+        where: literal('DATE(created_at) = CURDATE()')
+      });
+      res.json({ success: true, total: total || 0 });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  };
 }
 
 // Exportar una instancia del controlador

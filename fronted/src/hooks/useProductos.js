@@ -3,6 +3,7 @@
 // ==========================================
 import { useState, useEffect } from 'react';
 import { productosAPI } from '../servicios/api';
+import { servicioProductos } from '../servicios/servicioProductos';
 
 export const useProductos = () => {
   const [productos, setProductos] = useState([]);
@@ -18,11 +19,11 @@ export const useProductos = () => {
     
     try {
       console.log('🔄 Cargando productos...', filtros);
-      const response = await productosAPI.obtenerTodos(filtros);
+      const response = await servicioProductos.obtenerTodos(filtros);
       
-      if (response.success && response.data) {
-        setProductos(response.data.productos || []);
-        console.log('✅ Productos cargados:', (response.data.productos || []).length);
+      if (response.success) {
+        setProductos(response.data || []);
+        console.log('✅ Productos cargados:', (response.data || []).length);
       } else {
         setProductos([]);
       }

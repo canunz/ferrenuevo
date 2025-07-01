@@ -4,9 +4,50 @@ const { Op } = require('sequelize');
 // 🎯 FUNCIÓN PARA APLICAR PROMOCIONES AUTOMÁTICAMENTE (SIN TABLA PROMOCIONES)
 const aplicarPromociones = (producto) => {
   const precio = parseFloat(producto.precio);
-  let promociones = [];
+  const descuentoManual = parseFloat(producto.descuento) || 0;
   
-  console.log(`🎯 Aplicando promociones a: ${producto.nombre} - Marca: ${producto.marca_nombre} - Precio: $${precio}`);
+  console.log(`🎯 Aplicando promociones a: ${producto.nombre} - Marca: ${producto.marca_nombre} - Precio: $${precio} - Descuento Manual: ${descuentoManual}%`);
+  
+  // 🚨 PRIORIDAD 1: Si hay descuento manual, aplicarlo primero
+  if (descuentoManual > 0) {
+    const precioConDescuentoManual = Math.round(precio * (1 - descuentoManual / 100));
+    const ahorroManual = Math.round(precio * (descuentoManual / 100));
+    
+    console.log(`✅ Aplicando descuento manual: ${descuentoManual}% OFF - Precio final: $${precioConDescuentoManual}`);
+    
+    return {
+      ...producto,
+      tiene_promocion: true,
+      promocion_activa: {
+        tipo: 'manual',
+        nombre: `Descuento Manual ${descuentoManual}%`,
+        descuento_porcentaje: descuentoManual,
+        precio_original: precio,
+        precio_oferta: precioConDescuentoManual,
+        ahorro: ahorroManual,
+        etiqueta: `MANUAL${descuentoManual}`,
+        vigencia: 'Descuento permanente',
+        color: '#3498db'
+      },
+      precio_original: precio,
+      precio_final: precioConDescuentoManual,
+      precio_con_descuento: precioConDescuentoManual,
+      ahorro_total: ahorroManual,
+      descuento_porcentaje: descuentoManual,
+      etiqueta_promocion: `MANUAL${descuentoManual}`,
+      badge_promocion: `Descuento ${descuentoManual}%`,
+      color_promocion: '#3498db',
+      vigencia_promocion: 'Descuento permanente',
+      todas_promociones: [],
+      mostrar_oferta: true,
+      precio_tachado: precio,
+      precio_destacado: precioConDescuentoManual,
+      descuento_manual: true
+    };
+  }
+  
+  // 🚨 PRIORIDAD 2: Si no hay descuento manual, aplicar promociones automáticas
+  let promociones = [];
   
   // 🔥 PROMOCIONES POR MARCA (HARDCODED - MUY IMPORTANTES)
   if (producto.marca_nombre === 'Stanley') {
@@ -158,7 +199,7 @@ const aplicarPromociones = (producto) => {
       actual.descuento_porcentaje > mejor.descuento_porcentaje ? actual : mejor
     );
     
-    console.log(`✅ Aplicando promoción: ${mejorPromocion.nombre} - ${mejorPromocion.descuento_porcentaje}% OFF`);
+    console.log(`✅ Aplicando promoción automática: ${mejorPromocion.nombre} - ${mejorPromocion.descuento_porcentaje}% OFF`);
     
     return {
       ...producto,
@@ -174,10 +215,10 @@ const aplicarPromociones = (producto) => {
       color_promocion: mejorPromocion.color,
       vigencia_promocion: mejorPromocion.vigencia,
       todas_promociones: promociones,
-      // CAMPOS EXTRAS PARA EL FRONTEND
       mostrar_oferta: true,
       precio_tachado: precio,
-      precio_destacado: mejorPromocion.precio_oferta
+      precio_destacado: mejorPromocion.precio_oferta,
+      descuento_manual: false
     };
   }
   
@@ -199,7 +240,8 @@ const aplicarPromociones = (producto) => {
     todas_promociones: [],
     mostrar_oferta: false,
     precio_tachado: null,
-    precio_destacado: precio
+    precio_destacado: precio,
+    descuento_manual: false
   };
 };
 
@@ -498,6 +540,60 @@ class ProductosController {
         error: 'Error interno del servidor',
         message: error.message
       });
+    }
+  }
+
+  // Actualizar solo el descuento de un producto
+  async actualizarDescuento(req, res) {
+    try {
+      const { id } = req.params;
+      const { descuento } = req.body;
+      const producto = await Producto.findByPk(id);
+      if (!producto) {
+        return res.status(404).json({
+          success: false,
+          error: 'Producto no encontrado'
+        });
+      }
+      producto.descuento = descuento;
+      await producto.save();
+      res.json({
+        success: true,
+        data: producto
+      });
+    } catch (error) {
+      console.error('Error al actualizar descuento:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor',
+        message: error.message
+      });
+    }
+  }
+
+  // Actualizar descuento por categoría
+  async actualizarDescuentoCategoria(req, res) {
+    try {
+      const { categoria_id, descuento } = req.body;
+      if (!categoria_id) return res.status(400).json({ success: false, error: 'categoria_id requerido' });
+      await Producto.update({ descuento }, { where: { categoria_id } });
+      res.json({ success: true, message: 'Descuento actualizado para la categoría' });
+    } catch (error) {
+      console.error('Error al actualizar descuento por categoría:', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor', message: error.message });
+    }
+  }
+
+  // Actualizar descuento por marca
+  async actualizarDescuentoMarca(req, res) {
+    try {
+      const { marca_id, descuento } = req.body;
+      if (!marca_id) return res.status(400).json({ success: false, error: 'marca_id requerido' });
+      await Producto.update({ descuento }, { where: { marca_id } });
+      res.json({ success: true, message: 'Descuento actualizado para la marca' });
+    } catch (error) {
+      console.error('Error al actualizar descuento por marca:', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor', message: error.message });
     }
   }
 }

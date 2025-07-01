@@ -27,12 +27,12 @@ const Ofertas = () => {
         // Obtener todos los productos sin paginación (el backend ya aplica las promociones automáticamente)
         const res = await servicioProductos.obtenerTodos({ limit: 1000 }); // Obtener muchos productos
         let todosLosProductos = [];
+        let productosConOferta = [];
         if (res.success && Array.isArray(res.data)) {
           todosLosProductos = res.data;
-          setProductos(todosLosProductos);
-          
-          // Calcular estadísticas
-          const productosConOferta = todosLosProductos.filter(p => p.tiene_promocion);
+          productosConOferta = todosLosProductos.filter(p => p.tiene_promocion || (p.precio_oferta && parseFloat(p.precio_oferta) < parseFloat(p.precio)));
+
+          // Calcular productos en oferta y estadísticas
           const mejorDescuento = productosConOferta.length > 0 
             ? Math.max(...productosConOferta.map(p => p.descuento_porcentaje || 0))
             : 0;
@@ -40,13 +40,13 @@ const Ofertas = () => {
           const porcentajeEnOferta = todosLosProductos.length > 0 
             ? Math.round((productosConOferta.length / todosLosProductos.length) * 100)
             : 0;
-          
           setEstadisticas({
             productos_con_oferta: productosConOferta.length,
             mejor_descuento: mejorDescuento,
             ahorro_total_disponible: ahorroTotal,
             porcentaje_en_oferta: porcentajeEnOferta
           });
+          setProductos(productosConOferta); // Solo productos en oferta para el resto de la página
         } else {
           setProductos([]);
           setEstadisticas({});
@@ -56,13 +56,15 @@ const Ofertas = () => {
         const marcasData = await servicioProductos.obtenerMarcas();
         setMarcas([{ id: 'todas', nombre: 'Todas las Marcas' }, ...(marcasData.data || [])]);
 
-        // Calcular rangos de precio de todos los productos
-        if (todosLosProductos && todosLosProductos.length > 0) {
-          const preciosFinales = todosLosProductos.map(p => p.precio_final || p.precio);
-          setPrecioMin(Math.min(...preciosFinales));
-          setPrecioMax(Math.max(...preciosFinales));
-          setFiltroPrecioMin(Math.min(...preciosFinales));
-          setFiltroPrecioMax(Math.max(...preciosFinales));
+        // Calcular rangos de precio de todos los productos en oferta
+        if (productosConOferta && productosConOferta.length > 0) {
+          const preciosFinales = productosConOferta.map(p => parseFloat(p.precio_oferta) || parseFloat(p.precio));
+          const minPrecio = Math.min(...preciosFinales);
+          const maxPrecio = Math.max(...preciosFinales);
+          setPrecioMin(minPrecio);
+          setPrecioMax(maxPrecio);
+          setFiltroPrecioMin(minPrecio);
+          setFiltroPrecioMax(maxPrecio);
         }
       } catch (error) {
         console.error('Error al cargar ofertas:', error);
@@ -76,17 +78,18 @@ const Ofertas = () => {
     cargar();
   }, [mostrarNotificacion]);
 
-  // Aplicar filtros a todos los productos
+  // Filtrar productos en oferta según búsqueda, marca y precio
   let productosFiltrados = productos.filter(producto => {
-    const precioFinal = producto.precio_final || producto.precio;
+    const precioFinal = parseFloat(producto.precio_oferta) || parseFloat(producto.precio);
     const cumpleBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       (producto.marca_nombre?.toLowerCase().includes(busqueda.toLowerCase()));
     const cumpleMarca = marcaSeleccionada === 'todas' || 
       producto.marca_id === marcaSeleccionada ||
       producto.marca_nombre === marcaSeleccionada;
-    const cumplePrecio = (!filtroPrecioMin || precioFinal >= filtroPrecioMin) && 
-      (!filtroPrecioMax || precioFinal <= filtroPrecioMax);
-    
+    // Si los filtros de precio están vacíos o iguales, no filtrar por precio
+    const sinFiltroPrecio = !filtroPrecioMin && !filtroPrecioMax;
+    const rangoIgual = filtroPrecioMin === filtroPrecioMax;
+    const cumplePrecio = sinFiltroPrecio || rangoIgual || (precioFinal >= filtroPrecioMin && precioFinal <= filtroPrecioMax);
     return cumpleBusqueda && cumpleMarca && cumplePrecio;
   });
 
@@ -319,7 +322,20 @@ const Ofertas = () => {
                             <p className="text-xs text-gray-500">{producto.vigencia_promocion}</p>
                           </div>
                         )}
-                        
+                        {/* Stock */}
+                        {(() => {
+                          let stockTotal = 0;
+                          if (Array.isArray(producto.inventario) && producto.inventario.length > 0) {
+                            stockTotal = producto.inventario.reduce((sum, inv) => sum + (inv.stock_actual || 0), 0);
+                          } else if (typeof producto.stock_actual === 'number') {
+                            stockTotal = producto.stock_actual;
+                          }
+                          return stockTotal > 0 ? (
+                            <div className="text-green-600 text-xs font-semibold mb-2">✓ Stock: {stockTotal}</div>
+                          ) : (
+                            <div className="text-red-600 text-xs font-semibold mb-2">✗ Agotado</div>
+                          );
+                        })()}
                         {/* Precios */}
                         <div className="mb-3">
                           {producto.tiene_promocion ? (
@@ -343,13 +359,24 @@ const Ofertas = () => {
                         
                         {/* Botones */}
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => manejarAgregarCarrito(producto)}
-                            className="flex-1 bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-                          >
-                            <ShoppingCartIcon className="w-4 h-4" />
-                            Agregar al carrito
-                          </button>
+                          {(() => {
+                            let stockTotal = 0;
+                            if (Array.isArray(producto.inventario) && producto.inventario.length > 0) {
+                              stockTotal = producto.inventario.reduce((sum, inv) => sum + (inv.stock_actual || 0), 0);
+                            } else if (typeof producto.stock_actual === 'number') {
+                              stockTotal = producto.stock_actual;
+                            }
+                            return (
+                              <button
+                                onClick={() => manejarAgregarCarrito(producto)}
+                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors ${stockTotal > 0 ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+                                disabled={stockTotal === 0}
+                              >
+                                <ShoppingCartIcon className="w-4 h-4" />
+                                Agregar al carrito
+                              </button>
+                            );
+                          })()}
                           <Link
                             to={`/productos/${producto.id}`}
                             className="bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"

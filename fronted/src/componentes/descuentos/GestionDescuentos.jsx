@@ -14,7 +14,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { useNotificacion } from '../../contexto/ContextoNotificacion';
-import { api } from '../../servicios/api'; // Asegúrate que tu wrapper de API esté aquí
+import { api, productosAPI } from '../../servicios/api';
+import { servicioProductos } from '../../servicios/servicioProductos';
 
 // Componente Modal para crear/editar promociones
 const ModalPromocion = ({ isOpen, onClose, onSave, promocion, productos, categorias, marcas }) => {
@@ -136,29 +137,36 @@ const ModalPromocion = ({ isOpen, onClose, onSave, promocion, productos, categor
 // Componente Principal
 const GestionDescuentos = () => {
   const { exito, error } = useNotificacion();
-  const [promociones, setPromociones] = useState([]);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [marcas, setMarcas] = useState([]);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+  const [marcaSeleccionada, setMarcaSeleccionada] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const [descuentos, setDescuentos] = useState({});
+  const [descuentosPrevios, setDescuentosPrevios] = useState({});
   const [cargando, setCargando] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [promocionSeleccionada, setPromocionSeleccionada] = useState(null);
+  const [descuentoMasivo, setDescuentoMasivo] = useState(0);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
-      const [resPromos, resProds, resCats, resMarcas] = await Promise.all([
-        api.get('/promociones'),
-        api.get('/productos'),
-        api.get('/productos/categorias'),
-        api.get('/productos/marcas')
+      const [resProds, resCats, resMarcas] = await Promise.all([
+        servicioProductos.obtenerTodos(),
+        productosAPI.obtenerCategorias(),
+        productosAPI.obtenerMarcas()
       ]);
-      setPromociones(resPromos.data.data || []);
-      setProductos(resProds.data.data?.productos || []);
-      setCategorias(resCats.data.data || []);
-      setMarcas(resMarcas.data.data || []);
+      setProductos(resProds.data || []);
+      setCategorias(resCats.data || []);
+      setMarcas(resMarcas.data || []);
+      // Guardar descuentos previos para deshacer
+      const prev = {};
+      (resProds.data || []).forEach(p => { prev[p.id] = p.descuento ?? 0; });
+      setDescuentosPrevios(prev);
     } catch (err) {
-      error('Error al cargar datos: ' + (err.response?.data?.error || err.message));
+      error('Error al cargar productos/categorías/marcas: ' + (err.response?.data?.error || err.message));
     } finally {
       setCargando(false);
     }
@@ -167,6 +175,59 @@ const GestionDescuentos = () => {
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
+
+  // Filtro y búsqueda
+  const productosFiltrados = productos.filter(p => {
+    const coincideCategoria = categoriaSeleccionada ? (p.categoria && p.categoria.id === Number(categoriaSeleccionada)) : true;
+    const coincideMarca = marcaSeleccionada ? (p.marca && p.marca.id === Number(marcaSeleccionada)) : true;
+    const coincideBusqueda = busqueda.trim() === '' ||
+      (p.nombre && p.nombre.toLowerCase().includes(busqueda.toLowerCase())) ||
+      (p.codigo_sku && p.codigo_sku.toLowerCase().includes(busqueda.toLowerCase()));
+    return coincideCategoria && coincideMarca && coincideBusqueda;
+  });
+
+  const handleDescuentoChange = (id, value) => {
+    setDescuentos({ ...descuentos, [id]: value });
+  };
+
+  const guardarDescuento = async (id) => {
+    try {
+      const valor = descuentos[id];
+      await productosAPI.actualizarDescuento(id, valor);
+      exito('Descuento actualizado');
+      cargarDatos();
+    } catch (err) {
+      error('Error al actualizar descuento: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const deshacerDescuento = (id) => {
+    setDescuentos({ ...descuentos, [id]: descuentosPrevios[id] });
+  };
+
+  // Descuento masivo por categoría
+  const aplicarDescuentoCategoria = async () => {
+    if (!categoriaSeleccionada) return error('Selecciona una categoría');
+    try {
+      await productosAPI.actualizarDescuentoCategoria(categoriaSeleccionada, descuentoMasivo);
+      exito('Descuento masivo aplicado a la categoría');
+      cargarDatos();
+    } catch (err) {
+      error('Error al aplicar descuento masivo: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // Descuento masivo por marca
+  const aplicarDescuentoMarca = async () => {
+    if (!marcaSeleccionada) return error('Selecciona una marca');
+    try {
+      await productosAPI.actualizarDescuentoMarca(marcaSeleccionada, descuentoMasivo);
+      exito('Descuento masivo aplicado a la marca');
+      cargarDatos();
+    } catch (err) {
+      error('Error al aplicar descuento masivo: ' + (err.response?.data?.error || err.message));
+    }
+  };
 
   const abrirModal = (promocion = null) => {
     setPromocionSeleccionada(promocion);
@@ -224,9 +285,9 @@ const GestionDescuentos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Promociones</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Promociones y Descuentos</h1>
           <p className="text-gray-600">Crea y administra descuentos para tus productos.</p>
         </div>
         <button
@@ -238,45 +299,110 @@ const GestionDescuentos = () => {
         </button>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vigencia</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {promociones.map(promo => {
-              const estado = getEstadoPromocion(promo);
-              return (
-                <tr key={promo.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{promo.descripcion}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{promo.tipo_descuento}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {promo.tipo_descuento === 'porcentaje' ? `${promo.valor}%` : `$${promo.valor}`}
+      <div className="p-6 bg-white rounded shadow space-y-4">
+        <h2 className="text-2xl font-bold mb-4">Gestión de Descuentos por Producto</h2>
+        <div className="flex flex-wrap gap-4 items-center mb-4">
+          <label className="font-semibold">Categoría:</label>
+          <select value={categoriaSeleccionada} onChange={e => setCategoriaSeleccionada(e.target.value)} className="p-2 border rounded">
+            <option value="">Todas</option>
+            {categorias.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+            ))}
+          </select>
+          <label className="font-semibold">Marca:</label>
+          <select value={marcaSeleccionada} onChange={e => setMarcaSeleccionada(e.target.value)} className="p-2 border rounded">
+            <option value="">Todas</option>
+            {marcas.map(m => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            placeholder="Buscar por nombre o SKU..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className="p-2 border rounded flex-1 min-w-[200px]"
+          />
+        </div>
+        <div className="flex flex-wrap gap-4 items-center mb-4">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={descuentoMasivo}
+            onChange={e => setDescuentoMasivo(e.target.value)}
+            className="p-2 border rounded w-24"
+            placeholder="% descuento"
+          />
+          <button
+            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+            onClick={aplicarDescuentoCategoria}
+          >
+            Aplicar a Categoría
+          </button>
+          <button
+            className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+            onClick={aplicarDescuentoMarca}
+          >
+            Aplicar a Marca
+          </button>
+        </div>
+        {cargando ? (
+          <div>Cargando productos...</div>
+        ) : (
+          <table className="min-w-full border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 border">Producto</th>
+                <th className="p-2 border">Categoría</th>
+                <th className="p-2 border">Marca</th>
+                <th className="p-2 border">Precio</th>
+                <th className="p-2 border">Descuento (%)</th>
+                <th className="p-2 border">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productosFiltrados.map(prod => (
+                <tr key={prod.id} className={((prod.descuento ?? 0) > 0) ? 'bg-yellow-50' : ''}>
+                  <td className="p-2 border font-semibold flex items-center gap-2">
+                    {prod.nombre}
+                    {(prod.descuento ?? 0) > 0 && (
+                      <span className="bg-yellow-300 text-yellow-900 text-xs px-2 py-0.5 rounded-full ml-2">Descuento</span>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(promo.fecha_inicio).toLocaleDateString()} - {new Date(promo.fecha_fin).toLocaleDateString()}
+                  <td className="p-2 border">{prod.categoria?.nombre || '-'}</td>
+                  <td className="p-2 border">{prod.marca?.nombre || '-'}</td>
+                  <td className="p-2 border">${prod.precio}</td>
+                  <td className="p-2 border">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={descuentos[prod.id] ?? prod.descuento ?? 0}
+                      onChange={e => handleDescuentoChange(prod.id, e.target.value)}
+                      className="w-20 p-1 border rounded"
+                    />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${estado.color}`}>
-                      {estado.texto}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <button onClick={() => abrirModal(promo)} className="text-indigo-600 hover:text-indigo-900"><PencilIcon className="w-5 h-5"/></button>
-                    <button onClick={() => eliminarPromocion(promo.id)} className="text-red-600 hover:text-red-900"><TrashIcon className="w-5 h-5"/></button>
+                  <td className="p-2 border flex gap-2">
+                    <button
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                      onClick={() => guardarDescuento(prod.id)}
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400"
+                      onClick={() => deshacerDescuento(prod.id)}
+                      disabled={descuentos[prod.id] === descuentosPrevios[prod.id]}
+                    >
+                      Deshacer
+                    </button>
                   </td>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <ModalPromocion

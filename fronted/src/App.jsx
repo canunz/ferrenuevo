@@ -169,6 +169,16 @@ const ContenidoPrincipal = () => {
           } 
         />
 
+        {/* PRODUCTOS PÚBLICOS - Nueva ruta pública */}
+        <Route 
+          path="/productos" 
+          element={
+            <LayoutPublico>
+              <PaginaPrincipal />
+            </LayoutPublico>
+          } 
+        />
+
         {/* OFERTAS - Página independiente */}
         <Route 
           path="/ofertas" 
@@ -206,9 +216,19 @@ const ContenidoPrincipal = () => {
           } 
         />
 
-        {/* Detalle de Producto */}
+        {/* DETALLE DE PRODUCTO - Página nueva */}
         <Route 
           path="/producto/:id" 
+          element={
+            <LayoutPublico>
+              <DetalleProductoWrapper />
+            </LayoutPublico>
+          } 
+        />
+
+        {/* Detalle de Producto (formato plural) */}
+        <Route 
+          path="/productos/:id" 
           element={
             <LayoutPublico>
               <DetalleProductoWrapper />
@@ -287,7 +307,7 @@ const ContenidoPrincipal = () => {
 
         {/* Gestión de Productos */}
         <Route 
-          path="/productos" 
+          path="/admin/productos" 
           element={
             <RutaProtegida>
               <LayoutAdmin>
