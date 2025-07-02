@@ -7,7 +7,7 @@ const mysql = require('mysql2/promise');
 
 // Configuración de la base de datos
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'localhost', 
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'emma2004',
   database: process.env.DB_NAME || 'ferremasnueva'
