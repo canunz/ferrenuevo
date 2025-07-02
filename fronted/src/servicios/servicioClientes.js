@@ -47,9 +47,21 @@ export const servicioClientes = {
     return response.data;
   },
 
-  listar: () => api.get('/clientes'),
-  obtenerPorId: (id) => api.get(`/clientes/${id}`),
-  crear: (datos) => api.post('/clientes', datos),
-  actualizar: (id, datos) => api.put(`/clientes/${id}`, datos),
-  eliminar: (id) => api.delete(`/clientes/${id}`)
+  // Obtener dirección de envío de un cliente
+  obtenerDireccionEnvio: async (id) => {
+    const response = await api.get(`/clientes/${id}/direccion-envio`);
+    return response.data.data;
+  },
+
+  // Actualizar o crear dirección de envío de un cliente
+  actualizarDireccionEnvio: async (id, data) => {
+    const response = await api.put(`/clientes/${id}/direccion-envio`, data);
+    return response.data.data;
+  },
+
+  // Listar todos los clientes (para compatibilidad)
+  listar: async () => {
+    const response = await api.get('/clientes');
+    return response.data;
+  }
 };

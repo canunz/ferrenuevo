@@ -313,6 +313,7 @@ const {
       try {
         const { id } = req.params;
         const datosActualizacion = req.body;
+        console.log('Datos recibidos para actualizar cliente:', datosActualizacion);
   
         const cliente = await Usuario.findByPk(id);
         if (!cliente) {
@@ -524,6 +525,81 @@ const {
           error: 'Error en diagnóstico',
           details: error.message
         });
+      }
+    }
+
+    // Obtener dirección de envío de un cliente
+    async obtenerDireccionEnvio(req, res) {
+      try {
+        const { id } = req.params;
+        const cliente = await Usuario.findByPk(id);
+        if (!cliente) {
+          return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
+        }
+        const direccion = await DireccionEnvio.findOne({ where: { usuario_id: id } });
+        if (!direccion) {
+          return res.status(404).json({ success: false, error: 'Dirección de envío no encontrada' });
+        }
+        res.json({ success: true, data: direccion });
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Error al obtener dirección de envío', details: error.message });
+      }
+    }
+
+    // Crear o actualizar dirección de envío de un cliente
+    async actualizarDireccionEnvio(req, res) {
+      try {
+        const { id } = req.params;
+        const cliente = await Usuario.findByPk(id);
+        if (!cliente) {
+          return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
+        }
+        const datosDireccion = req.body;
+        let direccion = await DireccionEnvio.findOne({ where: { usuario_id: id } });
+        if (direccion) {
+          await direccion.update(datosDireccion);
+        } else {
+          direccion = await DireccionEnvio.create({ ...datosDireccion, usuario_id: id });
+        }
+        res.json({ success: true, data: direccion });
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Error al actualizar dirección de envío', details: error.message });
+      }
+    }
+
+    // Obtener historial de compras de un cliente (con productos)
+    async obtenerHistorialCompras(req, res) {
+      try {
+        const { id } = req.params;
+        const historial = await HistorialCompras.findAll({
+          where: { usuario_id: id },
+          order: [['fecha_compra', 'DESC']]
+        });
+
+        // Para cada compra, buscar los productos asociados al pedido
+        const { DetallePedido, Producto } = require('../models');
+        const historialConProductos = await Promise.all(historial.map(async (compra) => {
+          let productos = [];
+          if (compra.pedido_id) {
+            productos = await DetallePedido.findAll({
+              where: { pedido_id: compra.pedido_id },
+              include: [{ model: Producto, as: 'Producto', attributes: ['id', 'nombre'] }]
+            });
+          }
+          return {
+            ...compra.toJSON(),
+            productos: productos.map(p => ({
+              id: p.Producto?.id,
+              nombre: p.Producto?.nombre,
+              cantidad: p.cantidad,
+              precio_unitario: p.precio_unitario
+            }))
+          };
+        }));
+
+        res.json(historialConProductos);
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Error al obtener historial de compras', details: error.message });
       }
     }
   }

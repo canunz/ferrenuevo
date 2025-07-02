@@ -94,13 +94,6 @@ const PaginaClientes = () => {
             Administra tu base de clientes
           </p>
         </div>
-        <button
-          onClick={() => { setMostrarFormulario(true); setClienteEditar(null); }}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Nuevo Cliente
-        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
