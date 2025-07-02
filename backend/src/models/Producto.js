@@ -88,6 +88,12 @@ module.exports = (sequelize) => {
       foreignKey: 'producto_id',
       as: 'detalles_pedido'
     });
+
+    // Un producto puede tener varios descuentos
+    Producto.hasMany(models.Descuento, {
+      foreignKey: 'producto_id',
+      as: 'descuentos'
+    });
   };
 
   return Producto;

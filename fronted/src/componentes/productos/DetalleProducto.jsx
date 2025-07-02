@@ -47,9 +47,26 @@ const DetalleProducto = ({ producto }) => {
           <h2 className="text-3xl font-bold mb-2">{producto.nombre}</h2>
           <p className="text-gray-600 mb-4">{producto.descripcion}</p>
           <div className="mb-4">
-            <span className="text-2xl font-bold text-blue-700">
-              {producto.precio ? `$${Number(producto.precio).toLocaleString('es-CL')}` : 'Sin precio'}
-            </span>
+            {producto.tiene_promocion && producto.promocion_activa ? (
+              <>
+                <span className="text-xl font-bold text-red-600 mr-2">
+                  {producto.precio_final ? `$${Number(producto.precio_final).toLocaleString('es-CL')}` : ''}
+                </span>
+                <span className="line-through text-gray-400 mr-2">
+                  {producto.precio_original ? `$${Number(producto.precio_original).toLocaleString('es-CL')}` : ''}
+                </span>
+                <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold mr-2">
+                  {producto.promocion_activa.tipo === 'porcentaje'
+                    ? `-${producto.promocion_activa.porcentaje}% OFF`
+                    : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')} OFF`}
+                </span>
+                <span className="text-xs text-gray-500">{producto.promocion_activa.vigencia}</span>
+              </>
+            ) : (
+              <span className="text-2xl font-bold text-blue-700">
+                {producto.precio ? `$${Number(producto.precio).toLocaleString('es-CL')}` : 'Sin precio'}
+              </span>
+            )}
           </div>
           <div className="mb-2">
             <span className="font-semibold">Stock:</span> {stockTotal}

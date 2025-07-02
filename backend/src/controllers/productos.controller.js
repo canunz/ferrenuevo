@@ -1,247 +1,73 @@
-const { Producto, Categoria, Marca, Inventario } = require('../models');
+const { Producto, Categoria, Marca, Inventario, Descuento } = require('../models');
 const { Op } = require('sequelize');
 
 // 🎯 FUNCIÓN PARA APLICAR PROMOCIONES AUTOMÁTICAMENTE (SIN TABLA PROMOCIONES)
-const aplicarPromociones = (producto) => {
+const aplicarPromociones = async (producto) => {
   const precio = parseFloat(producto.precio);
-  const descuentoManual = parseFloat(producto.descuento) || 0;
-  
-  console.log(`🎯 Aplicando promociones a: ${producto.nombre} - Marca: ${producto.marca_nombre} - Precio: $${precio} - Descuento Manual: ${descuentoManual}%`);
-  
-  // 🚨 PRIORIDAD 1: Si hay descuento manual, aplicarlo primero
-  if (descuentoManual > 0) {
-    const precioConDescuentoManual = Math.round(precio * (1 - descuentoManual / 100));
-    const ahorroManual = Math.round(precio * (descuentoManual / 100));
-    
-    console.log(`✅ Aplicando descuento manual: ${descuentoManual}% OFF - Precio final: $${precioConDescuentoManual}`);
-    
+  // Buscar el descuento activo y vigente más reciente
+  const hoy = new Date();
+  const descuento = await Descuento.findOne({
+    where: {
+      producto_id: producto.id,
+      estado: 'activa',
+      fecha_inicio: { [Op.lte]: hoy },
+      fecha_fin: { [Op.gte]: hoy }
+    },
+    order: [['fecha_inicio', 'DESC']]
+  });
+  if (descuento) {
+    let precioFinal = precio;
+    let ahorro = 0;
+    let porcentaje = 0;
+    let monto = 0;
+    let tipoDescuento = descuento.tipo;
+    if (descuento.tipo === 'porcentaje') {
+      porcentaje = parseFloat(descuento.valor);
+      ahorro = Math.round(precio * (porcentaje / 100));
+      monto = ahorro;
+      precioFinal = Math.round(precio - ahorro);
+    } else if (descuento.tipo === 'monto_fijo') {
+      monto = Math.round(parseFloat(descuento.valor));
+      ahorro = monto;
+      precioFinal = Math.max(0, Math.round(precio - monto));
+      porcentaje = Math.round((ahorro / precio) * 100);
+    }
     return {
       ...producto,
       tiene_promocion: true,
       promocion_activa: {
-        tipo: 'manual',
-        nombre: `Descuento Manual ${descuentoManual}%`,
-        descuento_porcentaje: descuentoManual,
+        tipo: tipoDescuento,
+        valor: descuento.valor,
+        porcentaje: porcentaje,
+        monto: monto,
         precio_original: precio,
-        precio_oferta: precioConDescuentoManual,
-        ahorro: ahorroManual,
-        etiqueta: `MANUAL${descuentoManual}`,
-        vigencia: 'Descuento permanente',
-        color: '#3498db'
+        precio_oferta: precioFinal,
+        ahorro: ahorro,
+        etiqueta: `DESCUENTO${producto.id}`,
+        vigencia: `Hasta ${String(descuento.fecha_fin).split('T')[0]}`,
+        color: '#e67e22'
       },
       precio_original: precio,
-      precio_final: precioConDescuentoManual,
-      precio_con_descuento: precioConDescuentoManual,
-      ahorro_total: ahorroManual,
-      descuento_porcentaje: descuentoManual,
-      etiqueta_promocion: `MANUAL${descuentoManual}`,
-      badge_promocion: `Descuento ${descuentoManual}%`,
-      color_promocion: '#3498db',
-      vigencia_promocion: 'Descuento permanente',
-      todas_promociones: [],
+      precio_final: precioFinal,
+      precio_con_descuento: precioFinal,
+      ahorro_total: ahorro,
+      descuento_porcentaje: porcentaje,
+      descuento_monto: monto,
+      tipo_descuento: tipoDescuento,
+      etiqueta_promocion: `DESCUENTO${producto.id}`,
+      badge_promocion: tipoDescuento === 'porcentaje' ? `Descuento ${porcentaje}%` : `Descuento $${monto}`,
+      color_promocion: '#e67e22',
+      vigencia_promocion: `Hasta ${String(descuento.fecha_fin).split('T')[0]}`,
       mostrar_oferta: true,
       precio_tachado: precio,
-      precio_destacado: precioConDescuentoManual,
-      descuento_manual: true
-    };
-  }
-  
-  // 🚨 PRIORIDAD 2: Si no hay descuento manual, aplicar promociones automáticas
-  let promociones = [];
-  
-  // 🔥 PROMOCIONES POR MARCA (HARDCODED - MUY IMPORTANTES)
-  if (producto.marca_nombre === 'Stanley') {
-    promociones.push({
-      tipo: 'marca',
-      nombre: 'Mega Sale Stanley 25%',
-      descuento_porcentaje: 25,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.75),
-      ahorro: Math.round(precio * 0.25),
-      etiqueta: 'STANLEY25',
-      vigencia: 'Hasta 31 Dic 2025',
-      color: '#e74c3c'
-    });
-  }
-  
-  if (producto.marca_nombre === 'Bosch') {
-    promociones.push({
-      tipo: 'marca',
-      nombre: 'Oferta Bosch 20%',
-      descuento_porcentaje: 20,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.8),
-      ahorro: Math.round(precio * 0.2),
-      etiqueta: 'BOSCH20',
-      vigencia: 'Hasta 31 Ene 2025',
-      color: '#27ae60'
-    });
-  }
-  
-  if (producto.marca_nombre === 'DeWalt') {
-    promociones.push({
-      tipo: 'marca',
-      nombre: 'DeWalt Power Tools 18%',
-      descuento_porcentaje: 18,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.82),
-      ahorro: Math.round(precio * 0.18),
-      etiqueta: 'DEWALT18',
-      vigencia: 'Hasta 31 Dic 2025',
-      color: '#f39c12'
-    });
-  }
-  
-  if (producto.marca_nombre === 'Makita') {
-    promociones.push({
-      tipo: 'marca',
-      nombre: 'Makita Professional 15%',
-      descuento_porcentaje: 15,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.85),
-      ahorro: Math.round(precio * 0.15),
-      etiqueta: 'MAKITA15',
-      vigencia: 'Hasta 28 Feb 2025',
-      color: '#2ecc71'
-    });
-  }
-  
-  if (producto.marca_nombre === 'Black & Decker' || producto.marca_nombre === 'Generica') {
-    promociones.push({
-      tipo: 'marca',
-      nombre: 'Black+Decker 22%',
-      descuento_porcentaje: 22,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.78),
-      ahorro: Math.round(precio * 0.22),
-      etiqueta: 'BLACKDECKER22',
-      vigencia: 'Hasta 31 Dic 2025',
-      color: '#9b59b6'
-    });
-  }
-  
-  // 🔥 PROMOCIONES POR CATEGORÍA
-  if (producto.categoria_nombre === 'Herramientas Eléctricas') {
-    promociones.push({
-      tipo: 'categoria',
-      nombre: 'Black Friday Herramientas 30%',
-      descuento_porcentaje: 30,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.7),
-      ahorro: Math.round(precio * 0.3),
-      etiqueta: 'BLACKFRIDAY30',
-      vigencia: 'Hasta 2 Dic 2025',
-      color: '#e67e22'
-    });
-  }
-  
-  if (producto.categoria_nombre === 'Herramientas Manuales') {
-    promociones.push({
-      tipo: 'categoria',
-      nombre: 'Herramientas Manuales 20%',
-      descuento_porcentaje: 20,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.8),
-      ahorro: Math.round(precio * 0.2),
-      etiqueta: 'MANUALES20',
-      vigencia: 'Hasta 15 Dic 2025',
-      color: '#34495e'
-    });
-  }
-  
-  // 🔥 PROMOCIONES POR PRECIO ALTO
-  if (precio >= 100000) {
-    promociones.push({
-      tipo: 'precio_alto',
-      nombre: 'Liquidación Premium 35%',
-      descuento_porcentaje: 35,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.65),
-      ahorro: Math.round(precio * 0.35),
-      etiqueta: 'PREMIUM35',
-      vigencia: 'Hasta 31 Dic 2025',
-      color: '#c0392b'
-    });
-  }
-  
-  // 🔥 OFERTAS ESPECIALES POR NOMBRE DE PRODUCTO
-  if (producto.nombre.toLowerCase().includes('taladro')) {
-    promociones.push({
-      tipo: 'especial',
-      nombre: '🔥 Súper Oferta Taladros',
-      descuento_porcentaje: 28,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.72),
-      ahorro: Math.round(precio * 0.28),
-      etiqueta: 'SUPERTALADRO',
-      vigencia: 'OFERTA LIMITADA',
-      color: '#e74c3c'
-    });
-  }
-  
-  if (producto.nombre.toLowerCase().includes('sierra')) {
-    promociones.push({
-      tipo: 'especial',
-      nombre: '⚡ Flash Sale Sierras',
-      descuento_porcentaje: 25,
-      precio_original: precio,
-      precio_oferta: Math.round(precio * 0.75),
-      ahorro: Math.round(precio * 0.25),
-      etiqueta: 'FLASHSIERRA',
-      vigencia: 'ÚLTIMOS DÍAS',
-      color: '#8e44ad'
-    });
-  }
-  
-  // Seleccionar la MEJOR promoción (mayor descuento)
-  if (promociones.length > 0) {
-    const mejorPromocion = promociones.reduce((mejor, actual) => 
-      actual.descuento_porcentaje > mejor.descuento_porcentaje ? actual : mejor
-    );
-    
-    console.log(`✅ Aplicando promoción automática: ${mejorPromocion.nombre} - ${mejorPromocion.descuento_porcentaje}% OFF`);
-    
-    return {
-      ...producto,
-      tiene_promocion: true,
-      promocion_activa: mejorPromocion,
-      precio_original: precio,
-      precio_final: mejorPromocion.precio_oferta,
-      precio_con_descuento: mejorPromocion.precio_oferta,
-      ahorro_total: mejorPromocion.ahorro,
-      descuento_porcentaje: mejorPromocion.descuento_porcentaje,
-      etiqueta_promocion: mejorPromocion.etiqueta,
-      badge_promocion: mejorPromocion.nombre,
-      color_promocion: mejorPromocion.color,
-      vigencia_promocion: mejorPromocion.vigencia,
-      todas_promociones: promociones,
-      mostrar_oferta: true,
-      precio_tachado: precio,
-      precio_destacado: mejorPromocion.precio_oferta,
+      precio_destacado: precioFinal,
       descuento_manual: false
     };
   }
-  
-  console.log(`ℹ️ Sin promociones para: ${producto.nombre}`);
-  
+  // Si no hay descuento, devolver producto normal
   return {
     ...producto,
-    tiene_promocion: false,
-    promocion_activa: null,
-    precio_original: precio,
-    precio_final: precio,
-    precio_con_descuento: precio,
-    ahorro_total: 0,
-    descuento_porcentaje: 0,
-    etiqueta_promocion: null,
-    badge_promocion: null,
-    color_promocion: null,
-    vigencia_promocion: null,
-    todas_promociones: [],
-    mostrar_oferta: false,
-    precio_tachado: null,
-    precio_destacado: precio,
-    descuento_manual: false
+    tiene_promocion: false
   };
 };
 
@@ -282,11 +108,11 @@ class ProductosController {
         order: [['created_at', 'DESC']]
       });
 
-      // Aplicar promociones a cada producto
-      const productosConPromociones = productos.map(producto => {
+      // Aplicar promociones a cada producto (ahora asíncrono)
+      const productosConPromociones = await Promise.all(productos.map(async producto => {
         const productoData = producto.toJSON();
-        return aplicarPromociones(productoData);
-      });
+        return await aplicarPromociones(productoData);
+      }));
 
       const totalPages = Math.ceil(count / limit);
 
@@ -332,7 +158,7 @@ class ProductosController {
       }
 
       const productoData = producto.toJSON();
-      const productoConPromocion = aplicarPromociones(productoData);
+      const productoConPromocion = await aplicarPromociones(productoData);
 
       res.json({
         success: true,

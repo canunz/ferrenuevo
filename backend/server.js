@@ -24,6 +24,7 @@ const divisasRoutes = require('./src/routes/divisas.routes');
 const usuariosRoutes = require('./src/routes/usuarios.routes');
 const facturasRoutes = require('./src/routes/facturas.routes'); // ← NUEVO
 const dashboardRoutes = require('./src/routes/dashboard.routes'); // ← NUEVO
+const descuentosRoutes = require('./src/routes/descuentos.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -66,6 +67,7 @@ app.use('/api/v1/divisas', divisasRoutes);
 app.use('/api/v1/usuarios', usuariosRoutes);
 app.use('/api/v1/facturas', facturasRoutes); // ← NUEVO
 app.use('/api/v1/dashboard', dashboardRoutes); // ← NUEVO
+app.use('/api/v1/descuentos', descuentosRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {

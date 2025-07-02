@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { servicioProductos } from '../../servicios/servicioProductos';
+import { servicioDescuentos } from '../../servicios/servicioDescuentos';
 import { TagIcon, PlusCircleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import api from '../../servicios/api';
+import dayjs from 'dayjs';
 
 const ModalPromocion = ({ open, onClose, onSave, producto }) => {
   const [form, setForm] = useState({
@@ -18,13 +20,16 @@ const ModalPromocion = ({ open, onClose, onSave, producto }) => {
 
   useEffect(() => {
     if (open && producto) {
+      // Fechas por defecto: hoy y mañana
+      const hoy = dayjs().format('YYYY-MM-DD');
+      const manana = dayjs().add(1, 'day').format('YYYY-MM-DD');
       setForm({
         nombre: `Promo ${producto.nombre}`,
         descripcion: '',
         tipo_descuento: 'porcentaje',
         valor_descuento: '',
-        fecha_inicio: '',
-        fecha_fin: ''
+        fecha_inicio: hoy,
+        fecha_fin: manana
       });
       setError(null);
     }
@@ -39,14 +44,16 @@ const ModalPromocion = ({ open, onClose, onSave, producto }) => {
     setCargando(true);
     setError(null);
     try {
-      // 1. Crear promoción
-      const resPromo = await api.post('/promociones', form);
-      if (!resPromo.data?.data?.id) throw new Error('No se pudo crear la promoción');
-      // 2. Asociar promoción al producto
-      await api.post('/promociones/asociar-producto', {
-        promocion_id: resPromo.data.data.id,
-        producto_id: producto.id
-      });
+      // Construir el objeto descuento con los campos correctos
+      const descuento = {
+        producto_id: producto.id,
+        tipo: form.tipo_descuento, // 'porcentaje' o 'monto_fijo'
+        valor: form.valor_descuento,
+        fecha_inicio: form.fecha_inicio,
+        fecha_fin: form.fecha_fin,
+        estado: 'activa'
+      };
+      await servicioDescuentos.crear(descuento);
       onSave();
     } catch (err) {
       setError(err.response?.data?.message || err.message);
@@ -98,21 +105,13 @@ const GestorPromociones = () => {
     setExito('');
     try {
       const resProductos = await servicioProductos.obtenerTodos({ limit: 1000 });
-      if (resProductos.success && Array.isArray(resProductos.data)) {
-        // Para cada producto, buscar su promoción asociada
-        const productosConPromo = await Promise.all(resProductos.data.map(async (prod) => {
-          try {
-            const resPromo = await api.get(`/promociones/por-producto?producto_id=${prod.id}`);
-            const promos = resPromo.data?.data || [];
-            return { ...prod, promocion: promos[0] || null };
-          } catch {
-            return { ...prod, promocion: null };
-          }
-        }));
-        setProductos(productosConPromo);
-      } else {
-        throw new Error('La respuesta de productos no es un array válido.');
-      }
+      const resDescuentos = await servicioDescuentos.obtenerTodos();
+      const descuentos = resDescuentos.data || [];
+      const productosConDescuento = (resProductos.data || []).map(prod => {
+        const descuento = descuentos.find(d => d.producto_id === prod.id && d.estado === 'activa');
+        return { ...prod, descuento };
+      });
+      setProductos(productosConDescuento);
     } catch (err) {
       setError(err.message || 'Error al cargar los datos');
       console.error(err);
@@ -156,7 +155,7 @@ const GestorPromociones = () => {
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Original</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promoción Aplicada</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descuento Aplicado</th>
                 <th scope="col" className="relative px-6 py-3">
                   <span className="sr-only">Acciones</span>
                 </th>
@@ -180,12 +179,14 @@ const GestorPromociones = () => {
                     <div className="text-sm text-gray-900 dark:text-white">{formatearPrecio(producto.precio)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {producto.promocion ? (
+                    {producto.tiene_promocion && producto.promocion_activa ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        {producto.promocion.nombre}
+                        {producto.promocion_activa.tipo === 'porcentaje'
+                          ? `-${producto.promocion_activa.porcentaje}%`
+                          : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')}`}
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-500 italic">Sin promoción</span>
+                      <span className="text-sm text-gray-500 italic">Sin descuento</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -194,7 +195,7 @@ const GestorPromociones = () => {
                       onClick={() => setModal({ open: true, producto })}
                     >
                       <PlusCircleIcon className="w-5 h-5 mr-1" />
-                      Crear Promoción
+                      Crear Descuento
                     </button>
                   </td>
                 </tr>
@@ -214,7 +215,7 @@ const GestorPromociones = () => {
         onClose={() => setModal({ open: false, producto: null })}
         onSave={() => {
           setModal({ open: false, producto: null });
-          setExito('¡Promoción creada y asociada correctamente!');
+          setExito('¡Descuento creado y asociado correctamente!');
           cargarDatos();
         }}
       />
