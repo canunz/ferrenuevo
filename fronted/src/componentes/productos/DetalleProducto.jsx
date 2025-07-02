@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const DetalleProducto = ({ producto }) => {
+  const [moneda, setMoneda] = useState('CLP');
+  const [tiposCambio, setTiposCambio] = useState({ USD: 1, EUR: 1 });
+  const [cargando, setCargando] = useState(false);
+
+  useEffect(() => {
+    const obtenerTiposCambio = async () => {
+      setCargando(true);
+      try {
+        const res = await fetch('http://localhost:3003/api/v1/divisas/tipos-cambio');
+        const data = await res.json();
+        // Buscar USD y EUR
+        const usd = Array.isArray(data.data) ? data.data.find(d => d.codigo === 'USD') : null;
+        const eur = Array.isArray(data.data) ? data.data.find(d => d.codigo === 'EUR') : null;
+        setTiposCambio({
+          USD: usd?.valor || 1,
+          EUR: eur?.valor || 1
+        });
+      } catch {
+        setTiposCambio({ USD: 1, EUR: 1 });
+      } finally {
+        setCargando(false);
+      }
+    };
+    obtenerTiposCambio();
+  }, []);
+
   if (!producto) return <div>No se encontró el producto.</div>;
 
   // Calcular el stock total sumando todos los inventarios
@@ -10,6 +36,22 @@ const DetalleProducto = ({ producto }) => {
   } else if (typeof producto.stock_actual === 'number') {
     stockTotal = producto.stock_actual;
   }
+
+  // Función para convertir el precio
+  const convertirPrecio = (precioCLP) => {
+    if (moneda === 'CLP') return `$${Number(precioCLP).toLocaleString('es-CL')}`;
+    if (moneda === 'USD') {
+      const v = tiposCambio.USD;
+      if (!v) return 'N/D';
+      return `US$ ${(precioCLP / v).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+    }
+    if (moneda === 'EUR') {
+      const v = tiposCambio.EUR;
+      if (!v) return 'N/D';
+      return `€ ${(precioCLP / v).toLocaleString('de-DE', { maximumFractionDigits: 2 })}`;
+    }
+    return precioCLP;
+  };
 
   if (stockTotal === 0) {
     return (
@@ -74,27 +116,42 @@ const DetalleProducto = ({ producto }) => {
               </table>
             </div>
           )}
-          <div className="mb-4">
-            {producto.tiene_promocion && producto.promocion_activa ? (
-              <>
-                <span className="text-xl font-bold text-red-600 mr-2">
-                  {producto.precio_final ? `$${Number(producto.precio_final).toLocaleString('es-CL')}` : ''}
+          <div className="mb-4 flex items-center gap-4">
+            <div>
+              {producto.tiene_promocion && producto.promocion_activa ? (
+                <>
+                  <span className="text-xl font-bold text-red-600 mr-2">
+                    {producto.precio_final ? convertirPrecio(producto.precio_final) : ''}
+                  </span>
+                  <span className="line-through text-gray-400 mr-2">
+                    {producto.precio_original ? convertirPrecio(producto.precio_original) : ''}
+                  </span>
+                  <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold mr-2">
+                    {producto.promocion_activa.tipo === 'porcentaje'
+                      ? `-${producto.promocion_activa.porcentaje}% OFF`
+                      : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')} OFF`}
+                  </span>
+                  <span className="text-xs text-gray-500">{producto.promocion_activa.vigencia}</span>
+                </>
+              ) : (
+                <span className="text-2xl font-bold text-blue-700">
+                  {producto.precio ? convertirPrecio(producto.precio) : 'Sin precio'}
                 </span>
-                <span className="line-through text-gray-400 mr-2">
-                  {producto.precio_original ? `$${Number(producto.precio_original).toLocaleString('es-CL')}` : ''}
-                </span>
-                <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold mr-2">
-                  {producto.promocion_activa.tipo === 'porcentaje'
-                    ? `-${producto.promocion_activa.porcentaje}% OFF`
-                    : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')} OFF`}
-                </span>
-                <span className="text-xs text-gray-500">{producto.promocion_activa.vigencia}</span>
-              </>
-            ) : (
-              <span className="text-2xl font-bold text-blue-700">
-                {producto.precio ? `$${Number(producto.precio).toLocaleString('es-CL')}` : 'Sin precio'}
-              </span>
-            )}
+              )}
+            </div>
+            <div>
+              <select
+                value={moneda}
+                onChange={e => setMoneda(e.target.value)}
+                className="border px-2 py-1 rounded text-sm"
+                disabled={cargando}
+              >
+                <option value="CLP">CLP</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+              {cargando && <span className="ml-2 text-xs text-gray-400">Cargando tasas...</span>}
+            </div>
           </div>
           <div className="mb-2">
             <span className="font-semibold">Stock:</span> {stockTotal}

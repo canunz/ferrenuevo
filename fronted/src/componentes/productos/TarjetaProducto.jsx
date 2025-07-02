@@ -17,13 +17,23 @@ const TarjetaProducto = ({
   onAgregarAlCarrito, 
   onToggleFavorito, 
   esFavorito = false,
-  mostrarAcciones = true 
+  mostrarAcciones = true,
+  moneda = 'CLP',
+  tiposCambio = { USD: 1, EUR: 1 }
 }) => {
-  const formatearPrecio = (precio) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP'
-    }).format(precio);
+  const convertirPrecio = (precioCLP) => {
+    if (moneda === 'CLP') return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(precioCLP);
+    if (moneda === 'USD') {
+      const v = tiposCambio.USD;
+      if (!v) return 'N/D';
+      return `US$ ${(precioCLP / v).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+    }
+    if (moneda === 'EUR') {
+      const v = tiposCambio.EUR;
+      if (!v) return 'N/D';
+      return `€ ${(precioCLP / v).toLocaleString('de-DE', { maximumFractionDigits: 2 })}`;
+    }
+    return precioCLP;
   };
 
   const obtenerImagenProducto = (imagen) => {
@@ -155,15 +165,15 @@ const TarjetaProducto = ({
           {tieneDescuento ? (
             <div className="flex items-center space-x-2">
               <span className="text-lg font-bold text-red-600">
-                {formatearPrecio(producto.precio_oferta)}
+                {convertirPrecio(producto.precio_oferta)}
               </span>
               <span className="text-sm text-gray-500 line-through">
-                {formatearPrecio(producto.precio)}
+                {convertirPrecio(producto.precio)}
               </span>
             </div>
           ) : (
             <span className="text-lg font-bold text-gray-900">
-              {formatearPrecio(producto.precio)}
+              {convertirPrecio(producto.precio)}
             </span>
           )}
         </div>
