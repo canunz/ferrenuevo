@@ -411,25 +411,7 @@ const BarraLateral = () => {
         {!colapsada && (
           <div className="p-4 border-t border-blue-700">
             <div className="space-y-3">
-              {/* Alerta de stock bajo */}
-              <div className="bg-orange-500 bg-opacity-20 border border-orange-400 rounded-lg p-3">
-                <div className="flex items-center">
-                  <ExclamationTriangleIcon className="h-4 w-4 text-orange-400 mr-2" />
-                  <span className="text-xs text-orange-200">5 productos con stock bajo</span>
-                </div>
-              </div>
-              
-              {/* Información rápida */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="text-center">
-                  <p className="text-blue-200">Pedidos Hoy</p>
-                  <p className="text-white font-bold">23</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-blue-200">Ventas Hoy</p>
-                  <p className="text-white font-bold">$890K</p>
-                </div>
-              </div>
+              {/* Se eliminó la información rápida */}
             </div>
           </div>
         )}
