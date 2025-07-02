@@ -85,31 +85,42 @@ exports.confirmarTransaccion = async (req, res) => {
     const t = await sequelize.transaction(); // Iniciamos transacción
     try {
         const { token_ws } = req.body;
-
         if (!token_ws) {
             return res.status(400).json(formatearError('Token de transacción requerido'));
         }
 
         const resultado = await transaction.commit(token_ws);
 
+        // Log para depuración
+        console.log('Resultado de commit Transbank:', resultado);
+
+        if (!resultado.buy_order) {
+            throw new Error('No se recibió buy_order de Transbank. Resultado: ' + JSON.stringify(resultado));
+        }
+
         if (resultado.status === 'AUTHORIZED') {
             // El pago fue exitoso en Transbank. Ahora actualizamos nuestro sistema.
             
-            const pedido = await Pedido.findOne({ where: { numero_pedido: resultado.buyOrder } });
+            const pedido = await Pedido.findOne({ where: { numero_pedido: resultado.buy_order } });
             if (!pedido) {
                 // Si no encontramos el pedido, hacemos un reembolso automático para no quedarnos con dinero que no corresponde.
                 await transaction.refund(token_ws, resultado.amount);
-                throw new Error(`Pedido ${resultado.buyOrder} no encontrado. Reembolso automático iniciado.`);
+                throw new Error(`Pedido ${resultado.buy_order} no encontrado. Reembolso automático iniciado.`);
             }
 
-            // 1. Crear el registro del pago
+            // Buscar el método de pago 'Transbank'
+            const { MetodoPago } = require('../models');
+            const metodoPago = await MetodoPago.findOne({ where: { nombre: 'Transbank' } });
+            if (!metodoPago) {
+                throw new Error('Método de pago "Transbank" no encontrado en la base de datos');
+            }
             await Pago.create({
                 pedido_id: pedido.id,
+                metodo_pago_id: metodoPago.id,
                 monto: resultado.amount,
-                metodo_pago: 'Transbank',
-                estado: 'completado',
-                transaccion_id: token_ws,
-                datos_pasarela: resultado
+                estado: 'aprobado',
+                referencia_externa: token_ws,
+                fecha_pago: new Date()
             }, { transaction: t });
 
             // 2. Actualizar el estado del pedido
@@ -122,7 +133,7 @@ exports.confirmarTransaccion = async (req, res) => {
                 'Pago confirmado y pedido actualizado exitosamente',
                 {
                     status: resultado.status,
-                    orden_compra: resultado.buyOrder,
+                    orden_compra: resultado.buy_order,
                     monto: resultado.amount,
                     pedido_id: pedido.id,
                     nuevo_estado_pedido: pedido.estado
@@ -142,7 +153,7 @@ exports.confirmarTransaccion = async (req, res) => {
     } catch (error) {
         await t.rollback(); // Si algo falla, deshacemos todo
         console.error('Error al confirmar transacción:', error);
-        res.status(500).json(formatearError('Error interno del servidor al confirmar el pago'));
+        res.status(500).json(formatearError('Error interno del servidor al confirmar el pago', error.message));
     }
 };
 

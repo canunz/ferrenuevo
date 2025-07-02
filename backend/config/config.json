@@ -1,23 +1,23 @@
 {
   "development": {
     "username": "root",
-    "password": "day06D06Norman44die.",
+    "password": "emma2004",
     "database": "ferremasnueva",
-    "host": "127.0.0.1",
+    "host": "localhost",
     "dialect": "mysql"
   },
   "test": {
     "username": "root",
-    "password": "day06D06Norman44die.",
-    "database": "database_test",
-    "host": "127.0.0.1",
+    "password": "emma2004",
+    "database": "ferremasnueva",
+    "host": "localhost",
     "dialect": "mysql"
   },
   "production": {
     "username": "root",
-    "password": "day06D06Norman44die.",
-    "database": "database_production",
-    "host": "127.0.0.1",
+    "password": "emma2004",
+    "database": "ferremasnueva",
+    "host": "localhost",
     "dialect": "mysql"
   }
 }

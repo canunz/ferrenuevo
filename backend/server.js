@@ -69,6 +69,13 @@ app.use('/api/v1/facturas', facturasRoutes); // ← NUEVO
 app.use('/api/v1/dashboard', dashboardRoutes); // ← NUEVO
 app.use('/api/v1/descuentos', descuentosRoutes);
 
+// Servir el frontend de React para cualquier otra ruta (SPA)
+const frontBuildPath = path.join(__dirname, '../fronted/build');
+app.use(express.static(frontBuildPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontBuildPath, 'index.html'));
+});
+
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({

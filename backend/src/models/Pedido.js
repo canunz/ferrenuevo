@@ -49,5 +49,11 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   });
+
+  // Asociaciones
+  Pedido.associate = function(models) {
+    Pedido.hasMany(models.Pago, { foreignKey: 'pedido_id', as: 'pagos' });
+  };
+
   return Pedido;
 };

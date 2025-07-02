@@ -25,5 +25,11 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   });
+
+  // Asociaciones
+  MetodoPago.associate = function(models) {
+    MetodoPago.hasMany(models.Pago, { foreignKey: 'metodo_pago_id', as: 'pagos' });
+  };
+
   return MetodoPago;
 };

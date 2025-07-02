@@ -36,5 +36,12 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   });
+
+  // Asociaciones
+  Pago.associate = function(models) {
+    Pago.belongsTo(models.Pedido, { foreignKey: 'pedido_id', as: 'pedido' });
+    Pago.belongsTo(models.MetodoPago, { foreignKey: 'metodo_pago_id', as: 'metodo_pago' });
+  };
+
   return Pago;
 };
