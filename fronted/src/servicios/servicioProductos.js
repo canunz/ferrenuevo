@@ -98,4 +98,15 @@ export const servicioProductos = {
       throw error;
     }
   },
+
+  // Carga masiva de productos
+  cargaMasiva: async (archivoCsv) => {
+    try {
+      const response = await productosAPI.cargarMasiva(archivoCsv);
+      return response;
+    } catch (error) {
+      console.error('Error en carga masiva:', error);
+      throw error;
+    }
+  },
 };

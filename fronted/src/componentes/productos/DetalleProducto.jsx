@@ -46,6 +46,34 @@ const DetalleProducto = ({ producto }) => {
         <div className="flex-1">
           <h2 className="text-3xl font-bold mb-2">{producto.nombre}</h2>
           <p className="text-gray-600 mb-4">{producto.descripcion}</p>
+          {/* Ficha Técnica */}
+          {producto.ficha_tecnica && (
+            <div className="mb-4">
+              <h3 className="font-semibold text-lg mb-1 text-blue-800">Ficha Técnica</h3>
+              <table className="w-full text-sm border mb-2">
+                <tbody>
+                  {producto.ficha_tecnica.dimensiones && (
+                    <tr>
+                      <td className="font-semibold pr-2">Dimensiones:</td>
+                      <td>{producto.ficha_tecnica.dimensiones}</td>
+                    </tr>
+                  )}
+                  {producto.ficha_tecnica.materiales && (
+                    <tr>
+                      <td className="font-semibold pr-2">Materiales:</td>
+                      <td>{producto.ficha_tecnica.materiales}</td>
+                    </tr>
+                  )}
+                  {producto.ficha_tecnica.caracteristicas && (
+                    <tr>
+                      <td className="font-semibold pr-2">Características:</td>
+                      <td>{producto.ficha_tecnica.caracteristicas}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="mb-4">
             {producto.tiene_promocion && producto.promocion_activa ? (
               <>

@@ -1,5 +1,7 @@
 const { Producto, Categoria, Marca, Inventario, Descuento } = require('../models');
 const { Op } = require('sequelize');
+const csv = require('csv-parser');
+const fs = require('fs');
 
 // 🎯 FUNCIÓN PARA APLICAR PROMOCIONES AUTOMÁTICAMENTE (SIN TABLA PROMOCIONES)
 const aplicarPromociones = async (producto) => {
@@ -336,11 +338,47 @@ class ProductosController {
   // Carga masiva de productos
   async cargaMasiva(req, res) {
     try {
-      // Implementar lógica de carga masiva
-      res.json({
-        success: true,
-        message: 'Carga masiva implementada'
-      });
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No se subió ningún archivo' });
+      }
+      const productos = [];
+      const filePath = req.file.path;
+      const stream = fs.createReadStream(filePath).pipe(csv());
+      for await (const row of stream) {
+        // Procesar ficha técnica si viene en columnas separadas
+        let ficha_tecnica = {};
+        if (row.dimensiones || row.materiales || row.caracteristicas) {
+          ficha_tecnica = {
+            dimensiones: row.dimensiones || '',
+            materiales: row.materiales || '',
+            caracteristicas: row.caracteristicas || ''
+          };
+        }
+        // Buscar por código SKU, si existe actualiza, si no crea
+        let producto = await Producto.findOne({ where: { codigo_sku: row.codigo_sku } });
+        if (producto) {
+          await producto.update({
+            nombre: row.nombre,
+            descripcion: row.descripcion,
+            precio: row.precio,
+            categoria_id: row.categoria_id,
+            marca_id: row.marca_id,
+            ficha_tecnica
+          });
+        } else {
+          await Producto.create({
+            nombre: row.nombre,
+            descripcion: row.descripcion,
+            precio: row.precio,
+            codigo_sku: row.codigo_sku,
+            categoria_id: row.categoria_id,
+            marca_id: row.marca_id,
+            ficha_tecnica
+          });
+        }
+        productos.push(row);
+      }
+      res.json({ success: true, message: 'Carga masiva completada', total: productos.length });
     } catch (error) {
       console.error('Error en carga masiva:', error);
       res.status(500).json({

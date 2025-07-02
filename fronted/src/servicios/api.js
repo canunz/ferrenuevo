@@ -197,6 +197,25 @@ export const productosAPI = {
       body: { marca_id, descuento }
     });
   },
+
+  cargarMasiva: async (archivoCsv) => {
+    const formData = new FormData();
+    formData.append('archivo', archivoCsv);
+    // Usar fetch directamente para enviar multipart/form-data
+    const response = await fetch(`${API_BASE_URL}/productos/carga-masiva`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // No poner Content-Type, el navegador lo setea automáticamente
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Error en la carga masiva');
+    }
+    return await response.json();
+  },
 };
 
 // API SISTEMA (exportación nombrada)

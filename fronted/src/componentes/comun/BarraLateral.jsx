@@ -59,7 +59,7 @@ const BarraLateral = () => {
     },
     {
       nombre: 'Productos',
-      href: '/productos',
+      href: '/admin/productos',
       icono: WrenchScrewdriverIcon,
       descripcion: 'Catálogo de herramientas'
     },
