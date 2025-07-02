@@ -94,5 +94,19 @@ export const servicioPagos = {
       console.error('Error al reembolsar transacción:', error);
       throw error;
     }
+  },
+
+  // Listar pagos (con filtros)
+  listar: async (filtros = {}) => {
+    const params = new URLSearchParams(filtros).toString();
+    return await apiRequest(`/pagos${params ? `?${params}` : ''}`);
+  },
+
+  // Aprobar pago en efectivo
+  aprobar: async (pagoId) => {
+    return await apiRequest(`/pagos/${pagoId}/estado`, {
+      method: 'PUT',
+      body: { estado: 'aprobado' }
+    });
   }
 };

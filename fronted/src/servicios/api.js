@@ -44,6 +44,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     ...options,
   };
 
+  // Agregar token de autenticación si existe
+  const token = localStorage.getItem('token');
+  if (token) {
+    defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+  }
+
   // Agregar body solo si no es GET
   if (options.body && defaultOptions.method !== 'GET') {
     defaultOptions.body = JSON.stringify(options.body);

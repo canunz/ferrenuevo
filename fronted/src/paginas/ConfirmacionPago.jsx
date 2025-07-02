@@ -7,7 +7,9 @@ import {
   ShoppingCartIcon,
   TruckIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { useCarrito } from '../contexto/ContextoCarrito';
 import { useAuth } from '../contexto/ContextoAuth';
@@ -41,12 +43,20 @@ const ConfirmacionPago = () => {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);
+  const [cupon, setCupon] = useState('');
+  const [mostrarCupon, setMostrarCupon] = useState(false);
+  const [cuponAplicado, setCuponAplicado] = useState(null);
+  const [descuentoCupon, setDescuentoCupon] = useState(0);
 
   // Calcular totales
   const subtotal = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
   const iva = subtotal * 0.19;
   const costoDespacho = metodoEntrega === 'despacho' ? 5000 : 0;
   const total = subtotal + iva + costoDespacho;
+
+  // Buscar cupón aplicado y descuento en localStorage (ajusta según tu lógica real)
+  const cuponAplicadoLocal = localStorage.getItem('cupon_aplicado');
+  const descuentoCuponLocal = localStorage.getItem('descuento_cupon');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -125,6 +135,20 @@ const ConfirmacionPago = () => {
         limpiarCarrito();
         setCargando(false);
       }, 1200);
+    }
+  };
+
+  const aplicarCupon = async () => {
+    if (!cupon.trim()) return setError('Ingresa un código de cupón');
+    try {
+      const res = await fetch(`/api/v1/promociones/cupones/validar?codigo=${encodeURIComponent(cupon)}`);
+      const data = await res.json();
+      if (!data.success) return setError(data.message || 'Cupón inválido');
+      setCuponAplicado(data.cupon);
+      setDescuentoCupon(data.descuento);
+      setError('');
+    } catch (err) {
+      setError('Error al validar el cupón');
     }
   };
 
@@ -283,6 +307,40 @@ const ConfirmacionPago = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                {/* Campo cupón debajo de dirección */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Cupón</label>
+                    <button type="button" onClick={() => setMostrarCupon(v => !v)} className="focus:outline-none">
+                      {mostrarCupon ? <EyeSlashIcon className="w-5 h-5 text-gray-500" /> : <EyeIcon className="w-5 h-5 text-gray-500" />}
+                    </button>
+                  </div>
+                  <div className={`transition-all duration-300 overflow-hidden ${mostrarCupon ? 'max-h-20 mb-2' : 'max-h-0'}`}> 
+                    {mostrarCupon && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={cupon}
+                          onChange={e => setCupon(e.target.value)}
+                          placeholder="Ingresa tu cupón"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={aplicarCupon}
+                          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                        >
+                          Aplicar
+                        </button>
+                      </div>
+                    )}
+                    {cuponAplicado && mostrarCupon && (
+                      <div className="mt-2 text-green-600 text-sm">
+                        Cupón aplicado: <b>{cuponAplicado.codigo}</b> - Descuento: ${descuentoCupon}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
@@ -391,6 +449,12 @@ const ConfirmacionPago = () => {
                     <div className="flex justify-between text-gray-600">
                       <span>Despacho:</span>
                       <span>${costoDespacho.toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
+                  {cuponAplicado && descuentoCupon && (
+                    <div className="flex justify-between text-green-700">
+                      <span>Cupón aplicado: <b>{cuponAplicado.codigo}</b></span>
+                      <span>- ${descuentoCupon.toLocaleString('es-CL')}</span>
                     </div>
                   )}
                   <div className="border-t pt-2">

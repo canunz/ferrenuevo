@@ -90,6 +90,10 @@ const handleValidationErrors = (req, res, next) => {
  *                 type: string
  *               notas:
  *                 type: string
+ *               metodo_pago:
+ *                 type: string
+ *               cupon:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Pedido creado exitosamente
@@ -123,6 +127,14 @@ router.post('/',
     body('notas')
       .optional()
       .isString(),
+    body('metodo_pago')
+      .optional()
+      .isString()
+      .withMessage('Método de pago inválido'),
+    body('cupon')
+      .optional()
+      .isString()
+      .withMessage('Cupón inválido'),
     handleValidationErrors
   ],
   pedidosController.crearPedido

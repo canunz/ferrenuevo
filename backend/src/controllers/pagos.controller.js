@@ -50,19 +50,22 @@ class PagosController {
       }
 
       // Crear el pago
+      const estadoPago = metodo_pago === 'efectivo' ? 'pendiente' : 'aprobado';
       const pago = await Pago.create({
         pedido_id,
         metodo_pago_id: metodoPago.id,
         monto,
-        estado: 'aprobado',
+        estado: estadoPago,
         referencia_externa: referencia_externa || null,
-        fecha_pago: new Date()
+        fecha_pago: estadoPago === 'aprobado' ? new Date() : null
       }, { transaction });
 
-      // Actualizar estado del pedido
-      await pedido.update({
-        estado: 'pagado'
-      }, { transaction });
+      // Solo marcar el pedido como pagado si el pago es aprobado
+      if (estadoPago === 'aprobado') {
+        await pedido.update({
+          estado: 'pagado'
+        }, { transaction });
+      }
 
       await transaction.commit();
 
@@ -227,7 +230,7 @@ class PagosController {
         return res.status(404).json(formatearError('Pago no encontrado'));
       }
 
-      await pago.update({ estado });
+      await pago.update({ estado, fecha_pago: estado === 'aprobado' ? new Date() : pago.fecha_pago });
 
       // Si el pago se aprueba, actualizar el estado del pedido
       if (estado === 'aprobado') {

@@ -10,7 +10,9 @@ import {
   MapPinIcon,
   CreditCardIcon,
   TruckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { useNotificacion } from '../../contexto/ContextoNotificacion';
 import { servicioPedidos } from '../../servicios/servicioPedidos';
@@ -32,6 +34,10 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
   const [cargando, setCargando] = useState(false);
   const [paso, setPaso] = useState(1); // 1: Productos, 2: Cliente, 3: Entrega, 4: Resumen
   const { exito, error } = useNotificacion();
+  const [cupon, setCupon] = useState('');
+  const [cuponAplicado, setCuponAplicado] = useState(null);
+  const [descuentoCupon, setDescuentoCupon] = useState(0);
+  const [mostrarCupon, setMostrarCupon] = useState(false);
 
   useEffect(() => {
     if (pedido) {
@@ -136,8 +142,9 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
     return 0;
   };
 
-  const calcularTotal = () => {
-    return calcularSubtotal() + calcularEnvio();
+  const calcularTotalConCupon = () => {
+    const total = calcularSubtotal() + calcularEnvio();
+    return Math.max(0, total - descuentoCupon);
   };
 
   const formatearPrecio = (precio) => {
@@ -161,18 +168,32 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
     return true;
   };
 
+  const aplicarCupon = async () => {
+    if (!cupon.trim()) return error('Ingresa un código de cupón');
+    try {
+      const res = await fetch(`/api/v1/promociones/cupones/validar?codigo=${encodeURIComponent(cupon)}`);
+      const data = await res.json();
+      if (!data.success) return error(data.message || 'Cupón inválido');
+      setCuponAplicado(data.cupon);
+      setDescuentoCupon(data.descuento);
+      exito('Cupón aplicado correctamente');
+    } catch (err) {
+      error('Error al validar el cupón');
+    }
+  };
+
   const guardarPedido = async () => {
     if (!validarFormulario()) return;
-
     setCargando(true);
     try {
       const datosPedido = {
         ...formulario,
         subtotal: calcularSubtotal(),
-        total: calcularTotal(),
-        costo_envio: calcularEnvio()
+        total: calcularTotalConCupon(),
+        costo_envio: calcularEnvio(),
+        cupon: cuponAplicado ? cuponAplicado.codigo : null
       };
-
+      datosPedido.metodo_pago = formulario.metodo_pago || 'efectivo';
       if (pedido) {
         await servicioPedidos.actualizar(pedido.id, datosPedido);
         exito('Pedido actualizado correctamente');
@@ -180,7 +201,6 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
         await servicioPedidos.crear(datosPedido);
         exito('Pedido creado correctamente');
       }
-
       if (onGuardar) {
         onGuardar();
       }
@@ -282,6 +302,30 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
           </div>
         )}
       </div>
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Cupón de descuento</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={cupon}
+            onChange={e => setCupon(e.target.value)}
+            placeholder="Ingresa tu cupón"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          />
+          <button
+            type="button"
+            onClick={aplicarCupon}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+          >
+            Aplicar
+          </button>
+        </div>
+        {cuponAplicado && (
+          <div className="mt-2 text-green-600 text-sm">
+            Cupón aplicado: <b>{cuponAplicado.codigo}</b> - Descuento: {formatearPrecio(descuentoCupon)}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -309,18 +353,55 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
           </div>
 
           {formulario.metodo_entrega !== 'retiro_tienda' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dirección de entrega
-              </label>
-              <textarea
-                value={formulario.direccion_entrega}
-                onChange={(e) => setFormulario({...formulario, direccion_entrega: e.target.value})}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ingrese la dirección completa..."
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dirección *
+                </label>
+                <input
+                  type="text"
+                  value={formulario.direccion_entrega}
+                  onChange={(e) => setFormulario({...formulario, direccion_entrega: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Calle, número, departamento"
+                  required
+                />
+              </div>
+              {/* Campo cupón debajo de dirección, siempre visible */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Cupón</label>
+                  <button type="button" onClick={() => setMostrarCupon(v => !v)} className="focus:outline-none">
+                    {mostrarCupon ? <EyeSlashIcon className="w-5 h-5 text-gray-500" /> : <EyeIcon className="w-5 h-5 text-gray-500" />}
+                  </button>
+                </div>
+                <div className={`transition-all duration-300 overflow-hidden ${mostrarCupon ? 'max-h-20 mb-2' : 'max-h-0'}`}> 
+                  {mostrarCupon && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={cupon}
+                        onChange={e => setCupon(e.target.value)}
+                        placeholder="Ingresa tu cupón"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={aplicarCupon}
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  )}
+                  {cuponAplicado && mostrarCupon && (
+                    <div className="mt-2 text-green-600 text-sm">
+                      Cupón aplicado: <b>{cuponAplicado.codigo}</b> - Descuento: {formatearPrecio(descuentoCupon)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -405,9 +486,15 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
               <span>Costo de envío:</span>
               <span>{formatearPrecio(calcularEnvio())}</span>
             </div>
+            {descuentoCupon > 0 && (
+              <div className="flex justify-between text-green-700">
+                <span>Descuento cupón:</span>
+                <span>-{formatearPrecio(descuentoCupon)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-semibold border-t pt-2">
               <span>Total:</span>
-              <span>{formatearPrecio(calcularTotal())}</span>
+              <span>{formatearPrecio(calcularTotalConCupon())}</span>
             </div>
           </div>
         </div>
@@ -480,7 +567,10 @@ const FormularioPedido = ({ pedido = null, onGuardar, onCancelar }) => {
             </button>
           ) : (
             <button
-              onClick={guardarPedido}
+              onClick={() => {
+                console.log('🟢 Click en finalizar compra (crear pedido)');
+                guardarPedido();
+              }}
               disabled={cargando}
               className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >

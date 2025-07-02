@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const transbankController = require('../../controllers/transbank.controller');
+const pagosController = require('../controllers/pagos.controller');
 const { check } = require('express-validator');
 const { verificarToken } = require('../middleware/auth');
 
 // Middleware de autenticación
 router.use(verificarToken);
+
+// Nueva ruta para listar pagos
+router.get('/', pagosController.listarPagos);
 
 /**
  * @swagger

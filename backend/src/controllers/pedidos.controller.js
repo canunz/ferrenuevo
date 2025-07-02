@@ -25,6 +25,7 @@ class PedidosController {
       const usuario_id = req.user.id;
 
       console.log('📦 Creando pedido para usuario:', usuario_id);
+      console.log('🟢 Body recibido en crearPedido:', req.body);
 
       // Validar que tenga productos
       if (!productos || productos.length === 0) {
@@ -119,6 +120,27 @@ class PedidosController {
         }
 
         console.log('✅ Detalles creados exitosamente');
+
+        // Después de crear el pedido y los detalles:
+        // Crear pago pendiente si el método de pago es 'efectivo'
+        const { metodo_pago } = req.body;
+        if (metodo_pago && metodo_pago.toLowerCase() === 'efectivo') {
+          const { MetodoPago, Pago } = require('../models');
+          const metodo = await MetodoPago.findOne({ where: { nombre: 'efectivo' } });
+          if (metodo) {
+            await Pago.create({
+              pedido_id: pedidoId,
+              metodo_pago_id: metodo.id,
+              monto: total,
+              estado: 'pendiente',
+              referencia_externa: null,
+              fecha_pago: null
+            });
+            console.log('💸 Pago pendiente en efectivo creado para el pedido', pedidoId);
+          } else {
+            console.warn('⚠️ No se encontró el método de pago "efectivo" en la base de datos.');
+          }
+        }
 
         return res.status(201).json(formatearRespuesta(
           '🎉 Pedido creado exitosamente',

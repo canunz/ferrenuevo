@@ -53,6 +53,7 @@ module.exports = (sequelize, DataTypes) => {
   // Asociaciones
   Pedido.associate = function(models) {
     Pedido.hasMany(models.Pago, { foreignKey: 'pedido_id', as: 'pagos' });
+    Pedido.belongsTo(models.Usuario, { foreignKey: 'cliente_id', as: 'cliente' });
   };
 
   return Pedido;

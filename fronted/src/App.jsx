@@ -35,6 +35,7 @@ import PaginaPedidos from './paginas/PaginaPedidos';
 import PaginaFacturas from './paginas/PaginaFacturas';
 import PaginaPagos from './paginas/PaginaPagos';
 import PaginaDescuentos from './paginas/PaginaDescuentos';
+import PaginaCupones from './paginas/PaginaCupones';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -439,6 +440,16 @@ const ContenidoPrincipal = () => {
         <Route 
           path="/test-backend" 
           element={<TestBackend />} 
+        />
+
+        {/* Página de cupones (admin) */}
+        <Route 
+          path="/cupones" 
+          element={
+            <LayoutAdmin>
+              <PaginaCupones />
+            </LayoutAdmin>
+          } 
         />
 
         {/* Ruta 404 */}

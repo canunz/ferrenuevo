@@ -42,6 +42,7 @@ module.exports = (sequelize, DataTypes) => {
   Usuario.associate = function(models) {
     Usuario.belongsTo(models.Rol, { foreignKey: 'rol_id', as: 'rol' });
     Usuario.hasOne(models.DireccionEnvio, { foreignKey: 'usuario_id', as: 'direccionEnvio' });
+    Usuario.hasMany(models.Pedido, { foreignKey: 'cliente_id', as: 'pedidos' });
   };
 
   return Usuario;
