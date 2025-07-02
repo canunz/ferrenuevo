@@ -72,7 +72,11 @@ app.use('/api/v1/descuentos', descuentosRoutes);
 // Servir el frontend de React para cualquier otra ruta (SPA)
 const frontBuildPath = path.join(__dirname, '../fronted/build');
 app.use(express.static(frontBuildPath));
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api/')) {
+    // Si la ruta es de la API y no existe, responder JSON
+    return res.status(404).json({ error: 'Endpoint no encontrado' });
+  }
   res.sendFile(path.join(frontBuildPath, 'index.html'));
 });
 

@@ -30,6 +30,12 @@ const imagenController = {
         return res.status(404).json({ mensaje: 'Imagen no encontrada' });
       }
 
+      const ext = path.extname(rutaImagen).toLowerCase();
+      let contentType = 'application/octet-stream';
+      if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+      else if (ext === '.png') contentType = 'image/png';
+      else if (ext === '.gif') contentType = 'image/gif';
+      res.setHeader('Content-Type', contentType);
       res.sendFile(rutaImagen);
     } catch (error) {
       console.error('Error al servir imagen:', error);

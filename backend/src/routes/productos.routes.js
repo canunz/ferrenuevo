@@ -63,49 +63,11 @@ const uploadCSV = multer({
  * @swagger
  * /api/v1/productos:
  *   get:
- *     summary: Listar productos con promociones aplicadas
+ *     summary: Listar todos los productos
  *     tags: [Productos]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Número de página
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 12
- *         description: Cantidad de items por página
- *       - in: query
- *         name: categoria_id
- *         schema:
- *           type: integer
- *         description: Filtrar por categoría
- *       - in: query
- *         name: marca_id
- *         schema:
- *           type: integer
- *         description: Filtrar por marca
- *       - in: query
- *         name: precio_min
- *         schema:
- *           type: number
- *         description: Precio mínimo
- *       - in: query
- *         name: precio_max
- *         schema:
- *           type: number
- *         description: Precio máximo
- *       - in: query
- *         name: solo_ofertas
- *         schema:
- *           type: boolean
- *         description: Mostrar solo productos en oferta
  *     responses:
  *       200:
- *         description: Lista de productos con promociones obtenida exitosamente
+ *         description: Lista de productos
  *         content:
  *           application/json:
  *             schema:
@@ -114,40 +76,42 @@ const uploadCSV = multer({
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: object
- *                   properties:
- *                     productos:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: integer
- *                           nombre:
- *                             type: string
- *                           precio:
- *                             type: number
- *                           tiene_promocion:
- *                             type: boolean
- *                           precio_final:
- *                             type: number
- *                           descuento_porcentaje:
- *                             type: number
- *                           etiqueta_promocion:
- *                             type: string
- *                     estadisticas_promociones:
- *                       type: object
- *                       properties:
- *                         total_productos:
- *                           type: integer
- *                         productos_con_oferta:
- *                           type: integer
- *                         porcentaje_en_oferta:
- *                           type: integer
- *                         ahorro_total_disponible:
- *                           type: number
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Producto'
+ *     security:
+ *       - bearerAuth: []
+ *
+ *   post:
+ *     summary: Crear un nuevo producto
+ *     tags: [Productos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Producto'
+ *           example:
+ *             nombre: "Taladro Percutor DeWalt 20V"
+ *             descripcion: "Taladro percutor inalámbrico de 20V, ideal para trabajos de perforación en concreto, madera y metal. Incluye batería y cargador."
+ *             precio: 89990
+ *             codigo_sku: "DW20V-001"
+ *             categoria_id: 1
+ *             marca_id: 1
+ *             ficha_tecnica:
+ *               dimensiones: "25x20x8 cm"
+ *               materiales: "Plástico, metal"
+ *               caracteristicas: "2 velocidades, luz LED, batería de 2.0Ah"
+ *     responses:
+ *       201:
+ *         description: Producto creado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Producto'
+ *     security:
+ *       - bearerAuth: []
  */
-router.get('/', productosController.listarProductos);
 
 /**
  * @swagger
@@ -387,7 +351,7 @@ router.get('/buscar', async (req, res) => {
  * @swagger
  * /api/v1/productos/{id}:
  *   get:
- *     summary: Obtener un producto específico con promociones
+ *     summary: Obtener un producto por ID
  *     tags: [Productos]
  *     parameters:
  *       - in: path
@@ -398,100 +362,38 @@ router.get('/buscar', async (req, res) => {
  *         description: ID del producto
  *     responses:
  *       200:
- *         description: Detalles del producto con promociones aplicadas
+ *         description: Detalle del producto
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: integer
- *                     nombre:
- *                       type: string
- *                     precio:
- *                       type: number
- *                     tiene_promocion:
- *                       type: boolean
- *                     promocion_activa:
- *                       type: object
- *                     precio_final:
- *                       type: number
- *                     ahorro_total:
- *                       type: number
- *                     todas_promociones:
- *                       type: array
- *       404:
- *         description: Producto no encontrado
- */
-router.get('/:id', productosController.obtenerProducto);
-
-/**
- * @swagger
- * /api/v1/productos:
- *   post:
- *     summary: Crear un nuevo producto
+ *               $ref: '#/components/schemas/Producto'
+ *   put:
+ *     summary: Actualizar un producto
  *     tags: [Productos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del producto
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - nombre
- *               - precio
- *               - categoria_id
- *               - marca_id
- *             properties:
- *               nombre:
- *                 type: string
- *               descripcion:
- *                 type: string
- *               precio:
- *                 type: number
- *               codigo_sku:
- *                 type: string
- *               categoria_id:
- *                 type: integer
- *               marca_id:
- *                 type: integer
- *               ficha_tecnica:
- *                 type: object
- *               stock_inicial:
- *                 type: integer
- *                 default: 0
- *     responses:
- *       201:
- *         description: Producto creado exitosamente
- *       400:
- *         description: Datos inválidos
- */
-router.post('/', productosController.crearProducto);
-
-/**
- * @swagger
- * /api/v1/productos/{id}:
- *   put:
- *     summary: Actualizar un producto existente
- *     tags: [Productos]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID del producto
+ *             $ref: '#/components/schemas/Producto'
  *     responses:
  *       200:
- *         description: Producto actualizado exitosamente
- *       404:
- *         description: Producto no encontrado
+ *         description: Producto actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Producto'
+ *     security:
+ *       - bearerAuth: []
  */
+router.get('/:id', productosController.obtenerProducto);
 router.put('/:id', productosController.actualizarProducto);
 
 /**
@@ -618,7 +520,7 @@ router.get('/plantilla-csv', (req, res) => {
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="plantilla-productos.csv"');
-  res.send(csvContent);
+  res.type('text/csv').send(csvContent);
 });
 
 /**
@@ -662,5 +564,46 @@ router.post('/descuento-categoria', productosController.actualizarDescuentoCateg
  *         description: Datos inválidos
  */
 router.post('/descuento-marca', productosController.actualizarDescuentoMarca);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Producto:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         nombre:
+ *           type: string
+ *         descripcion:
+ *           type: string
+ *         precio:
+ *           type: number
+ *         codigo_sku:
+ *           type: string
+ *         categoria_id:
+ *           type: integer
+ *         marca_id:
+ *           type: integer
+ *         ficha_tecnica:
+ *           type: object
+ *           properties:
+ *             dimensiones:
+ *               type: string
+ *             materiales:
+ *               type: string
+ *             caracteristicas:
+ *               type: string
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ */
+
+// RUTA PRINCIPAL: Listar todos los productos
+router.get('/', productosController.listarProductos);
 
 module.exports = router;

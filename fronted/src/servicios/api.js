@@ -74,10 +74,17 @@ export const apiRequest = async (endpoint, options = {}) => {
     }
 
     // Intentar parsear la respuesta como JSON
-    const data = await response.json();
-    console.log(`✅ API Response exitosa:`, data);
-    
-    return data;
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      console.log(`✅ API Response exitosa:`, data);
+      return data;
+    } catch (e) {
+      if (text.startsWith('<!DOCTYPE html') || text.startsWith('<html')) {
+        throw new Error('La respuesta del servidor es HTML en vez de JSON. Es probable que la ruta de la API esté mal escrita o no exista en el backend.');
+      }
+      throw new Error('La respuesta del servidor no es JSON válido.');
+    }
     
   } catch (error) {
     console.error(`❌ API Error: ${endpoint}`, error);
