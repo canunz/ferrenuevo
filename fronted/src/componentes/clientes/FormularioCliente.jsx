@@ -25,6 +25,18 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
   });
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(false);
+  const [direccionEnvio, setDireccionEnvio] = useState({
+    direccion: '',
+    numero: '',
+    depto_oficina: '',
+    comuna: '',
+    ciudad: '',
+    region: '',
+    codigo_postal: '',
+    nombre_receptor: '',
+    telefono_receptor: '',
+    instrucciones_entrega: ''
+  });
 
   useEffect(() => {
     if (clienteInicial && Object.keys(clienteInicial).length > 0) {
@@ -54,6 +66,16 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
             credito_disponible: cliente.credito_disponible || 0,
             descuento_personalizado: cliente.descuento_personalizado || 0,
           });
+          // Obtener dirección de envío si existe
+          try {
+            const direccion = await servicioClientes.obtenerDireccionEnvio(id);
+            setDireccionEnvio({ ...direccion });
+          } catch (e) {
+            // No hay dirección, dejar vacío
+            setDireccionEnvio({
+              direccion: '', numero: '', depto_oficina: '', comuna: '', ciudad: '', region: '', codigo_postal: '', nombre_receptor: '', telefono_receptor: '', instrucciones_entrega: ''
+            });
+          }
         } catch (error) {
           alert('Error al cargar datos del cliente');
         } finally {
@@ -76,6 +98,10 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
     setValores({ ...valores, [e.target.name]: e.target.value });
   };
 
+  const handleDireccionChange = e => {
+    setDireccionEnvio({ ...direccionEnvio, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     const nuevosErrores = validar();
@@ -84,29 +110,32 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
     
     setCargando(true);
     try {
+      console.log('Valores enviados al backend:', valores);
+      let clienteGuardado;
       if (onGuardar) {
-        // Si se pasa onGuardar como prop, usar esa función
         await onGuardar(valores);
       } else {
-        // Lógica por defecto
         if (modoEdicion && id) {
           const valoresEnviar = { ...valores };
           if (!valoresEnviar.fecha_nacimiento || isNaN(new Date(valoresEnviar.fecha_nacimiento).getTime())) {
             valoresEnviar.fecha_nacimiento = null;
           }
-          await servicioClientes.actualizar(id, valoresEnviar);
-          alert('Cliente actualizado exitosamente');
+          clienteGuardado = await servicioClientes.actualizar(id, valoresEnviar);
         } else {
           const valoresEnviar = { ...valores };
-          // Solo incluir password si no está en modo edición
           if (modoEdicion) {
             delete valoresEnviar.password;
           }
-          await servicioClientes.crear(valoresEnviar);
-          alert('Cliente creado exitosamente');
+          clienteGuardado = await servicioClientes.crear(valoresEnviar);
         }
-        navigate('/clientes');
       }
+      // Guardar dirección de envío si hay datos
+      const clienteId = modoEdicion ? id : clienteGuardado.data?.id || clienteGuardado.id;
+      if (clienteId && direccionEnvio.direccion) {
+        await servicioClientes.actualizarDireccionEnvio(clienteId, direccionEnvio);
+      }
+      alert(modoEdicion ? 'Cliente actualizado exitosamente' : 'Cliente creado exitosamente');
+      navigate('/clientes');
     } catch (error) {
       let mensaje = modoEdicion ? 'Error al actualizar el cliente' : 'Error al crear el cliente';
       if (error.response && error.response.data && error.response.data.errors) {
@@ -144,6 +173,17 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
             className={`w-full border rounded px-3 py-2 ${errores.nombre ? 'border-red-500' : 'border-gray-300'}`}
           />
           {errores.nombre && <p className="text-red-600 text-xs mt-1">{errores.nombre}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">RUT</label>
+          <input
+            type="text"
+            name="rut"
+            value={valores.rut}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2 border-gray-300"
+            placeholder="Ej: 12345678-9"
+          />
         </div>
         
         <div>
@@ -227,16 +267,6 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
         {valores.tipo_cliente === 'persona' && (
           <>
             <div>
-              <label className="block text-sm font-medium mb-1">RUT</label>
-              <input
-                type="text"
-                name="rut"
-                value={valores.rut}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 border-gray-300"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium mb-1">Fecha de Nacimiento</label>
               <input
                 type="date"
@@ -272,6 +302,54 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
             rows="3"
             className="w-full border rounded px-3 py-2 border-gray-300"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <h3 className="text-lg font-semibold mt-6 mb-2">Dirección de Envío</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Dirección</label>
+                <input type="text" name="direccion" value={direccionEnvio.direccion} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Número</label>
+                <input type="text" name="numero" value={direccionEnvio.numero} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Depto/Oficina</label>
+                <input type="text" name="depto_oficina" value={direccionEnvio.depto_oficina} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Comuna</label>
+                <input type="text" name="comuna" value={direccionEnvio.comuna} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Ciudad</label>
+                <input type="text" name="ciudad" value={direccionEnvio.ciudad} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Región</label>
+                <input type="text" name="region" value={direccionEnvio.region} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Código Postal</label>
+                <input type="text" name="codigo_postal" value={direccionEnvio.codigo_postal} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre Receptor</label>
+                <input type="text" name="nombre_receptor" value={direccionEnvio.nombre_receptor} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Teléfono Receptor</label>
+                <input type="text" name="telefono_receptor" value={direccionEnvio.telefono_receptor} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Instrucciones de Entrega</label>
+                <textarea name="instrucciones_entrega" value={direccionEnvio.instrucciones_entrega} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">

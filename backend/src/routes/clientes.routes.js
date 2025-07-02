@@ -210,4 +210,78 @@ router.get('/diagnostico/conexiones',
   clientesController.diagnosticarConexiones
 );
 
+/**
+ * @swagger
+ * /api/v1/clientes/{id}/direccion-envio:
+ *   get:
+ *     summary: Obtener dirección de envío de un cliente
+ *     tags: [Clientes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cliente
+ *   put:
+ *     summary: Crear o actualizar dirección de envío de un cliente
+ *     tags: [Clientes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cliente
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ */
+router.get('/:id/direccion-envio',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  param('id').isInt(),
+  validarResultados,
+  clientesController.obtenerDireccionEnvio
+);
+
+router.put('/:id/direccion-envio',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  param('id').isInt(),
+  validarResultados,
+  clientesController.actualizarDireccionEnvio
+);
+
+/**
+ * @swagger
+ * /api/v1/clientes/{id}/historial:
+ *   get:
+ *     summary: Obtener historial de compras de un cliente
+ *     tags: [Clientes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cliente
+ */
+router.get('/:id/historial',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  param('id').isInt(),
+  validarResultados,
+  clientesController.obtenerHistorialCompras
+);
+
 module.exports = router;

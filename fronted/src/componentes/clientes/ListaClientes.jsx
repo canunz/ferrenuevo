@@ -136,19 +136,6 @@ const ListaClientes = () => {
             />
           </div>
         </div>
-        
-        <select
-          value={filtros.segmento}
-          onChange={(e) => setFiltros({...filtros, segmento: e.target.value})}
-          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
-        >
-          <option value="">Todos los segmentos</option>
-          <option value="retail">Retail</option>
-          <option value="profesional">Profesional</option>
-          <option value="empresa">Empresa</option>
-          <option value="vip">VIP</option>
-        </select>
-
         <select
           value={filtros.tipo_cliente}
           onChange={(e) => setFiltros({...filtros, tipo_cliente: e.target.value})}
