@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { 
   HomeIcon,
   UsersIcon,
-  BuildingStorefrontIcon,
+  BuildingStorefrontIcon, 
   WrenchScrewdriverIcon,
   ArchiveBoxIcon,
   ClipboardDocumentListIcon,
