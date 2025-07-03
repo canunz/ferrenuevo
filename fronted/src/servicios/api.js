@@ -5,7 +5,7 @@
 import axios from 'axios';
 
 // Configuración de la API
-const API_BASE_URL = 'http://localhost:3002/api/v1';
+const API_BASE_URL = 'http://localhost:3003/api/v1';
 
 // Configuración base de axios
 const api = axios.create({
@@ -97,7 +97,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     
     // Mejorar los mensajes de error para el usuario
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:3002');
+      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:3003');
     }
     
     if (error.name === 'AbortError') {
@@ -124,7 +124,7 @@ export const testBackendConnection = async () => {
 const verificarServidor = async () => {
   try {
     console.log('🏥 Verificando salud del servidor...');
-    const response = await fetch('http://localhost:3002/health', {
+    const response = await fetch('http://localhost:3003/health', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -234,7 +234,7 @@ export const productosAPI = {
 // API SISTEMA (exportación nombrada)
 export const sistemaAPI = {
   healthCheck: async () => {
-    const response = await fetch('http://localhost:3002/health');
+    const response = await fetch('http://localhost:3003/health');
     return await response.json();
   },
   
@@ -346,6 +346,73 @@ export const pedidosAPI = {
       body: { estado },
     });
   },
+};
+
+// Obtener tipos de cambio del Banco Central (sin token)
+export const obtenerTiposCambioBancoCentral = async () => {
+  const url = `${API_BASE_URL}/divisas/tipos-cambio`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      // No enviar credenciales ni token
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error al obtener tipos de cambio:', error);
+    throw error;
+  }
+};
+
+// Obtener pagos sin token (si es público)
+export const obtenerPagosSinToken = async (filtros = {}) => {
+  const params = new URLSearchParams(filtros).toString();
+  const url = `${API_BASE_URL}/pagos${params ? `?${params}` : ''}`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      // No enviar credenciales ni token
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error al obtener pagos:', error);
+    throw error;
+  }
+};
+
+// Obtener clientes sin token (si es público)
+export const obtenerClientesSinToken = async () => {
+  const url = `${API_BASE_URL}/clientes`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      // No enviar credenciales ni token
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error al obtener clientes:', error);
+    throw error;
+  }
 };
 
 // Exportar axios instance para uso directo

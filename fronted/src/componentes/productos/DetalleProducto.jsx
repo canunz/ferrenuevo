@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { obtenerImagenProducto } from '../../utilidades/ayudantes';
 
 const DetalleProducto = ({ producto }) => {
   const [moneda, setMoneda] = useState('CLP');
@@ -60,10 +61,10 @@ const DetalleProducto = ({ producto }) => {
         <p className="text-gray-600 mb-4">Este producto está agotado actualmente.</p>
         <div className="flex flex-col items-center gap-2">
           <img
-            src={`/assets/imagenes/productos/${producto.imagen}`}
+            src={obtenerImagenProducto(producto.imagen)}
             alt={producto.nombre}
             className="w-48 h-48 object-contain rounded-lg border mb-4"
-            onError={e => e.target.src = '/assets/imagenes/productos/Sierrabosch.jpg'}
+            onError={e => e.target.src = obtenerImagenProducto('Sierrabosch.jpg')}
           />
           <div className="text-gray-500">{producto.nombre}</div>
           <div className="text-gray-400 text-sm">SKU: {producto.codigo_sku ?? 'No asignado'}</div>
@@ -78,10 +79,10 @@ const DetalleProducto = ({ producto }) => {
         {/* Imagen grande */}
         <div className="flex-shrink-0 flex justify-center items-center">
           <img
-            src={`/assets/imagenes/productos/${producto.imagen}`}
+            src={obtenerImagenProducto(producto.imagen)}
             alt={producto.nombre}
             className="w-72 h-72 object-contain rounded-lg border"
-            onError={e => e.target.src = '/assets/imagenes/productos/Sierrabosch.jpg'}
+            onError={e => e.target.src = obtenerImagenProducto('Sierrabosch.jpg')}
           />
         </div>
         {/* Info */}
@@ -129,7 +130,7 @@ const DetalleProducto = ({ producto }) => {
                   <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold mr-2">
                     {producto.promocion_activa.tipo === 'porcentaje'
                       ? `-${producto.promocion_activa.porcentaje}% OFF`
-                      : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')} OFF`}
+                      : `-$${Number(producto.promocion_activa.ahorro ?? producto.promocion_activa.descuento_monto ?? 0).toLocaleString('es-CL')} OFF`}
                   </span>
                   <span className="text-xs text-gray-500">{producto.promocion_activa.vigencia}</span>
                 </>

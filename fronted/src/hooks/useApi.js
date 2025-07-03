@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
 
-const API_BASE_URL = 'http://localhost:3002/api/v1';
+const API_BASE_URL = 'http://localhost:3003/api/v1';
 
 export const useApi = () => {
   const [cargando, setCargando] = useState(false);

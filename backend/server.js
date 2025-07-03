@@ -27,11 +27,11 @@ const dashboardRoutes = require('./src/routes/dashboard.routes'); // ← NUEVO
 const descuentosRoutes = require('./src/routes/descuentos.routes');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://127.0.0.1:3001'],
+  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3001'],
   credentials: true
 }));
 

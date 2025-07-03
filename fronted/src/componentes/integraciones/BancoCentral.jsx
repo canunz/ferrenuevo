@@ -7,6 +7,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
+import { servicioProductos } from '../../servicios/servicioProductos';
 
 const BancoCentral = () => {
   const [tiposCambio, setTiposCambio] = useState([]);
@@ -24,22 +25,11 @@ const BancoCentral = () => {
     try {
       setLoading(true);
       console.log('🔄 Obteniendo tipos de cambio...');
-      const response = await fetch('http://localhost:3004/api/v1/divisas/tipos-cambio');
-      console.log('📡 Response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('📊 Datos recibidos:', data);
-      
+      const data = await servicioProductos.obtenerTiposCambio();
       // Asegurar que siempre sea un array
-      const tiposCambioData = Array.isArray(data.data) ? data.data : 
-                             Array.isArray(data) ? data : 
+      const tiposCambioData = Array.isArray(data.data) ? data.data :
+                             Array.isArray(data) ? data :
                              Array.isArray(data.tiposCambio) ? data.tiposCambio : [];
-      
-      console.log('✅ Tipos de cambio procesados:', tiposCambioData);
       setTiposCambio(tiposCambioData);
       setError(null);
     } catch (error) {
@@ -132,17 +122,25 @@ const BancoCentral = () => {
     convertirMoneda();
   };
 
-  const formatearValor = (valor) => {
+  // Formatear valor de divisa correctamente
+  const formatearValorDivisa = (valor, codigo) => {
     if (valor === undefined || valor === null || valor === '') {
       return 'N/D';
     }
-    
     const num = Number(valor);
     if (!Number.isFinite(num) || isNaN(num)) {
       return 'N/D';
     }
-    
-    return `$${num.toLocaleString('es-CL')}`;
+    if (codigo === 'CLP') {
+      return `$${num.toLocaleString('es-CL', { maximumFractionDigits: 0 })}`;
+    }
+    if (codigo === 'USD') {
+      return `US$ ${num.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+    }
+    if (codigo === 'EUR') {
+      return `€ ${num.toLocaleString('de-DE', { maximumFractionDigits: 2 })}`;
+    }
+    return num;
   };
 
   return (
@@ -208,17 +206,9 @@ const BancoCentral = () => {
                         {divisa.nombre}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {divisa.fecha}
+                        {formatearValorDivisa(divisa.valor, divisa.codigo)}
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      {formatearValor(divisa?.valor)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      CLP
-                    </p>
                   </div>
                 </div>
               ))}
@@ -325,19 +315,19 @@ const BancoCentral = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Monto original:</span>
                   <span className="font-medium">
-                    {formatearValor(conversion.monto_original)} {conversion.divisa_origen}
+                    {formatearValorDivisa(conversion.monto_original, conversion.divisa_origen)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Monto convertido:</span>
                   <span className="font-bold text-green-700 dark:text-green-300">
-                    {formatearValor(conversion.monto_convertido)} {conversion.divisa_destino}
+                    {formatearValorDivisa(conversion.monto_convertido, conversion.divisa_destino)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Tasa de cambio:</span>
                   <span className="font-medium">
-                    1 {conversion.divisa_origen} = {formatearValor(conversion.tasa_cambio)} {conversion.divisa_destino}
+                    1 {conversion.divisa_origen} = {formatearValorDivisa(conversion.tasa_cambio, conversion.divisa_destino)} {conversion.divisa_destino}
                   </span>
                 </div>
               </div>

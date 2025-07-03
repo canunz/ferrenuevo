@@ -2,6 +2,7 @@
 // FRONTEND/SRC/COMPONENTES/PRODUCTOSDESTACADOS.JSX - COMPLETO
 // ==========================================
 import React, { useState, useEffect } from 'react';
+import { obtenerImagenProducto } from '../../utilidades/ayudantes';
 import { productosAPI } from '../servicios/api';
 
 const ProductosDestacados = () => {
@@ -165,7 +166,7 @@ const ProductosDestacados = () => {
               <div className="aspect-w-16 aspect-h-9 bg-gray-200">
                 {producto.imagen ? (
                   <img
-                    src={`/assets/imagenes/productos/${producto.imagen}`}
+                    src={obtenerImagenProducto(producto.imagen)}
                     alt={producto.nombre}
                     className="w-full h-48 object-cover"
                     onError={(e) => {

@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest, obtenerPagosSinToken } from './api';
 
 export const servicioPagos = {
   // Crear preferencia de pago
@@ -100,6 +100,11 @@ export const servicioPagos = {
   listar: async (filtros = {}) => {
     const params = new URLSearchParams(filtros).toString();
     return await apiRequest(`/pagos${params ? `?${params}` : ''}`);
+  },
+
+  // Listar pagos sin token (para endpoints públicos)
+  listarSinToken: async (filtros = {}) => {
+    return await obtenerPagosSinToken(filtros);
   },
 
   // Aprobar pago en efectivo

@@ -1,4 +1,5 @@
 import api from './api';
+import { obtenerClientesSinToken } from './api';
 
 export const servicioClientes = {
   // Obtener todos los clientes
@@ -63,5 +64,10 @@ export const servicioClientes = {
   listar: async () => {
     const response = await api.get('/clientes');
     return response.data;
+  },
+
+  // Listar clientes sin token (para endpoints públicos)
+  listarSinToken: async () => {
+    return await obtenerClientesSinToken();
   }
 };

@@ -9,31 +9,28 @@ const PaginaPagos = () => {
   const [error, setError] = useState(null);
   const [aprobando, setAprobando] = useState(null);
 
-  const cargarPagosPendientes = async () => {
-    setCargando(true);
-    setError(null);
-    try {
-      // Filtrar por estado pendiente y método efectivo
-      const res = await servicioPagos.listar({ estado: 'pendiente' });
-      // Aseguro que siempre sea un array
-      const pagosArray = Array.isArray(res.data) ? res.data : (res.data?.pagos || []);
-      const soloEfectivo = pagosArray.filter(p => p.metodo_pago?.nombre === 'efectivo');
-      setPagos(soloEfectivo);
-    } catch (err) {
-      setError(err.message || 'Error al cargar pagos');
-    }
-    setCargando(false);
-  };
-
   useEffect(() => {
-    cargarPagosPendientes();
+    const cargarPagos = async () => {
+      setCargando(true);
+      setError(null);
+      try {
+        // Cambiar listarSinToken por listar (autenticado)
+        const res = await servicioPagos.listar({ estado: 'pendiente' });
+        setPagos(res.data || res);
+      } catch (err) {
+        setError('Error al cargar pagos: ' + (err.message || err));
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargarPagos();
   }, []);
 
   const aprobarPago = async (pagoId) => {
     setAprobando(pagoId);
     try {
       await servicioPagos.aprobar(pagoId);
-      await cargarPagosPendientes();
+      await cargarPagos();
     } catch (err) {
       alert('Error al aprobar pago: ' + (err.message || ''));
     }

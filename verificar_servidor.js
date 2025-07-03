@@ -29,9 +29,9 @@ function verificarPuerto(puerto) {
   });
 }
 
-verificarPuerto(3002).then(estaCorriendo => {
+verificarPuerto(3003).then(estaCorriendo => {
   if (estaCorriendo) {
-    console.log('✅ Servidor corriendo en puerto 3002');
+    console.log('✅ Servidor corriendo en puerto 3003');
     console.log('\n🎉 Correcciones aplicadas exitosamente!');
     console.log('\n📋 Resumen de la corrección del error de movimientos:');
     console.log('   ✅ Error "stock_anterior cannot be null" SOLUCIONADO');
@@ -41,7 +41,7 @@ verificarPuerto(3002).then(estaCorriendo => {
     console.log('   ✅ Validaciones de stock agregadas');
     console.log('\n🚀 Ahora puedes probar los movimientos de inventario sin errores!');
   } else {
-    console.log('❌ Servidor NO está corriendo en puerto 3002');
+    console.log('❌ Servidor NO está corriendo en puerto 3003');
     console.log('💡 Ejecuta: cd backend && npm start');
   }
 }); 

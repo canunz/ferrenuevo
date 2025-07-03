@@ -24,6 +24,51 @@ import { servicioDashboard } from '../servicios/servicioDashboard';
 import { useSnackbar } from 'notistack';
 import PanelCliente from '../componentes/tablero/PanelCliente';
 
+const WidgetDivisas = () => {
+  const [divisas, setDivisas] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDivisas = async () => {
+      setCargando(true);
+      try {
+        const res = await fetch('http://localhost:3003/api/v1/divisas/tipos-cambio');
+        const data = await res.json();
+        setDivisas(Array.isArray(data.data) ? data.data : []);
+        setError(null);
+      } catch (err) {
+        setError('Error al obtener tipos de cambio');
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchDivisas();
+  }, []);
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <h3 className="text-lg font-bold mb-2 text-blue-700 flex items-center gap-2">
+        <span role="img" aria-label="divisas">💱</span> Tipos de Cambio (Banco Central)
+      </h3>
+      {cargando ? (
+        <div className="text-gray-500">Cargando...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : (
+        <div className="space-y-1">
+          {divisas.map(d => (
+            <div key={d.codigo} className="flex justify-between text-sm">
+              <span className="font-semibold">{d.nombre} ({d.codigo}):</span>
+              <span>{d.simbolo} {Number(d.valor).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PaginaTablero = () => {
   const { usuario } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
@@ -137,6 +182,9 @@ const PaginaTablero = () => {
       </div>
 
       <div className="p-6">
+        {/* Widget de divisas */}
+        <WidgetDivisas />
+
         {/* Estadísticas principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {Array.isArray(estadisticasPrincipales) && estadisticasPrincipales.length > 0 ? (

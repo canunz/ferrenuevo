@@ -99,3 +99,46 @@ export const generarID = () => {
     return url.toString();
   };
   
+  /**
+   * Obtiene la URL correcta para una imagen de producto
+   * @param {string} imagen - Nombre del archivo de imagen
+   * @param {string} tipo - Tipo de imagen ('productos', 'marcas', 'categorias', etc.)
+   * @returns {string} URL completa de la imagen
+   */
+  export const obtenerImagenUrl = (imagen, tipo = 'productos') => {
+    if (!imagen) {
+      return `/assets/imagenes/${tipo}/placeholder.jpg`;
+    }
+    
+    // Si la imagen ya es una URL externa, úsala tal cual
+    if (imagen.startsWith('http')) {
+      return imagen;
+    }
+    
+    // Si estamos en desarrollo, usar el backend
+    if (process.env.NODE_ENV === 'development') {
+      return `http://localhost:3003/public/imagenes/${tipo}/${imagen}`;
+    }
+    
+    // En producción, usar la ruta local
+    return `/assets/imagenes/${tipo}/${imagen}`;
+  };
+  
+  /**
+   * Obtiene la URL de una imagen de producto específicamente
+   * @param {string} imagen - Nombre del archivo de imagen
+   * @returns {string} URL completa de la imagen
+   */
+  export const obtenerImagenProducto = (imagen) => {
+    return obtenerImagenUrl(imagen, 'productos');
+  };
+  
+  /**
+   * Obtiene la URL de una imagen de marca específicamente
+   * @param {string} imagen - Nombre del archivo de imagen
+   * @returns {string} URL completa de la imagen
+   */
+  export const obtenerImagenMarca = (imagen) => {
+    return obtenerImagenUrl(imagen, 'marcas');
+  };
+  

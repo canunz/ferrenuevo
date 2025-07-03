@@ -1,4 +1,4 @@
-import { productosAPI } from './api';
+import { productosAPI, obtenerTiposCambioBancoCentral } from './api';
 
 export const servicioProductos = {
   // Obtener todos los productos
@@ -108,5 +108,21 @@ export const servicioProductos = {
       console.error('Error en carga masiva:', error);
       throw error;
     }
+  },
+
+  // Actualizar solo el descuento de un producto
+  actualizarDescuento: async (id, descuento) => {
+    try {
+      const response = await productosAPI.actualizarDescuento(id, descuento);
+      return response;
+    } catch (error) {
+      console.error('Error al actualizar descuento del producto:', error);
+      throw error;
+    }
+  },
+
+  // Obtener tipos de cambio del Banco Central
+  obtenerTiposCambio: async () => {
+    return await obtenerTiposCambioBancoCentral();
   },
 };

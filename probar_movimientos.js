@@ -3,7 +3,7 @@
 // ==========================================
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:3002/api/v1';
+const API_BASE = 'http://localhost:3003/api/v1';
 
 async function probarMovimientos() {
   console.log('🧪 Probando movimientos de inventario...\n');

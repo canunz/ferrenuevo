@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const promocionesController = require('../controllers/promociones.controller');
-const { Cupon } = require('../models');
+const db = require('../models');
+const Cupon = db.Cupon;
 
 // RUTAS DE PROMOCIONES
 router.get('/', promocionesController.listarPromociones);
@@ -72,11 +73,13 @@ router.post('/cupones', async (req, res) => {
 
 // Listar cupones
 router.get('/cupones', async (req, res) => {
+  console.log('>>> Entrando a /api/v1/promociones/cupones');
   try {
     const cupones = await Cupon.findAll({ order: [['created_at', 'DESC']] });
     res.json({ success: true, cupones });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Error al listar cupones' });
+    console.error('Error al listar cupones:', err);
+    res.status(500).json({ success: false, message: 'Error al listar cupones', error: err.message, stack: err.stack });
   }
 });
 

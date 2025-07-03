@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from '@heroicons/react/24/solid';
 import { Link } from 'react-router-dom';
+import { obtenerImagenProducto as obtenerImagenProductoHelper } from '../../utilidades/ayudantes';
 
 const TarjetaProducto = ({ 
   producto, 
@@ -37,11 +38,7 @@ const TarjetaProducto = ({
   };
 
   const obtenerImagenProducto = (imagen) => {
-    if (!imagen) {
-      return '/assets/imagenes/productos/placeholder.jpg';
-    }
-    // CORRECCIÓN DEFINITIVA DE RUTA DE IMAGEN
-    return `http://localhost:3000/static/productos/${imagen}`;
+    return obtenerImagenProductoHelper(imagen);
   };
 
   // DEMOSTRACIÓN: Aplicar un descuento visual a un producto específico

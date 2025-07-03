@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:sldIdLst>
+    <p:sldId id="1" r:id="rId1"/>
+    <p:sldId id="2" r:id="rId2"/>
+    <p:sldId id="3" r:id="rId3"/>
+    <p:sldId id="4" r:id="rId4"/>
+    <p:sldId id="5" r:id="rId5"/>
+    <p:sldId id="6" r:id="rId6"/>
+    <p:sldId id="7" r:id="rId7"/>
+    <p:sldId id="8" r:id="rId8"/>
+    <p:sldId id="9" r:id="rId9"/>
+    <p:sldId id="10" r:id="rId10"/>
+  </p:sldIdLst>
+</p:presentation> 

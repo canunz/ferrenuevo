@@ -4,8 +4,8 @@ async function probarInventario() {
   try {
     console.log('🧪 Probando API de inventario...\n');
     
-    console.log('📡 Haciendo petición a: http://localhost:3002/api/v1/inventario/productos-completos');
-    const response = await fetch('http://localhost:3002/api/v1/inventario/productos-completos');
+      console.log('📡 Haciendo petición a: http://localhost:3003/api/v1/inventario/productos-completos');
+  const response = await fetch('http://localhost:3003/api/v1/inventario/productos-completos');
     
     console.log('📊 Status:', response.status);
     console.log('📊 Headers:', response.headers.get('content-type'));

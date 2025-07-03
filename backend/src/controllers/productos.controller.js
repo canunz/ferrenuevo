@@ -3,10 +3,47 @@ const { Op } = require('sequelize');
 const csv = require('csv-parser');
 const fs = require('fs');
 
-// 🎯 FUNCIÓN PARA APLICAR PROMOCIONES AUTOMÁTICAMENTE (SIN TABLA PROMOCIONES)
+// 🎯 FUNCIÓN PARA APLICAR PROMOCIONES Y DESCUENTOS
 const aplicarPromociones = async (producto) => {
   const precio = parseFloat(producto.precio);
-  // Buscar el descuento activo y vigente más reciente
+  const descuentoManual = parseFloat(producto.descuento) || 0;
+  
+  // 🚨 PRIORIDAD 1: Si hay descuento manual, aplicarlo primero
+  if (descuentoManual > 0) {
+    const precioConDescuentoManual = Math.round(precio * (1 - descuentoManual / 100));
+    const ahorroManual = Math.round(precio * (descuentoManual / 100));
+    
+    return {
+      ...producto,
+      tiene_promocion: true,
+      promocion_activa: {
+        tipo: 'manual',
+        nombre: `Descuento Manual ${descuentoManual}%`,
+        descuento_porcentaje: descuentoManual,
+        precio_original: precio,
+        precio_oferta: precioConDescuentoManual,
+        ahorro: ahorroManual,
+        etiqueta: `MANUAL${descuentoManual}`
+      },
+      precio_original: precio,
+      precio_final: precioConDescuentoManual,
+      precio_con_descuento: precioConDescuentoManual,
+      ahorro_total: ahorroManual,
+      descuento_porcentaje: descuentoManual,
+      descuento_monto: ahorroManual,
+      tipo_descuento: 'manual',
+      etiqueta_promocion: `MANUAL${descuentoManual}`,
+      badge_promocion: `Descuento ${descuentoManual}%`,
+      color_promocion: '#e67e22',
+      vigencia_promocion: 'Descuento permanente',
+      mostrar_oferta: true,
+      precio_tachado: precio,
+      precio_destacado: precioConDescuentoManual,
+      descuento_manual: true
+    };
+  }
+  
+  // 🚨 PRIORIDAD 2: Si no hay descuento manual, buscar descuentos automáticos
   const hoy = new Date();
   const descuento = await Descuento.findOne({
     where: {
@@ -17,12 +54,14 @@ const aplicarPromociones = async (producto) => {
     },
     order: [['fecha_inicio', 'DESC']]
   });
+  
   if (descuento) {
     let precioFinal = precio;
     let ahorro = 0;
     let porcentaje = 0;
     let monto = 0;
     let tipoDescuento = descuento.tipo;
+    
     if (descuento.tipo === 'porcentaje') {
       porcentaje = parseFloat(descuento.valor);
       ahorro = Math.round(precio * (porcentaje / 100));
@@ -34,6 +73,7 @@ const aplicarPromociones = async (producto) => {
       precioFinal = Math.max(0, Math.round(precio - monto));
       porcentaje = Math.round((ahorro / precio) * 100);
     }
+    
     return {
       ...producto,
       tiene_promocion: true,
@@ -66,10 +106,95 @@ const aplicarPromociones = async (producto) => {
       descuento_manual: false
     };
   }
-  // Si no hay descuento, devolver producto normal
+  
+  // 🚨 PRIORIDAD 3: Si no hay descuentos automáticos, aplicar promociones por marca
+  let promociones = [];
+  
+  // Promociones por marca
+  if (producto.marca?.nombre === 'Stanley') {
+    promociones.push({
+      tipo: 'marca',
+      nombre: 'Mega Sale Stanley 25%',
+      descuento_porcentaje: 25,
+      precio_original: precio,
+      precio_oferta: Math.round(precio * 0.75),
+      ahorro: Math.round(precio * 0.25),
+      etiqueta: 'STANLEY25'
+    });
+  }
+  
+  if (producto.marca?.nombre === 'Bosch') {
+    promociones.push({
+      tipo: 'marca',
+      nombre: 'Oferta Bosch 20%',
+      descuento_porcentaje: 20,
+      precio_original: precio,
+      precio_oferta: Math.round(precio * 0.8),
+      ahorro: Math.round(precio * 0.2),
+      etiqueta: 'BOSCH20'
+    });
+  }
+  
+  if (producto.marca?.nombre === 'DeWalt') {
+    promociones.push({
+      tipo: 'marca',
+      nombre: 'DeWalt Power Tools 18%',
+      descuento_porcentaje: 18,
+      precio_original: precio,
+      precio_oferta: Math.round(precio * 0.82),
+      ahorro: Math.round(precio * 0.18),
+      etiqueta: 'DEWALT18'
+    });
+  }
+  
+  if (producto.marca?.nombre === 'Makita') {
+    promociones.push({
+      tipo: 'marca',
+      nombre: 'Makita Professional 15%',
+      descuento_porcentaje: 15,
+      precio_original: precio,
+      precio_oferta: Math.round(precio * 0.85),
+      ahorro: Math.round(precio * 0.15),
+      etiqueta: 'MAKITA15'
+    });
+  }
+
+  // Seleccionar la mejor promoción
+  if (promociones.length > 0) {
+    const mejorPromocion = promociones.reduce((mejor, actual) => 
+      actual.descuento_porcentaje > mejor.descuento_porcentaje ? actual : mejor
+    );
+    
+    return {
+      ...producto,
+      tiene_promocion: true,
+      promocion_activa: mejorPromocion,
+      precio_original: precio,
+      precio_final: mejorPromocion.precio_oferta,
+      precio_con_descuento: mejorPromocion.precio_oferta,
+      ahorro_total: mejorPromocion.ahorro,
+      descuento_porcentaje: mejorPromocion.descuento_porcentaje,
+      descuento_monto: mejorPromocion.ahorro,
+      tipo_descuento: 'marca',
+      etiqueta_promocion: mejorPromocion.etiqueta,
+      badge_promocion: `Descuento ${mejorPromocion.descuento_porcentaje}%`,
+      color_promocion: '#e67e22',
+      vigencia_promocion: 'Oferta por marca',
+      mostrar_oferta: true,
+      precio_tachado: precio,
+      precio_destacado: mejorPromocion.precio_oferta,
+      descuento_manual: false
+    };
+  }
+  
+  // Si no hay ningún descuento, devolver producto normal
   return {
     ...producto,
-    tiene_promocion: false
+    tiene_promocion: false,
+    precio_original: precio,
+    precio_final: precio,
+    descuento_porcentaje: 0,
+    descuento_manual: false
   };
 };
 
@@ -341,44 +466,72 @@ class ProductosController {
       if (!req.file) {
         return res.status(400).json({ success: false, error: 'No se subió ningún archivo' });
       }
+      
       const productos = [];
+      const errores = [];
       const filePath = req.file.path;
       const stream = fs.createReadStream(filePath).pipe(csv());
+      
       for await (const row of stream) {
-        // Procesar ficha técnica si viene en columnas separadas
-        let ficha_tecnica = {};
-        if (row.dimensiones || row.materiales || row.caracteristicas) {
-          ficha_tecnica = {
-            dimensiones: row.dimensiones || '',
-            materiales: row.materiales || '',
-            caracteristicas: row.caracteristicas || ''
-          };
+        try {
+          // Validar que la marca existe
+          const marca = await Marca.findByPk(row.marca_id);
+          if (!marca) {
+            errores.push(`Marca con ID ${row.marca_id} no existe para el producto ${row.nombre}`);
+            continue;
+          }
+          
+          // Validar que la categoría existe
+          const categoria = await Categoria.findByPk(row.categoria_id);
+          if (!categoria) {
+            errores.push(`Categoría con ID ${row.categoria_id} no existe para el producto ${row.nombre}`);
+            continue;
+          }
+          
+          // Procesar ficha técnica si viene en columnas separadas
+          let ficha_tecnica = {};
+          if (row.dimensiones || row.materiales || row.caracteristicas) {
+            ficha_tecnica = {
+              dimensiones: row.dimensiones || '',
+              materiales: row.materiales || '',
+              caracteristicas: row.caracteristicas || ''
+            };
+          }
+          
+          // Buscar por código SKU, si existe actualiza, si no crea
+          let producto = await Producto.findOne({ where: { codigo_sku: row.codigo_sku } });
+          if (producto) {
+            await producto.update({
+              nombre: row.nombre,
+              descripcion: row.descripcion,
+              precio: row.precio,
+              categoria_id: row.categoria_id,
+              marca_id: row.marca_id,
+              ficha_tecnica
+            });
+          } else {
+            await Producto.create({
+              nombre: row.nombre,
+              descripcion: row.descripcion,
+              precio: row.precio,
+              codigo_sku: row.codigo_sku,
+              categoria_id: row.categoria_id,
+              marca_id: row.marca_id,
+              ficha_tecnica
+            });
+          }
+          productos.push(row);
+        } catch (error) {
+          errores.push(`Error procesando producto ${row.nombre}: ${error.message}`);
         }
-        // Buscar por código SKU, si existe actualiza, si no crea
-        let producto = await Producto.findOne({ where: { codigo_sku: row.codigo_sku } });
-        if (producto) {
-          await producto.update({
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            precio: row.precio,
-            categoria_id: row.categoria_id,
-            marca_id: row.marca_id,
-            ficha_tecnica
-          });
-        } else {
-          await Producto.create({
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            precio: row.precio,
-            codigo_sku: row.codigo_sku,
-            categoria_id: row.categoria_id,
-            marca_id: row.marca_id,
-            ficha_tecnica
-          });
-        }
-        productos.push(row);
       }
-      res.json({ success: true, message: 'Carga masiva completada', total: productos.length });
+      
+      res.json({ 
+        success: true, 
+        message: 'Carga masiva completada', 
+        total: productos.length,
+        errores: errores.length > 0 ? errores : undefined
+      });
     } catch (error) {
       console.error('Error en carga masiva:', error);
       res.status(500).json({

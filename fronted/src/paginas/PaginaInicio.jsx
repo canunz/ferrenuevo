@@ -2,6 +2,7 @@
 // ARCHIVO: frontend/src/paginas/PaginaInicio.jsx
 // ==========================================
 import React, { useState, useEffect } from 'react';
+import { obtenerImagenProducto } from '../utilidades/ayudantes';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -468,11 +469,11 @@ const PaginaInicio = () => {
               >
                 <div className="relative">
                   <img
-                      src={`/assets/imagenes/productos/${producto.imagen}`}
+                      src={obtenerImagenProducto(producto.imagen)}
                     alt={producto.nombre}
                     className="w-full h-48 object-cover"
                     onError={(e) => {
-                      e.target.src = '/assets/imagenes/productos/placeholder.jpg';
+                      e.target.src = obtenerImagenProducto('placeholder.jpg');
                     }}
                   />
                     {producto.etiquetas && producto.etiquetas.includes('Promoción') && (

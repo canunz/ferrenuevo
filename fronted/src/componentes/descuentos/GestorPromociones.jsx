@@ -44,16 +44,8 @@ const ModalPromocion = ({ open, onClose, onSave, producto }) => {
     setCargando(true);
     setError(null);
     try {
-      // Construir el objeto descuento con los campos correctos
-      const descuento = {
-        producto_id: producto.id,
-        tipo: form.tipo_descuento, // 'porcentaje' o 'monto_fijo'
-        valor: form.valor_descuento,
-        fecha_inicio: form.fecha_inicio,
-        fecha_fin: form.fecha_fin,
-        estado: 'activa'
-      };
-      await servicioDescuentos.crear(descuento);
+      // Actualizar el campo descuento del producto (descuento manual)
+      await servicioProductos.actualizarDescuento(producto.id, form.valor_descuento);
       onSave();
     } catch (err) {
       setError(err.response?.data?.message || err.message);
@@ -183,7 +175,7 @@ const GestorPromociones = () => {
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         {producto.promocion_activa.tipo === 'porcentaje'
                           ? `-${producto.promocion_activa.porcentaje}%`
-                          : `-$${Number(producto.promocion_activa.monto).toLocaleString('es-CL')}`}
+                          : `-$${Number(producto.promocion_activa.ahorro ?? producto.promocion_activa.descuento_monto ?? 0).toLocaleString('es-CL')}`}
                       </span>
                     ) : (
                       <span className="text-sm text-gray-500 italic">Sin descuento</span>

@@ -36,6 +36,8 @@ import PaginaFacturas from './paginas/PaginaFacturas';
 import PaginaPagos from './paginas/PaginaPagos';
 import PaginaDescuentos from './paginas/PaginaDescuentos';
 import PaginaCupones from './paginas/PaginaCupones';
+import PaginaPerfil from './paginas/PaginaPerfil';
+import PaginaCompras from './paginas/PaginaCompras';
 
 // Autenticación
 import IniciarSesion from './componentes/autenticacion/IniciarSesion';
@@ -212,6 +214,18 @@ const ContenidoPrincipal = () => {
             <RutaProtegida>
               <LayoutPublico>
                 <PanelCliente />
+              </LayoutPublico>
+            </RutaProtegida>
+          } 
+        />
+
+        {/* Perfil del Cliente */}
+        <Route 
+          path="/perfil" 
+          element={
+            <RutaProtegida>
+              <LayoutPublico>
+                <PaginaPerfil />
               </LayoutPublico>
             </RutaProtegida>
           } 
@@ -449,6 +463,18 @@ const ContenidoPrincipal = () => {
             <LayoutAdmin>
               <PaginaCupones />
             </LayoutAdmin>
+          } 
+        />
+
+        {/* Mis Compras */}
+        <Route 
+          path="/compras" 
+          element={
+            <RutaProtegida>
+              <LayoutPublico>
+                <PaginaCompras />
+              </LayoutPublico>
+            </RutaProtegida>
           } 
         />
 

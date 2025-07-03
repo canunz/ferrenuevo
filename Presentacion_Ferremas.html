@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación Ferremas - Integración de Plataformas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            background: white;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        .slide h1 {
+            font-size: 3.5rem;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .slide h2 {
+            font-size: 2.5rem;
+            color: #34495e;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .slide h3 {
+            font-size: 2rem;
+            color: #3498db;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .slide p {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            text-align: center;
+            max-width: 800px;
+            margin-bottom: 15px;
+        }
+
+        .slide ul {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: left;
+            max-width: 700px;
+        }
+
+        .slide li {
+            margin-bottom: 10px;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+            max-width: 900px;
+        }
+
+        .tech-item {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .tech-item h4 {
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        .tech-item p {
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 30px;
+            max-width: 1000px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #3498db;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h4 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card ul {
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            z-index: 1000;
+        }
+
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            margin: 20px 0;
+            max-width: 600px;
+        }
+
+        .architecture-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-top: 30px;
+            max-width: 1000px;
+        }
+
+        .arch-layer {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .arch-layer h4 {
+            margin-bottom: 15px;
+        }
+
+        .arch-layer ul {
+            text-align: left;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Portada -->
+        <div class="slide active" id="slide1">
+            <h1>🏗️ FERRERÍA ONLINE</h1>
+            <h2>Sistema E-commerce "Ferremas"</h2>
+            <p><strong>Integración de Plataformas</strong></p>
+            <p>ASY5131 - Evaluación Final Transversal</p>
+            <div style="margin-top: 40px;">
+                <h3>Integrantes:</h3>
+                <p><strong>Catalina</strong> & <strong>Nicolás</strong></p>
+            </div>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <h4>Frontend</h4>
+                    <p>React.js</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Backend</h4>
+                    <p>Node.js + Express</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Base de Datos</h4>
+                    <p>MySQL</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Objetivos -->
+        <div class="slide" id="slide2">
+            <h2>🎯 Objetivos del Proyecto</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h4>Plataforma Completa</h4>
+                    <ul>
+                        <li>Sistema de e-commerce funcional</li>
+                        <li>Catálogo de productos dinámico</li>
+                        <li>Gestión de usuarios y roles</li>
+                        <li>Carrito de compras integrado</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>Integraciones Avanzadas</h4>
+                    <ul>
+                        <li>Pagos con Transbank (Webpay)</li>
+                        <li>Conversión de monedas en tiempo real</li>
+                        <li>Sistema de cupones y descuentos</li>
+                        <li>Panel de administración completo</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>Arquitectura Escalable</h4>
+                    <ul>
+                        <li>Arquitectura MVC</li>
+                        <li>APIs RESTful documentadas</li>
+                        <li>Base de datos optimizada</li>
+                        <li>Seguridad implementada</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>Experiencia de Usuario</h4>
+                    <ul>
+                        <li>Diseño responsive</li>
+                        <li>Navegación intuitiva</li>
+                        <li>Performance optimizado</li>
+                        <li>Accesibilidad web</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Arquitectura Técnica -->
+        <div class="slide" id="slide3">
+            <h2>🏗️ Arquitectura Técnica</h2>
+            <div class="architecture-diagram">
+                <div class="arch-layer">
+                    <h4>Frontend (React.js)</h4>
+                    <ul>
+                        <li>Componentes modulares</li>
+                        <li>Context API</li>
+                        <li>Hooks personalizados</li>
+                        <li>Tailwind CSS</li>
+                        <li>Responsive design</li>
+                    </ul>
+                </div>
+                <div class="arch-layer">
+                    <h4>Backend (Node.js)</h4>
+                    <ul>
+                        <li>Arquitectura MVC</li>
+                        <li>Sequelize ORM</li>
+                        <li>JWT Authentication</li>
+                        <li>Express middleware</li>
+                        <li>Swagger docs</li>
+                    </ul>
+                </div>
+                <div class="arch-layer">
+                    <h4>Base de Datos</h4>
+                    <ul>
+                        <li>MySQL relacional</li>
+                        <li>Índices optimizados</li>
+                        <li>Normalización</li>
+                        <li>Integridad referencial</li>
+                        <li>Transacciones</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Funcionalidades Principales -->
+        <div class="slide" id="slide4">
+            <h2>⚙️ Funcionalidades Principales</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h4>🛍️ Gestión de Productos</h4>
+                    <ul>
+                        <li>Catálogo con filtros avanzados</li>
+                        <li>Búsqueda en tiempo real</li>
+                        <li>Gestión de inventario</li>
+                        <li>Imágenes optimizadas</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>👥 Sistema de Usuarios</h4>
+                    <ul>
+                        <li>Registro e inicio de sesión</li>
+                        <li>Roles diferenciados</li>
+                        <li>Panel de administración</li>
+                        <li>Gestión de permisos</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>🛒 Carrito de Compras</h4>
+                    <ul>
+                        <li>Persistencia en localStorage</li>
+                        <li>Cálculo automático</li>
+                        <li>Gestión de cantidades</li>
+                        <li>Proceso de checkout</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>💳 Sistema de Pagos</h4>
+                    <ul>
+                        <li>Integración Transbank</li>
+                        <li>Pagos en efectivo</li>
+                        <li>Panel de aprobación</li>
+                        <li>Historial de transacciones</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Integraciones -->
+        <div class="slide" id="slide5">
+            <h2>🔗 Integraciones y APIs</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h4>🏦 APIs Externas</h4>
+                    <ul>
+                        <li><strong>Banco Central:</strong> Tipos de cambio</li>
+                        <li><strong>Transbank:</strong> Procesamiento de pagos</li>
+                        <li><strong>Email/SMS:</strong> Notificaciones</li>
+                        <li><strong>Google Images:</strong> Productos</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>🔧 APIs Internas</h4>
+                    <ul>
+                        <li>RESTful APIs documentadas</li>
+                        <li>CRUD para todas las entidades</li>
+                        <li>Manejo de errores estandarizado</li>
+                        <li>Respuestas JSON consistentes</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>🎫 Sistema de Cupones</h4>
+                    <ul>
+                        <li>Creación de descuentos</li>
+                        <li>Validación automática</li>
+                        <li>Historial de uso</li>
+                        <li>Tipos de descuento flexibles</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>💱 Conversión de Monedas</h4>
+                    <ul>
+                        <li>CLP, USD, EUR</li>
+                        <li>Tiempo real</li>
+                        <li>Widget informativo</li>
+                        <li>Actualización automática</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Aspectos Técnicos -->
+        <div class="slide" id="slide6">
+            <h2>🛡️ Aspectos Técnicos Destacados</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h4>🔐 Seguridad</h4>
+                    <ul>
+                        <li>Autenticación JWT</li>
+                        <li>Validación de datos</li>
+                        <li>Sanitización de inputs</li>
+                        <li>Protección SQL injection</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>⚡ Performance</h4>
+                    <ul>
+                        <li>Lazy loading</li>
+                        <li>Optimización de imágenes</li>
+                        <li>Caché de consultas</li>
+                        <li>Paginación</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>🎨 UX/UI</h4>
+                    <ul>
+                        <li>Diseño responsive</li>
+                        <li>Navegación intuitiva</li>
+                        <li>Feedback visual</li>
+                        <li>Accesibilidad</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h4>📱 Tecnologías</h4>
+                    <ul>
+                        <li>React Hooks</li>
+                        <li>Context API</li>
+                        <li>Sequelize ORM</li>
+                        <li>Tailwind CSS</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Código Ejemplo -->
+        <div class="slide" id="slide7">
+            <h2>💻 Ejemplo de Implementación</h2>
+            <div style="text-align: left; max-width: 800px;">
+                <h3>API REST - Productos</h3>
+                <div class="code-block">
+// GET /api/v1/productos
+router.get('/productos', async (req, res) => {
+    try {
+        const productos = await Producto.findAll({
+            include: [
+                { model: Categoria },
+                { model: Marca }
+            ],
+            where: { activo: true }
+        });
+        res.json({
+            success: true,
+            data: productos
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
+    }
+});
+                </div>
+                <h3>Componente React - Catálogo</h3>
+                <div class="code-block">
+const CatalogoProductos = () => {
+    const [productos, setProductos] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchProductos();
+    }, []);
+
+    const fetchProductos = async () => {
+        try {
+            const response = await api.get('/productos');
+            setProductos(response.data.data);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {productos.map(producto => (
+                <ProductoCard key={producto.id} producto={producto} />
+            ))}
+        </div>
+    );
+};
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Demostración -->
+        <div class="slide" id="slide8">
+            <h2>🎬 Demostración del Sistema</h2>
+            <div style="text-align: center; margin-top: 40px;">
+                <h3>Funcionalidades a Mostrar:</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 30px; max-width: 800px;">
+                    <div style="background: #e8f5e8; padding: 20px; border-radius: 10px;">
+                        <h4>🛍️ Catálogo de Productos</h4>
+                        <p>Navegación por categorías</p>
+                        <p>Filtros y búsqueda</p>
+                        <p>Detalle de productos</p>
+                    </div>
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px;">
+                        <h4>🛒 Carrito de Compras</h4>
+                        <p>Agregar productos</p>
+                        <p>Gestionar cantidades</p>
+                        <p>Proceso de checkout</p>
+                    </div>
+                    <div style="background: #d1ecf1; padding: 20px; border-radius: 10px;">
+                        <h4>💳 Sistema de Pagos</h4>
+                        <p>Integración Transbank</p>
+                        <p>Pagos en efectivo</p>
+                        <p>Panel de administración</p>
+                    </div>
+                    <div style="background: #f8d7da; padding: 20px; border-radius: 10px;">
+                        <h4>👨‍💼 Panel Admin</h4>
+                        <p>Gestión de productos</p>
+                        <p>Control de inventario</p>
+                        <p>Reportes y estadísticas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Conclusiones -->
+        <div class="slide" id="slide9">
+            <h2>✅ Conclusiones</h2>
+            <div style="text-align: center; margin-top: 40px;">
+                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 40px; border-radius: 20px; max-width: 800px;">
+                    <h3>🎯 Objetivos Cumplidos</h3>
+                    <ul style="text-align: left; font-size: 1.2rem; line-height: 2;">
+                        <li>✅ <strong>Sistema completamente funcional</strong> - E-commerce operativo</li>
+                        <li>✅ <strong>Arquitectura escalable</strong> - Preparado para crecimiento</li>
+                        <li>✅ <strong>Código mantenible</strong> - Documentado y estructurado</li>
+                        <li>✅ <strong>Integraciones avanzadas</strong> - APIs externas implementadas</li>
+                        <li>✅ <strong>Experiencia de usuario</strong> - Interfaz intuitiva y responsive</li>
+                        <li>✅ <strong>Seguridad implementada</strong> - Autenticación y validación</li>
+                    </ul>
+                </div>
+                <div style="margin-top: 30px;">
+                    <h3>🚀 Próximos Pasos</h3>
+                    <p style="font-size: 1.2rem;">PWA, análisis de datos, IA para recomendaciones, móvil nativo</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Preguntas -->
+        <div class="slide" id="slide10">
+            <h2>❓ Preguntas y Respuestas</h2>
+            <div style="text-align: center; margin-top: 40px;">
+                <div style="background: #f8f9fa; padding: 30px; border-radius: 15px; max-width: 900px;">
+                    <h3>Posibles Preguntas del Docente:</h3>
+                    <div style="text-align: left; font-size: 1.1rem; line-height: 1.8;">
+                        <p><strong>Q: ¿Por qué elegiste React.js?</strong></p>
+                        <p>A: Componentes reutilizables, gran ecosistema, facilidad de mantenimiento, excelente para SPAs</p>
+                        
+                        <p><strong>Q: ¿Cómo manejas la seguridad?</strong></p>
+                        <p>A: JWT para autenticación, validación en frontend y backend, sanitización de datos, HTTPS</p>
+                        
+                        <p><strong>Q: ¿Qué harías para escalar el sistema?</strong></p>
+                        <p>A: Microservicios, caché con Redis, CDN para imágenes, load balancing, base de datos distribuida</p>
+                        
+                        <p><strong>Q: ¿Cómo optimizas el performance?</strong></p>
+                        <p>A: Lazy loading, compresión de imágenes, índices en BD, paginación, caché</p>
+                        
+                        <p><strong>Q: ¿Qué mejoras implementarías?</strong></p>
+                        <p>A: PWA, notificaciones push, análisis de datos, IA para recomendaciones</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="currentSlide">1</span> / <span id="totalSlides">10</span>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()">← Anterior</button>
+        <button class="nav-btn" onclick="nextSlide()">Siguiente →</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 10;
+
+        function showSlide(n) {
+            // Ocultar todas las slides
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            // Mostrar la slide actual
+            document.getElementById(`slide${n}`).classList.add('active');
+            
+            // Actualizar contador
+            document.getElementById('currentSlide').textContent = n;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        // Navegación con teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Inicializar
+        showSlide(1);
+    </script>
+</body>
+</html> 
