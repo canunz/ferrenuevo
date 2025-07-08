@@ -14,19 +14,21 @@ const PaginaClientes = () => {
   const [clienteDetalleId, setClienteDetalleId] = useState(null);
   const [error, setError] = useState(null);
 
+  // Mover cargarClientes aquí
+  const cargarClientes = async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await servicioClientes.listar();
+      setClientes(res.data || res);
+    } catch (err) {
+      setError('Error al cargar clientes: ' + (err.message || err));
+    } finally {
+      setCargando(false);
+    }
+  };
+
   useEffect(() => {
-    const cargarClientes = async () => {
-      setCargando(true);
-      setError(null);
-      try {
-        const res = await servicioClientes.listar();
-        setClientes(res.data || res);
-      } catch (err) {
-        setError('Error al cargar clientes: ' + (err.message || err));
-      } finally {
-        setCargando(false);
-      }
-    };
     cargarClientes();
   }, []);
 

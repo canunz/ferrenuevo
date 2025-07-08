@@ -8,27 +8,28 @@ const ListaInventario = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchProductos = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.get('/inventario/productos-completos?limit=1000');
-        // La API devuelve los productos en res.data.message
-        let productosData = [];
-        if (res.data && Array.isArray(res.data.message)) {
-          productosData = res.data.message;
-        } else if (Array.isArray(res.data)) {
-          productosData = res.data;
-        }
-        setProductos(productosData);
-      } catch (err) {
-        setError('Error al cargar los productos: ' + (err.response?.data?.error || err.message));
-        setProductos([]);
-      } finally {
-        setLoading(false);
+  // Extraer fetchProductos para poder usarlo en el botón
+  const fetchProductos = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/inventario/productos-completos?limit=1000');
+      let productosData = [];
+      if (res.data && Array.isArray(res.data.message)) {
+        productosData = res.data.message;
+      } else if (Array.isArray(res.data)) {
+        productosData = res.data;
       }
-    };
+      setProductos(productosData);
+    } catch (err) {
+      setError('Error al cargar los productos: ' + (err.response?.data?.error || err.message));
+      setProductos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProductos();
   }, []);
 
@@ -45,7 +46,16 @@ const ListaInventario = () => {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Inventario</h2>
+      <div className="flex items-center mb-6">
+        <h2 className="text-2xl font-semibold text-gray-900">Inventario</h2>
+        <button
+          className="ml-4 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={fetchProductos}
+          disabled={loading}
+        >
+          Refrescar
+        </button>
+      </div>
       <div className="grid grid-cols-4 gap-2 mb-1 items-end">
         <div className="text-xs text-gray-500 pl-2">Producto</div>
         <div className="text-xs text-gray-500">Stock actual</div>
@@ -98,22 +108,15 @@ const ListaInventario = () => {
                 <MovimientoStock
                   productoId={item.id}
                   modoCompacto
-                  onMovimientoExitoso={() => {
-                    // Recargar productos después de un movimiento
-                    setLoading(true);
-                    setError(null);
-                    api.get('/inventario/productos-completos?limit=1000').then(res => {
-                      let productosData = [];
-                      if (res.data && Array.isArray(res.data.message)) {
-                        productosData = res.data.message;
-                      } else if (Array.isArray(res.data)) {
-                        productosData = res.data;
-                      }
-                      setProductos(productosData);
-                    }).catch(err => {
-                      setError('Error al cargar los productos: ' + (err.response?.data?.error || err.message));
-                      setProductos([]);
-                    }).finally(() => setLoading(false));
+                  onMovimientoExitoso={(movimiento) => {
+                    // Actualizar solo el producto afectado en el estado local
+                    setProductos(prev =>
+                      prev.map(p =>
+                        p.id === item.id
+                          ? { ...p, stock_total: movimiento.stock_nuevo }
+                          : p
+                      )
+                    );
                   }}
                 />
               </div>

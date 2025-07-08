@@ -9,20 +9,22 @@ const PaginaPagos = () => {
   const [error, setError] = useState(null);
   const [aprobando, setAprobando] = useState(null);
 
+  // Mover cargarPagos aquí
+  const cargarPagos = async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      // Cambiar listarSinToken por listar (autenticado)
+      const res = await servicioPagos.listar({ estado: 'pendiente' });
+      setPagos(res.data || res);
+    } catch (err) {
+      setError('Error al cargar pagos: ' + (err.message || err));
+    } finally {
+      setCargando(false);
+    }
+  };
+
   useEffect(() => {
-    const cargarPagos = async () => {
-      setCargando(true);
-      setError(null);
-      try {
-        // Cambiar listarSinToken por listar (autenticado)
-        const res = await servicioPagos.listar({ estado: 'pendiente' });
-        setPagos(res.data || res);
-      } catch (err) {
-        setError('Error al cargar pagos: ' + (err.message || err));
-      } finally {
-        setCargando(false);
-      }
-    };
     cargarPagos();
   }, []);
 

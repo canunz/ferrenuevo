@@ -93,10 +93,6 @@ class InventarioController {
             stock_maximo: 100,
             ubicacion: 'Bodega Principal'
           });
-        } else if (tipo === 'entrada' || tipo === 'ajuste') {
-          // Si existe y es entrada/ajuste, sumar stock
-          inventario.stock_actual += Number(cantidad);
-          await inventario.save();
         }
         inventarioRealId = inventario.id;
       }
