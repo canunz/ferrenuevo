@@ -12,7 +12,7 @@ import Cargando from '../comun/Cargando';
 
 const IniciarSesion = () => {
   const navigate = useNavigate();
-  const { iniciarSesion, cargando } = useAuth();
+  const { iniciarSesion, cargando, usuario } = useAuth();
   const { error, exito } = useNotificacion();
   const [mostrarPassword, setMostrarPassword] = useState(false);
 
@@ -32,7 +32,13 @@ const IniciarSesion = () => {
     console.log('Resultado login:', resultado);
     if (resultado.exito) {
       exito('¡Bienvenido a FERREMAS!');
-      navigate('/perfil');
+      // Redirigir según el rol
+      const rol = (usuario?.rol || '').toLowerCase();
+      if (rol === 'cliente') {
+        navigate('/perfil');
+      } else {
+        navigate('/tablero');
+      }
     } else {
       error(resultado.mensaje || resultado.error || 'Error al iniciar sesión');
     }
