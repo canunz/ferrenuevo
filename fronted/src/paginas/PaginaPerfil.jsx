@@ -25,7 +25,6 @@ const PaginaPerfil = () => {
   // Formulario de datos personales
   const [datosPersonales, setDatosPersonales] = useState({
     nombre: '',
-    apellido: '',
     email: '',
     telefono: '',
     rut: ''
@@ -69,7 +68,6 @@ const PaginaPerfil = () => {
           setClienteId(cliente.id);
           setDatosPersonales({
             nombre: cliente.nombre || '',
-            apellido: cliente.apellido || '',
             email: cliente.email || '',
             telefono: cliente.telefono || '',
             rut: cliente.rut || ''
@@ -79,13 +77,15 @@ const PaginaPerfil = () => {
             const direccion = await servicioClientes.obtenerDireccionEnvio(cliente.id);
             if (direccion) {
               setDireccionEnvio({
-                calle: direccion.calle || '',
+                calle: direccion.direccion || '',
                 numero: direccion.numero || '',
-                departamento: direccion.departamento || '',
+                departamento: direccion.depto_oficina || '',
                 comuna: direccion.comuna || '',
                 ciudad: direccion.ciudad || '',
+                region: direccion.region || '',
+                nombre_receptor: direccion.nombre_receptor || '',
                 codigo_postal: direccion.codigo_postal || '',
-                instrucciones: direccion.instrucciones || ''
+                instrucciones: direccion.instrucciones_entrega || ''
               });
             }
           } catch (e) {
@@ -114,8 +114,15 @@ const PaginaPerfil = () => {
     setError(null);
     setExito(null);
     try {
+      // Solo enviar el campo telefono si el usuario es cliente
+      let datosParaActualizar;
+      if (usuario?.rol === 'cliente') {
+        datosParaActualizar = { telefono: datosPersonales.telefono };
+      } else {
+        datosParaActualizar = { ...datosPersonales };
+      }
       if (clienteId) {
-        await servicioClientes.actualizar(clienteId, datosPersonales);
+        await servicioClientes.actualizar(clienteId, datosParaActualizar);
         setExito('Datos personales actualizados correctamente');
       } else if (usuario?.id) {
         await servicioAuth.actualizarPerfil({
@@ -167,17 +174,46 @@ const PaginaPerfil = () => {
     setError(null);
     setExito(null);
     try {
-      if (clienteId) {
-        await servicioClientes.actualizarDireccionEnvio(clienteId, direccionEnvio);
+      const idParaDireccion = clienteId || usuario?.id;
+      // Validar campos obligatorios
+      if (!direccionEnvio.nombre_receptor || !direccionEnvio.calle || !direccionEnvio.region) {
+        alert('Completa todos los campos obligatorios de la dirección: Nombre del Receptor, Dirección y Región.');
+        setGuardando(false);
+        return;
+      }
+      // Mapear los campos del frontend a los del backend
+      const direccionEnvioBackend = {
+        nombre_receptor: direccionEnvio.nombre_receptor,
+        direccion: direccionEnvio.calle,
+        numero: direccionEnvio.numero,
+        depto_oficina: direccionEnvio.departamento,
+        comuna: direccionEnvio.comuna,
+        ciudad: direccionEnvio.ciudad,
+        region: direccionEnvio.region,
+        codigo_postal: direccionEnvio.codigo_postal,
+        instrucciones_entrega: direccionEnvio.instrucciones
+      };
+      console.log('Datos a enviar:', direccionEnvioBackend);
+      if (idParaDireccion && direccionEnvio.calle) {
+        await servicioClientes.actualizarDireccionEnvio(idParaDireccion, direccionEnvioBackend);
         setExito('Dirección de envío actualizada correctamente');
       } else {
-        setError('No se puede guardar dirección sin ser cliente registrado');
+        setError('No se puede guardar dirección: usuario no identificado');
       }
     } catch (err) {
       setError('Error al actualizar dirección: ' + (err.message || err));
     } finally {
       setGuardando(false);
     }
+  };
+
+  // Handler para actualizar el estado de la dirección de envío
+  const handleDireccionChange = (e) => {
+    const { name, value } = e.target;
+    setDireccionEnvio(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   if (cargando) {
@@ -244,17 +280,6 @@ const PaginaPerfil = () => {
                   onChange={(e) => setDatosPersonales({...datosPersonales, nombre: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Apellido
-                </label>
-                <input
-                  type="text"
-                  value={datosPersonales.apellido}
-                  onChange={(e) => setDatosPersonales({...datosPersonales, apellido: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -394,107 +419,113 @@ const PaginaPerfil = () => {
       </div>
 
       {/* Dirección de Envío */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mt-8">
         <div className="flex items-center gap-3 mb-6">
           <MapPinIcon className="w-6 h-6 text-purple-600" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Dirección de Envío
           </h2>
         </div>
-
         <form onSubmit={guardarDireccionEnvio} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Calle
-              </label>
+              <label className="block text-sm font-medium mb-1">Nombre del Receptor</label>
               <input
                 type="text"
+                name="nombre_receptor"
+                value={direccionEnvio.nombre_receptor}
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Región</label>
+              <input
+                type="text"
+                name="region"
+                value={direccionEnvio.region}
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Calle</label>
+              <input
+                type="text"
+                name="calle"
                 value={direccionEnvio.calle}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, calle: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
+                required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Número
-              </label>
+              <label className="block text-sm font-medium mb-1">Número</label>
               <input
                 type="text"
+                name="numero"
                 value={direccionEnvio.numero}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, numero: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Departamento
-              </label>
+              <label className="block text-sm font-medium mb-1">Departamento</label>
               <input
                 type="text"
+                name="departamento"
                 value={direccionEnvio.departamento}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, departamento: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Opcional"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Comuna
-              </label>
+              <label className="block text-sm font-medium mb-1">Comuna</label>
               <input
                 type="text"
+                name="comuna"
                 value={direccionEnvio.comuna}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, comuna: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Ciudad
-              </label>
+              <label className="block text-sm font-medium mb-1">Ciudad</label>
               <input
                 type="text"
+                name="ciudad"
                 value={direccionEnvio.ciudad}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, ciudad: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Código Postal
-              </label>
+              <label className="block text-sm font-medium mb-1">Código Postal</label>
               <input
                 type="text"
+                name="codigo_postal"
                 value={direccionEnvio.codigo_postal}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, codigo_postal: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Instrucciones Adicionales
-              </label>
-              <input
-                type="text"
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Instrucciones Adicionales</label>
+              <textarea
+                name="instrucciones"
                 value={direccionEnvio.instrucciones}
-                onChange={(e) => setDireccionEnvio({...direccionEnvio, instrucciones: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Opcional"
+                onChange={handleDireccionChange}
+                className="w-full border rounded px-3 py-2"
+                rows="2"
               />
             </div>
           </div>
-
           <button
             type="submit"
             disabled={guardando}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4"
           >
             {guardando ? 'Guardando...' : 'Guardar Dirección de Envío'}
           </button>

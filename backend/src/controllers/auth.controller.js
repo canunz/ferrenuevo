@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Usuario, Rol } = require('../models');
+const { Usuario, Rol, DireccionEnvio } = require('../models');
 
 const formatearError = (mensaje) => ({
   success: false,
@@ -101,6 +101,30 @@ class AuthController {
         rol_id: rolCliente.id,
         activo: true
       });
+
+      // Crear dirección de envío vacía (permitiendo nulos en campos requeridos)
+      try {
+        await DireccionEnvio.create({
+          usuario_id: usuario.id,
+          alias: 'Principal',
+          nombre_receptor: null,
+          telefono_receptor: null,
+          direccion: null,
+          numero: null,
+          depto_oficina: null,
+          comuna: null,
+          ciudad: null,
+          region: null,
+          codigo_postal: null,
+          instrucciones_entrega: null,
+          es_principal: true,
+          activo: true
+        });
+      } catch (direccionError) {
+        // Si falla la creación de dirección, eliminar el usuario creado
+        await usuario.destroy();
+        return res.status(500).json(formatearError('Error al crear dirección de envío para el usuario'));
+      }
 
       res.status(201).json(formatearRespuesta(
         'Usuario registrado exitosamente',

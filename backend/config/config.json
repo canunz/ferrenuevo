@@ -1,21 +1,21 @@
 {
   "development": {
     "username": "root",
-    "password": "emma2004",
+    "password": "day06D06Norman44die.",
     "database": "ferremasnueva",
     "host": "localhost",
     "dialect": "mysql"
   },
   "test": {
     "username": "root",
-    "password": "emma2004",
+    "password": "day06D06Norman44die.",
     "database": "ferremasnueva",
     "host": "localhost",
     "dialect": "mysql"
   },
   "production": {
     "username": "root",
-    "password": "emma2004",
+    "password": "day06D06Norman44die.",
     "database": "ferremasnueva",
     "host": "localhost",
     "dialect": "mysql"

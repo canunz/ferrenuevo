@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { servicioClientes } from '../../servicios/servicioClientes';
+import { useAuth } from '../../contexto/ContextoAuth';
 
 const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar, onCancelar }) => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { usuario } = useAuth();
   const [valores, setValores] = useState({
     nombre: '',
     email: '',
@@ -26,16 +28,15 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(false);
   const [direccionEnvio, setDireccionEnvio] = useState({
-    direccion: '',
+    calle: '',
     numero: '',
-    depto_oficina: '',
+    departamento: '',
     comuna: '',
     ciudad: '',
     region: '',
-    codigo_postal: '',
     nombre_receptor: '',
-    telefono_receptor: '',
-    instrucciones_entrega: ''
+    codigo_postal: '',
+    instrucciones: ''
   });
 
   useEffect(() => {
@@ -73,7 +74,7 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
           } catch (e) {
             // No hay dirección, dejar vacío
             setDireccionEnvio({
-              direccion: '', numero: '', depto_oficina: '', comuna: '', ciudad: '', region: '', codigo_postal: '', nombre_receptor: '', telefono_receptor: '', instrucciones_entrega: ''
+              calle: '', numero: '', departamento: '', comuna: '', ciudad: '', region: '', nombre_receptor: '', codigo_postal: '', instrucciones: ''
             });
           }
         } catch (error) {
@@ -98,8 +99,13 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
     setValores({ ...valores, [e.target.name]: e.target.value });
   };
 
-  const handleDireccionChange = e => {
-    setDireccionEnvio({ ...direccionEnvio, [e.target.name]: e.target.value });
+  // Handler para cambios en los campos de dirección
+  const handleDireccionChange = (e) => {
+    const { name, value } = e.target;
+    setDireccionEnvio((prev) => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async e => {
@@ -131,8 +137,27 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
       }
       // Guardar dirección de envío si hay datos
       const clienteId = modoEdicion ? id : clienteGuardado.data?.id || clienteGuardado.id;
-      if (clienteId && direccionEnvio.direccion) {
-        await servicioClientes.actualizarDireccionEnvio(clienteId, direccionEnvio);
+      const idParaDireccion = clienteId || usuario?.id;
+      // Validar campos obligatorios
+      if (!direccionEnvio.nombre_receptor || !direccionEnvio.calle || !direccionEnvio.region) {
+        alert('Completa todos los campos obligatorios de la dirección: Nombre del Receptor, Dirección y Región.');
+        return;
+      }
+      // Mapear los campos del frontend a los del backend
+      const direccionEnvioBackend = {
+        nombre_receptor: direccionEnvio.nombre_receptor,
+        direccion: direccionEnvio.calle,
+        numero: direccionEnvio.numero,
+        depto_oficina: direccionEnvio.departamento,
+        comuna: direccionEnvio.comuna,
+        ciudad: direccionEnvio.ciudad,
+        region: direccionEnvio.region,
+        codigo_postal: direccionEnvio.codigo_postal,
+        instrucciones_entrega: direccionEnvio.instrucciones
+      };
+      console.log('Datos a enviar:', direccionEnvioBackend);
+      if (idParaDireccion && direccionEnvio.calle) {
+        await servicioClientes.actualizarDireccionEnvio(idParaDireccion, direccionEnvioBackend);
       }
       alert(modoEdicion ? 'Cliente actualizado exitosamente' : 'Cliente creado exitosamente');
       navigate('/clientes');
@@ -309,16 +334,24 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
             <h3 className="text-lg font-semibold mt-6 mb-2">Dirección de Envío</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium mb-1">Nombre del Receptor</label>
+                <input type="text" name="nombre_receptor" value={direccionEnvio.nombre_receptor} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Región</label>
+                <input type="text" name="region" value={direccionEnvio.region} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" required />
+              </div>
+              <div>
                 <label className="block text-sm font-medium mb-1">Dirección</label>
-                <input type="text" name="direccion" value={direccionEnvio.direccion} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+                <input type="text" name="calle" value={direccionEnvio.calle} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" required />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Número</label>
                 <input type="text" name="numero" value={direccionEnvio.numero} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Depto/Oficina</label>
-                <input type="text" name="depto_oficina" value={direccionEnvio.depto_oficina} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+                <label className="block text-sm font-medium mb-1">Departamento/Oficina</label>
+                <input type="text" name="departamento" value={direccionEnvio.departamento} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Comuna</label>
@@ -329,24 +362,12 @@ const FormularioCliente = ({ modoEdicion = false, clienteInicial = {}, onGuardar
                 <input type="text" name="ciudad" value={direccionEnvio.ciudad} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Región</label>
-                <input type="text" name="region" value={direccionEnvio.region} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium mb-1">Código Postal</label>
                 <input type="text" name="codigo_postal" value={direccionEnvio.codigo_postal} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre Receptor</label>
-                <input type="text" name="nombre_receptor" value={direccionEnvio.nombre_receptor} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Teléfono Receptor</label>
-                <input type="text" name="telefono_receptor" value={direccionEnvio.telefono_receptor} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
-              </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">Instrucciones de Entrega</label>
-                <textarea name="instrucciones_entrega" value={direccionEnvio.instrucciones_entrega} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" />
+                <textarea name="instrucciones" value={direccionEnvio.instrucciones} onChange={handleDireccionChange} className="w-full border rounded px-3 py-2" rows="2" />
               </div>
             </div>
           </div>

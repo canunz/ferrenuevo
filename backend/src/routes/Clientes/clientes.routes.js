@@ -3,6 +3,8 @@
 // Agregar al final de routes/clientes.routes.js
 // ============================================
 
+console.log('*** CARGANDO ESTE ARCHIVO DE RUTAS DE CLIENTES (mayusculas) ***');
+
 // RUTA DE DIAGNÓSTICO - TEMPORAL PARA DEBUG
 router.get('/diagnostico',
     verificarToken,

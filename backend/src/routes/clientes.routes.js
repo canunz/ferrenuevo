@@ -7,6 +7,8 @@ const clientesController = require('../controllers/clientes.controller');
 const { verificarToken, verificarRol } = require('../middleware/auth');
 const { body, param, query, validationResult } = require('express-validator');
 
+console.log('*** CARGANDO ESTE ARCHIVO DE RUTAS DE CLIENTES (minusculas) ***');
+
 // Middleware de validación
 const validarResultados = (req, res, next) => {
   const errors = validationResult(req);
@@ -91,7 +93,7 @@ router.get('/',
  */
 router.get('/:id',
   verificarToken,
-  verificarRol(['administrador', 'vendedor']),
+  puedeEditarDireccion,
   param('id').isInt(),
   validarResultados,
   clientesController.obtenerCliente
@@ -161,9 +163,27 @@ router.post('/',
  *     security:
  *       - bearerAuth: []
  */
+function puedeActualizarCliente(req, res, next) {
+  const userId = req.user.id;
+  const userRol = req.user.rol;
+  const idParam = parseInt(req.params.id, 10);
+  // Si es admin o vendedor, puede actualizar todo
+  if (userRol === 'administrador' || userRol === 'vendedor') {
+    return next();
+  }
+  // Si es el propio usuario, solo puede actualizar el teléfono
+  const camposPermitidos = ['telefono'];
+  const camposActualizados = Object.keys(req.body);
+  const soloCamposPermitidos = camposActualizados.every(campo => camposPermitidos.includes(campo));
+  if (userId === idParam && soloCamposPermitidos) {
+    return next();
+  }
+  return res.status(403).json({ success: false, error: 'No tiene los permisos necesarios para actualizar estos datos.' });
+}
+
 router.put('/:id',
   verificarToken,
-  verificarRol(['administrador', 'vendedor']),
+  puedeActualizarCliente,
   param('id').isInt(),
   [
     body('nombre').optional().notEmpty().trim(),
@@ -244,17 +264,31 @@ router.get('/diagnostico/conexiones',
  *           schema:
  *             type: object
  */
+function puedeEditarDireccion(req, res, next) {
+  console.log('DEBUG puedeEditarDireccion:', req.user, 'param id:', req.params.id);
+  const userId = req.user.id;
+  const userRol = req.user.rol;
+  const idParam = parseInt(req.params.id, 10);
+  if (userRol === 'administrador' || userRol === 'vendedor' || userId === idParam) {
+    return next();
+  }
+  return res.status(403).json({ success: false, error: 'No autorizado para editar esta dirección' });
+}
+
 router.get('/:id/direccion-envio',
   verificarToken,
-  verificarRol(['administrador', 'vendedor']),
+  puedeEditarDireccion,
   param('id').isInt(),
   validarResultados,
-  clientesController.obtenerDireccionEnvio
+  (req, res, next) => {
+    console.log('>>> Handler GET /:id/direccion-envio ejecutado');
+    return clientesController.obtenerDireccionEnvio(req, res, next);
+  }
 );
 
 router.put('/:id/direccion-envio',
   verificarToken,
-  verificarRol(['administrador', 'vendedor']),
+  puedeEditarDireccion,
   param('id').isInt(),
   validarResultados,
   clientesController.actualizarDireccionEnvio

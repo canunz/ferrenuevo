@@ -171,11 +171,6 @@ const BarraLateral = () => {
             <nav className="px-4 py-6 space-y-8">
               <ul className="space-y-2">
                 <li>
-                  <Link to="/tablero" className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${location.pathname === '/tablero' ? 'bg-blue-600 text-white shadow-lg' : 'text-blue-100 hover:bg-blue-700 hover:text-white'}`}>
-                    <HomeIcon className="h-5 w-5 mr-3" /> Panel de Control
-                  </Link>
-                </li>
-                <li>
                   <Link to="/perfil" className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${location.pathname === '/perfil' ? 'bg-blue-600 text-white shadow-lg' : 'text-blue-100 hover:bg-blue-700 hover:text-white'}`}>
                     <UsersIcon className="h-5 w-5 mr-3" /> Mi Perfil
                   </Link>
