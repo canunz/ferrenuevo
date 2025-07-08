@@ -32,7 +32,7 @@ const IniciarSesion = () => {
     console.log('Resultado login:', resultado);
     if (resultado.exito) {
       exito('¡Bienvenido a FERREMAS!');
-      navigate('/tablero');
+      navigate('/perfil');
     } else {
       error(resultado.mensaje || resultado.error || 'Error al iniciar sesión');
     }
