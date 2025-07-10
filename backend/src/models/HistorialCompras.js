@@ -32,6 +32,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(50),
       allowNull: true
     },
+    estado: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
     puntos_ganados: {
       type: DataTypes.INTEGER,
       defaultValue: 0

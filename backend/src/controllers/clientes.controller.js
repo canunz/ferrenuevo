@@ -165,7 +165,7 @@ const {
           });
         }
 
-        // Consulta simplificada sin includes problemáticos
+        // Consulta básica del cliente
         const cliente = await Usuario.findOne({
           where: { id },
           include: [
@@ -183,8 +183,16 @@ const {
 
         // Procesar datos de forma segura
         const clienteObj = cliente.toJSON();
-        
-        // Obtener estadísticas de forma completamente segura
+
+        // Dirección de envío principal
+        let direccionEnvio = null;
+        try {
+          direccionEnvio = await DireccionEnvio.findOne({ where: { usuario_id: id }, order: [['id', 'DESC']] });
+        } catch (e) {
+          direccionEnvio = null;
+        }
+
+        // Estadísticas de compras
         let estadisticas = {
           total_compras: 0,
           monto_total: 0,
@@ -194,41 +202,47 @@ const {
           dias_sin_comprar: null,
           error: 'Estadísticas no disponibles'
         };
-        
         try {
           const statsResult = await ClientesController.prototype.obtenerEstadisticasCompletas(cliente.id);
           if (statsResult && !statsResult.error) {
-            estadisticas = statsResult.compras || estadisticas;
+            estadisticas = statsResult;
           }
-        } catch (statsError) {
-          console.warn(`⚠️ Error al obtener estadísticas para cliente ${id}:`, statsError.message);
-          // Mantener estadísticas por defecto
+        } catch (e) {}
+
+        // Últimos 5 pedidos con productos y detalle
+        let pedidos = [];
+        try {
+          pedidos = await Pedido.findAll({
+            where: { usuario_id: id },
+            order: [['created_at', 'DESC']],
+            limit: 5,
+            include: [
+              {
+                model: DetallePedido,
+                as: 'detalle_pedidos',
+                include: [{ model: Producto, as: 'Producto' }]
+              }
+            ]
+          });
+        } catch (e) {
+          pedidos = [];
         }
 
-        const respuesta = {
+        res.json({
           success: true,
-          message: 'Cliente obtenido exitosamente',
           data: {
             ...clienteObj,
-            estadisticas
-          },
-          timestamp: new Date().toISOString()
-        };
-
-        console.log(`✅ Cliente ${id} obtenido exitosamente`);
-        res.json(respuesta);
-
-      } catch (error) {
-        console.error('❌ Error al obtener cliente:', {
-          clienteId: req.params.id,
-          message: error.message,
-          stack: error.stack
+            direccionEnvio,
+            estadisticas,
+            pedidos
+          }
         });
-        
+      } catch (error) {
+        console.error('❌ Error en obtenerCliente:', error);
         res.status(500).json({
           success: false,
           error: 'Error interno del servidor al obtener cliente',
-          details: process.env.NODE_ENV === 'development' ? error.message : 'Contacta al administrador',
+          details: error.message,
           timestamp: new Date().toISOString()
         });
       }
@@ -537,8 +551,9 @@ const {
           return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
         }
         const direccion = await DireccionEnvio.findOne({ where: { usuario_id: id } });
+        // Cambiado: si no hay dirección, devolver success: true y data: null
         if (!direccion) {
-          return res.status(404).json({ success: false, error: 'Dirección de envío no encontrada' });
+          return res.json({ success: true, data: null });
         }
         res.json({ success: true, data: direccion });
       } catch (error) {
@@ -599,6 +614,7 @@ const {
 
         res.json(historialConProductos);
       } catch (error) {
+        console.error('Error en obtenerHistorialCompras:', error, error?.message, error?.stack);
         res.status(500).json({ success: false, error: 'Error al obtener historial de compras', details: error.message });
       }
     }

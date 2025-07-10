@@ -117,26 +117,26 @@ const PaginaInicio = () => {
     }
   ];
 
-  // Testimonios
+  // Testimonios genéricos sin nombres específicos
   const testimonios = [
     {
       id: 1,
-      nombre: "Juan Pérez",
-      cargo: "Constructor",
+      nombre: "Cliente Satisfecho",
+      cargo: "Cliente",
       texto: "Excelente servicio y productos de calidad. Las herramientas son duraderas y el personal muy atento.",
       avatar: "/assets/imagenes/testimonios/default-avatar.png"
     },
     {
       id: 2,
-      nombre: "María González",
-      cargo: "Arquitecta",
+      nombre: "Cliente Fiel",
+      cargo: "Cliente",
       texto: "La mejor ferretería de la zona. Siempre tienen lo que necesito y los precios son muy competitivos.",
       avatar: "/assets/imagenes/testimonios/default-avatar.png"
     },
     {
       id: 3,
-      nombre: "Carlos Rodríguez",
-      cargo: "Contratista",
+      nombre: "Cliente Regular",
+      cargo: "Cliente",
       texto: "He trabajado con FERREMAS por años y nunca me han fallado. Su servicio post-venta es excepcional.",
       avatar: "/assets/imagenes/testimonios/default-avatar.png"
     }

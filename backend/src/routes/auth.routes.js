@@ -153,7 +153,7 @@ router.post('/registro', authController.registro);
 
 /**
  * @swagger
- * /api/auth/me:
+ * /api/auth/perfil:
  *   get:
  *     summary: Obtener información del usuario actual
  *     tags: [Autenticación]
@@ -182,27 +182,11 @@ router.post('/registro', authController.registro);
  *       401:
  *         description: No autorizado
  */
-router.get('/me', verificarToken, authController.obtenerPerfil);
-
-/**
- * @swagger
- * /api/v1/auth/perfil:
- *   get:
- *     summary: Obtener perfil del usuario autenticado
- *     tags: [Autenticación]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Perfil obtenido exitosamente
- *       401:
- *         description: No autorizado
- */
 router.get('/perfil', verificarToken, authController.obtenerPerfil);
 
 /**
  * @swagger
- * /api/v1/auth/perfil:
+ * /api/auth/perfil:
  *   put:
  *     summary: Actualizar perfil del usuario
  *     tags: [Autenticación]
@@ -240,7 +224,7 @@ router.put('/perfil',
 
 /**
  * @swagger
- * /api/v1/auth/cambiar-password:
+ * /api/auth/cambiar-password:
  *   put:
  *     summary: Cambiar contraseña del usuario
  *     tags: [Autenticación]

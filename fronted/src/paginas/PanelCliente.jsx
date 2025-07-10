@@ -1,7 +1,7 @@
 // ==========================================
 // ARCHIVO: frontend/src/paginas/PanelCliente.jsx
 // ==========================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBagIcon,
@@ -27,55 +27,67 @@ const PanelCliente = () => {
   const { carrito, obtenerTotal } = useCarrito();
   const [seccionActiva, setSeccionActiva] = useState('resumen');
 
-  // Datos simulados del cliente
+  // Datos reales del cliente
   const datosCliente = {
-    nombre: usuario?.nombre || 'Juan Pérez',
-    email: usuario?.email || 'juan.perez@email.com',
-    telefono: '+56 9 1234 5678',
-    rut: '12.345.678-9',
-    tipoCliente: 'Mayorista',
-    descuentoActivo: 15,
-    puntosFidelidad: 1250
+    nombre: usuario?.nombre || 'Usuario',
+    email: usuario?.email || 'usuario@email.com',
+    telefono: usuario?.telefono || '',
+    rut: usuario?.rut || '',
+    tipoCliente: usuario?.tipo_cliente || 'Cliente',
+    descuentoActivo: usuario?.descuento_activo || 0,
+    puntosFidelidad: usuario?.puntos_fidelidad || 0
   };
 
-  const pedidosRecientes = [
-    {
-      id: 'PED-2024-001',
-      fecha: '2024-06-05',
-      estado: 'Entregado',
-      total: 485990,
-      productos: 8,
-      direccion: 'Las Condes, Santiago',
-      colorEstado: 'green'
-    },
-    {
-      id: 'PED-2024-002',
-      fecha: '2024-06-03',
-      estado: 'En Tránsito',
-      total: 234500,
-      productos: 4,
-      direccion: 'Providencia, Santiago',
-      colorEstado: 'blue'
-    },
-    {
-      id: 'PED-2024-003',
-      fecha: '2024-06-01',
-      estado: 'Procesando',
-      total: 156750,
-      productos: 6,
-      direccion: 'Ñuñoa, Santiago',
-      colorEstado: 'yellow'
-    },
-    {
-      id: 'PED-2024-004',
-      fecha: '2024-05-28',
-      estado: 'Cancelado',
-      total: 89990,
-      productos: 2,
-      direccion: 'Maipú, Santiago',
-      colorEstado: 'red'
+  // Los pedidos se cargarán desde la API real
+  const [pedidosRecientes, setPedidosRecientes] = useState([]);
+
+  // Cargar pedidos reales del usuario
+  useEffect(() => {
+    const cargarPedidosRecientes = async () => {
+      try {
+        const response = await fetch('/api/v1/pedidos?limit=5', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            const pedidosFormateados = data.data.pedidos.map(pedido => ({
+              id: pedido.numero_pedido,
+              fecha: new Date(pedido.fecha_creacion).toLocaleDateString('es-CL'),
+              estado: pedido.estado,
+              total: pedido.total,
+              productos: pedido.productos.length,
+              direccion: pedido.direccion_entrega || 'Retiro en tienda',
+              colorEstado: obtenerColorEstado(pedido.estado)
+            }));
+            setPedidosRecientes(pedidosFormateados);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar pedidos recientes:', error);
+      }
+    };
+
+    if (usuario) {
+      cargarPedidosRecientes();
     }
-  ];
+  }, [usuario]);
+
+  const obtenerColorEstado = (estado) => {
+    switch (estado) {
+      case 'entregado': return 'green';
+      case 'enviado': return 'blue';
+      case 'en_preparacion': return 'yellow';
+      case 'confirmado': return 'blue';
+      case 'pendiente': return 'yellow';
+      case 'cancelado': return 'red';
+      default: return 'gray';
+    }
+  };
 
   const direccionesGuardadas = [
     {
@@ -137,24 +149,8 @@ const PanelCliente = () => {
     }
   ];
 
-  const facturasPendientes = [
-    {
-      id: 'FAC-2024-156',
-      fecha: '2024-06-03',
-      vencimiento: '2024-06-18',
-      monto: 234500,
-      estado: 'Pendiente',
-      pedidoId: 'PED-2024-002'
-    },
-    {
-      id: 'FAC-2024-155',
-      fecha: '2024-06-01',
-      vencimiento: '2024-06-16',
-      monto: 156750,
-      estado: 'Vencida',
-      pedidoId: 'PED-2024-003'
-    }
-  ];
+  // Las facturas se cargarán desde la API real
+  const [facturasPendientes, setFacturasPendientes] = useState([]);
 
   const formatearPrecio = (precio) => {
     return new Intl.NumberFormat('es-CL', {

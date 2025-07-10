@@ -65,7 +65,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: true
     }
   }, {
-    tableName: 'direcciones_envio',
+    tableName: 'direccion_envios',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'

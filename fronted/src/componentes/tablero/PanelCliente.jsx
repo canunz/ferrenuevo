@@ -2,16 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexto/ContextoAuth';
 import { servicioClientes } from '../../servicios/servicioClientes';
 import { useNotificacion } from '../../contexto/ContextoNotificacion';
+import { CurrencyDollarIcon, ShoppingCartIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const PanelCliente = () => {
   const { usuario } = useAuth();
   const { exito, error } = useNotificacion();
   const [cliente, setCliente] = useState(null);
-  const [direccion, setDireccion] = useState(null);
   const [historial, setHistorial] = useState([]);
-  const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '' });
-  const [formDireccion, setFormDireccion] = useState({ direccion: '', ciudad: '', region: '' });
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
 
@@ -23,24 +20,13 @@ const PanelCliente = () => {
       try {
         const res = await servicioClientes.obtenerPorId(usuario.id);
         if (cancelado) return;
-        setCliente(res.data);
-        setForm({
-          nombre: res.data.nombre || '',
-          email: res.data.email || '',
-          telefono: res.data.telefono || ''
-        });
-        if (res.data.direcciones && res.data.direcciones.length > 0) {
-          setDireccion(res.data.direcciones[0]);
-          setFormDireccion({
-            direccion: res.data.direcciones[0].direccion || '',
-            ciudad: res.data.direcciones[0].ciudad || '',
-            region: res.data.direcciones[0].region || ''
-          });
-        } else {
-          setDireccion(null);
-          setFormDireccion({ direccion: '', ciudad: '', region: '' });
-        }
-        setHistorial(res.data.historial_compras || []);
+        setCliente(res);
+        // Obtener historial de compras real
+        const historialCompras = await servicioClientes.obtenerHistorial(usuario.id);
+        if (cancelado) return;
+        setHistorial(historialCompras || []);
+        // Log para depuración
+        console.log('Historial recibido:', historialCompras);
       } catch (e) {
         if (!cancelado) setErrorCarga('No se pudo cargar la información del cliente.');
       } finally {
@@ -51,31 +37,12 @@ const PanelCliente = () => {
     return () => { cancelado = true; };
   }, [usuario]);
 
-  const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-  const handleChangeDireccion = e => {
-    setFormDireccion({ ...formDireccion, [e.target.name]: e.target.value });
-  };
-
-  const guardarDatos = async () => {
-    try {
-      await servicioClientes.actualizar(usuario.id, form);
-      exito('Datos personales actualizados');
-      setEditando(false);
-    } catch {
-      error('No se pudo actualizar los datos');
-    }
-  };
-
-  const guardarDireccion = async () => {
-    try {
-      await servicioClientes.actualizarDireccion(usuario.id, formDireccion);
-      exito('Dirección actualizada');
-    } catch {
-      error('No se pudo actualizar la dirección');
-    }
-  };
+  // Calcular total gastado usando monto_total
+  const totalGastado = historial.reduce((sum, compra) => sum + (Number(compra.monto_total) || 0), 0);
+  // Pedidos recientes (últimos 5)
+  const pedidosRecientes = historial.slice(0, 5);
+  // Alertas simples (ejemplo: pedidos pendientes)
+  const alertas = historial.filter(p => (p.estado || '').toLowerCase() === 'pendiente');
 
   if (cargando) return <div className="p-8 text-center">Cargando...</div>;
   if (errorCarga) return <div className="p-8 text-center text-red-600">{errorCarga}</div>;
@@ -83,41 +50,61 @@ const PanelCliente = () => {
 
   return (
     <div className="max-w-3xl mx-auto py-8">
-      <h2 className="text-2xl font-bold mb-4">Bienvenido, {cliente.nombre}</h2>
-      <div className="bg-white rounded shadow p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-2">Datos Personales</h3>
-        {editando ? (
-          <div className="space-y-2">
-            <input name="nombre" value={form.nombre} onChange={handleChange} className="input" placeholder="Nombre" />
-            <input name="email" value={form.email} onChange={handleChange} className="input" placeholder="Email" />
-            <input name="telefono" value={form.telefono} onChange={handleChange} className="input" placeholder="Teléfono" />
-            <button onClick={guardarDatos} className="btn btn-primary">Guardar</button>
-            <button onClick={() => setEditando(false)} className="btn btn-secondary ml-2">Cancelar</button>
-          </div>
-        ) : (
+      <h2 className="text-2xl font-bold mb-4">¡Bienvenido/a, {cliente.nombre}!</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded shadow p-6 flex items-center gap-4">
+          <CurrencyDollarIcon className="w-8 h-8 text-green-600" />
           <div>
-            <div><b>Nombre:</b> {cliente.nombre}</div>
-            <div><b>Email:</b> {cliente.email}</div>
-            <div><b>Teléfono:</b> {cliente.telefono || '-'}</div>
-            <button onClick={() => setEditando(true)} className="btn btn-primary mt-2">Editar</button>
+            <div className="text-lg font-semibold">Total gastado</div>
+            <div className="text-2xl font-bold text-green-700">
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(totalGastado)}
+            </div>
           </div>
-        )}
+        </div>
+        <div className="bg-white rounded shadow p-6 flex items-center gap-4">
+          <ShoppingCartIcon className="w-8 h-8 text-blue-600" />
+          <div>
+            <div className="text-lg font-semibold">Compras realizadas</div>
+            <div className="text-2xl font-bold text-blue-700">{historial.length}</div>
+          </div>
+        </div>
       </div>
-      <div className="bg-white rounded shadow p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-2">Dirección de Envío</h3>
-        <input name="direccion" value={formDireccion.direccion} onChange={handleChangeDireccion} className="input mb-2" placeholder="Dirección" />
-        <input name="ciudad" value={formDireccion.ciudad} onChange={handleChangeDireccion} className="input mb-2" placeholder="Ciudad" />
-        <input name="region" value={formDireccion.region} onChange={handleChangeDireccion} className="input mb-2" placeholder="Región" />
-        <button onClick={guardarDireccion} className="btn btn-primary">Guardar dirección</button>
-      </div>
+
+      {/* Alertas */}
+      {alertas.length > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 flex items-center gap-3">
+          <ExclamationTriangleIcon className="w-6 h-6 text-yellow-500" />
+          <div>
+            <div className="font-semibold text-yellow-800">Tienes pedidos pendientes:</div>
+            <ul className="list-disc ml-6 text-yellow-700">
+              {alertas.map((p, i) => (
+                <li key={i}>Pedido #{p.numero_pedido} - Total: ${p.total}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Pedidos recientes */}
       <div className="bg-white rounded shadow p-6">
-        <h3 className="text-lg font-semibold mb-2">Historial de Compras</h3>
-        {historial.length === 0 ? (
+        <h3 className="text-lg font-semibold mb-2">Tus últimas compras</h3>
+        {pedidosRecientes.length === 0 ? (
           <div>No hay compras registradas.</div>
         ) : (
           <ul className="list-disc ml-6">
-            {historial.map((compra, idx) => (
-              <li key={idx}>{compra.descripcion || 'Compra'} - {compra.fecha || compra.fecha_compra || ''}</li>
+            {pedidosRecientes.map((compra, idx) => (
+              <li key={idx} className="mb-2">
+                <span className="font-semibold">Pedido #{compra.pedido_id || compra.id}</span> - Estado: <span className="capitalize">{compra.estado || '-'}</span> - Total: ${Number(compra.monto_total || 0).toLocaleString('es-CL')}
+                {compra.productos && compra.productos.length > 0 && (
+                  <ul className="ml-4 text-sm text-gray-700">
+                    {compra.productos.map((detalle, i) => (
+                      <li key={i}>
+                        {detalle.nombre || 'Producto'} x{detalle.cantidad} - ${Number(detalle.precio_unitario || 0).toLocaleString('es-CL')}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
             ))}
           </ul>
         )}

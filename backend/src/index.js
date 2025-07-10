@@ -377,7 +377,7 @@ const iniciarServidor = async () => {
       }
     }
     
-    const PORT = process.env.PORT || 3003;
+    const PORT = process.env.PORT || 3004;
     const server = app.listen(PORT, () => {
       console.log(`
 🚀 ==========================================

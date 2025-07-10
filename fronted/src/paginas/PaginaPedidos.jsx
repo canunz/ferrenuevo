@@ -16,6 +16,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNotificacion } from '../contexto/ContextoNotificacion';
 import { servicioPedidos } from '../servicios/servicioPedidos';
+import { servicioClientes } from '../servicios/servicioClientes';
+import { servicioProductos } from '../servicios/servicioProductos';
 
 const PaginaPedidos = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -23,212 +25,115 @@ const PaginaPedidos = () => {
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
+  const [modalNuevo, setModalNuevo] = useState(false);
+  const [formularioPedido, setFormularioPedido] = useState({
+    cliente_id: '',
+    productos: [],
+    metodo_entrega: 'retiro_tienda',
+    direccion_entrega: '',
+    observaciones: ''
+  });
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  const [productoSeleccionado, setProductoSeleccionado] = useState({
+    producto_id: '',
+    cantidad: 1,
+    precio_unitario: 0
+  });
   const [filtros, setFiltros] = useState({
     estado: 'todos',
     fechaDesde: '',
     fechaHasta: '',
     busqueda: ''
   });
+  const [clientes, setClientes] = useState([]);
+  const [cargandoClientes, setCargandoClientes] = useState(true);
   const { exito, error } = useNotificacion();
 
   useEffect(() => {
     cargarPedidos();
+    cargarProductos();
+    cargarClientes();
   }, []);
+
+  useEffect(() => {
+    console.log('PRODUCTOS DISPONIBLES:', productosDisponibles);
+  }, [productosDisponibles]);
 
   const cargarPedidos = async () => {
     setCargando(true);
     try {
-      // Simular carga de pedidos
-      setTimeout(() => {
-        setPedidos([
-          {
-            id: 1,
-            numero_pedido: 'PED-2024-001',
-            usuario: {
-              id: 1,
-              nombre: 'Juan Pérez',
-              email: 'juan.perez@email.com',
-              telefono: '+56 9 1234 5678'
-            },
-            estado: 'pendiente',
-            total: 485990,
-            subtotal: 450000,
-            metodo_entrega: 'domicilio',
-            direccion_entrega: 'Av. Providencia 1234, Providencia, Santiago',
-            fecha_creacion: '2024-06-30 10:30:00',
-            fecha_actualizacion: '2024-06-30 10:30:00',
-            productos: [
-              {
-                id: 1,
-                producto_id: 1,
-                producto_nombre: 'Taladro Eléctrico DeWalt 20V',
-                cantidad: 2,
-                precio_unitario: 125000,
-                subtotal: 250000
-              },
-              {
-                id: 2,
-                producto_id: 2,
-                producto_nombre: 'Sierra Circular Bosch 725',
-                cantidad: 1,
-                precio_unitario: 200000,
-                subtotal: 200000
-              }
-            ],
-            observaciones: 'Entregar en horario de oficina'
-          },
-          {
-            id: 2,
-            numero_pedido: 'PED-2024-002',
-            usuario: {
-              id: 2,
-              nombre: 'María González',
-              email: 'maria.gonzalez@email.com',
-              telefono: '+56 9 8765 4321'
-            },
-            estado: 'confirmado',
-            total: 234500,
-            subtotal: 220000,
-            metodo_entrega: 'retiro_tienda',
-            direccion_entrega: null,
-            fecha_creacion: '2024-06-29 15:45:00',
-            fecha_actualizacion: '2024-06-30 09:15:00',
-            productos: [
-              {
-                id: 3,
-                producto_id: 3,
-                producto_nombre: 'Martillo Stanley 16oz',
-                cantidad: 3,
-                precio_unitario: 45000,
-                subtotal: 135000
-              },
-              {
-                id: 4,
-                producto_id: 4,
-                producto_nombre: 'Set Destornilladores DeWalt',
-                cantidad: 1,
-                precio_unitario: 85000,
-                subtotal: 85000
-              }
-            ],
-            observaciones: null
-          },
-          {
-            id: 3,
-            numero_pedido: 'PED-2024-003',
-            usuario: {
-              id: 3,
-              nombre: 'Carlos Rodríguez',
-              email: 'carlos.rodriguez@email.com',
-              telefono: '+56 9 5555 1234'
-            },
-            estado: 'en_preparacion',
-            total: 156750,
-            subtotal: 150000,
-            metodo_entrega: 'domicilio',
-            direccion_entrega: 'Calle Las Condes 890, Las Condes, Santiago',
-            fecha_creacion: '2024-06-28 14:20:00',
-            fecha_actualizacion: '2024-06-30 11:30:00',
-            productos: [
-              {
-                id: 5,
-                producto_id: 5,
-                producto_nombre: 'Lijadora Orbital Makita',
-                cantidad: 1,
-                precio_unitario: 120000,
-                subtotal: 120000
-              },
-              {
-                id: 6,
-                producto_id: 6,
-                producto_nombre: 'Llave Inglesa Ajustable 12"',
-                cantidad: 2,
-                precio_unitario: 15000,
-                subtotal: 30000
-              }
-            ],
-            observaciones: 'Productos para proyecto de construcción'
-          },
-          {
-            id: 4,
-            numero_pedido: 'PED-2024-004',
-            usuario: {
-              id: 4,
-              nombre: 'Ana Silva',
-              email: 'ana.silva@email.com',
-              telefono: '+56 9 7777 8888'
-            },
-            estado: 'enviado',
-            total: 89990,
-            subtotal: 85000,
-            metodo_entrega: 'domicilio',
-            direccion_entrega: 'Av. Apoquindo 4567, Las Condes, Santiago',
-            fecha_creacion: '2024-06-27 16:10:00',
-            fecha_actualizacion: '2024-06-30 08:45:00',
-            productos: [
-              {
-                id: 7,
-                producto_id: 7,
-                producto_nombre: 'Taladro Percutor Black & Decker',
-                cantidad: 1,
-                precio_unitario: 85000,
-                subtotal: 85000
-              }
-            ],
-            observaciones: 'Entregar antes del mediodía'
-          },
-          {
-            id: 5,
-            numero_pedido: 'PED-2024-005',
-            usuario: {
-              id: 5,
-              nombre: 'Roberto Méndez',
-              email: 'roberto.mendez@email.com',
-              telefono: '+56 9 9999 1111'
-            },
-            estado: 'entregado',
-            total: 320000,
-            subtotal: 300000,
-            metodo_entrega: 'retiro_tienda',
-            direccion_entrega: null,
-            fecha_creacion: '2024-06-26 12:30:00',
-            fecha_actualizacion: '2024-06-29 17:20:00',
-            productos: [
-              {
-                id: 8,
-                producto_id: 8,
-                producto_nombre: 'Sierra Circular Bosch 725',
-                cantidad: 1,
-                precio_unitario: 200000,
-                subtotal: 200000
-              },
-              {
-                id: 9,
-                producto_id: 9,
-                producto_nombre: 'Set Destornilladores DeWalt',
-                cantidad: 1,
-                precio_unitario: 85000,
-                subtotal: 85000
-              },
-              {
-                id: 10,
-                producto_id: 10,
-                producto_nombre: 'Martillo Stanley 16oz',
-                cantidad: 1,
-                precio_unitario: 45000,
-                subtotal: 45000
-              }
-            ],
-            observaciones: null
-          }
-        ]);
-        setCargando(false);
-      }, 1000);
-    } catch (err) {
-      console.error('Error al cargar pedidos:', err);
+      const response = await servicioPedidos.obtenerTodos();
+      console.log('📦 Respuesta de pedidos:', response);
+      if (response.success) {
+        setPedidos(response.data.pedidos || []);
+        console.log('📦 Pedidos cargados:', response.data.pedidos);
+      } else {
+        setPedidos([]);
+        error('No se pudieron cargar los pedidos');
+      }
+    } catch (error) {
+      console.error('Error al cargar pedidos:', error);
       error('Error al cargar los pedidos');
+      setPedidos([]);
+    } finally {
       setCargando(false);
     }
+  };
+
+  const cargarProductos = async () => {
+    try {
+      const response = await servicioProductos.obtenerTodos({ limit: 100 });
+      if (response.success) {
+        setProductosDisponibles(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+    }
+  };
+
+  const cargarClientes = async () => {
+    setCargandoClientes(true);
+    try {
+      const response = await servicioClientes.obtenerTodos({ limit: 100 });
+      if (response.success) {
+        setClientes(response.data || []);
+      }
+    } catch (e) {
+      setClientes([]);
+    } finally {
+      setCargandoClientes(false);
+    }
+  };
+
+  const agregarProducto = () => {
+    if (productoSeleccionado.producto_id && productoSeleccionado.cantidad > 0) {
+      const producto = productosDisponibles.find(p => p.id == productoSeleccionado.producto_id);
+      if (producto) {
+        const nuevoProducto = {
+          producto_id: parseInt(productoSeleccionado.producto_id),
+          cantidad: parseInt(productoSeleccionado.cantidad),
+          precio_unitario: parseFloat(producto.precio)
+        };
+        
+        setFormularioPedido(prev => ({
+          ...prev,
+          productos: [...prev.productos, nuevoProducto]
+        }));
+        
+        setProductoSeleccionado({
+          producto_id: '',
+          cantidad: 1,
+          precio_unitario: 0
+        });
+      }
+    }
+  };
+
+  const eliminarProducto = (index) => {
+    setFormularioPedido(prev => ({
+      ...prev,
+      productos: prev.productos.filter((_, i) => i !== index)
+    }));
   };
 
   const obtenerColorEstado = (estado) => {
@@ -256,10 +161,11 @@ const PaginaPedidos = () => {
   };
 
   const formatearPrecio = (precio) => {
+    const precioNumerico = parseFloat(precio) || 0;
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP'
-    }).format(precio);
+    }).format(precioNumerico);
   };
 
   const formatearFecha = (fecha) => {
@@ -274,14 +180,19 @@ const PaginaPedidos = () => {
 
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
-      // Simular cambio de estado
-      setPedidos(prev => prev.map(pedido => 
-        pedido.id === pedidoId 
-          ? { ...pedido, estado: nuevoEstado, fecha_actualizacion: new Date().toISOString() }
-          : pedido
-      ));
-      exito(`Estado del pedido cambiado a ${nuevoEstado}`);
+      const response = await servicioPedidos.actualizarEstado(pedidoId, nuevoEstado);
+      if (response.success) {
+        setPedidos(prev => prev.map(pedido => 
+          pedido.id === pedidoId 
+            ? { ...pedido, estado: nuevoEstado, fecha_actualizacion: new Date().toISOString() }
+            : pedido
+        ));
+        exito(`Estado del pedido cambiado a ${nuevoEstado}`);
+      } else {
+        error(response.message || 'Error al cambiar el estado del pedido');
+      }
     } catch (err) {
+      console.error('Error al cambiar estado:', err);
       error('Error al cambiar el estado del pedido');
     }
   };
@@ -289,11 +200,64 @@ const PaginaPedidos = () => {
   const eliminarPedido = async (pedidoId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este pedido?')) {
       try {
-        setPedidos(prev => prev.filter(pedido => pedido.id !== pedidoId));
-        exito('Pedido eliminado correctamente');
+        const response = await servicioPedidos.eliminar(pedidoId);
+        if (response.success) {
+          setPedidos(prev => prev.filter(pedido => pedido.id !== pedidoId));
+          exito('Pedido eliminado correctamente');
+        } else {
+          error(response.message || 'Error al eliminar el pedido');
+        }
       } catch (err) {
+        console.error('Error al eliminar pedido:', err);
         error('Error al eliminar el pedido');
       }
+    }
+  };
+
+  const crearPedido = async (datos) => {
+    try {
+      const payload = { ...datos };
+      if (datos.cliente_id) payload.cliente_id = datos.cliente_id;
+      const response = await servicioPedidos.crear(payload);
+      if (response.success) {
+        setPedidos(prev => [response.data.pedido, ...prev]);
+        setModalNuevo(false);
+        setFormularioPedido({
+          cliente_id: '',
+          productos: [],
+          metodo_entrega: 'retiro_tienda',
+          direccion_entrega: '',
+          observaciones: ''
+        });
+        exito('Pedido creado correctamente');
+      } else {
+        error(response.message || 'Error al crear el pedido');
+      }
+    } catch (err) {
+      console.error('Error al crear pedido:', err);
+      error('Error al crear el pedido');
+    }
+  };
+
+  const actualizarPedido = async (pedidoId, datos) => {
+    try {
+      console.log('Datos enviados a actualizarPedido:', datos);
+      const response = await servicioPedidos.actualizar(pedidoId, datos);
+      if (response.success) {
+        setPedidos(prev => prev.map(pedido => 
+          pedido.id === pedidoId 
+            ? { ...pedido, ...response.data.pedido }
+            : pedido
+        ));
+        setModalEditar(false);
+        setPedidoSeleccionado(null);
+        exito('Pedido actualizado correctamente');
+      } else {
+        error(response.message || 'Error al actualizar el pedido');
+      }
+    } catch (err) {
+      console.error('Error al actualizar pedido:', err);
+      error('Error al actualizar el pedido');
     }
   };
 
@@ -311,7 +275,10 @@ const PaginaPedidos = () => {
     enviados: pedidos.filter(p => p.estado === 'enviado').length,
     entregados: pedidos.filter(p => p.estado === 'entregado').length,
     cancelados: pedidos.filter(p => p.estado === 'cancelado').length,
-    valorTotal: pedidos.reduce((sum, p) => sum + p.total, 0)
+    valorTotal: pedidos.reduce((sum, p) => {
+      const total = parseFloat(p.total) || 0;
+      return sum + total;
+    }, 0)
   };
 
   return (
@@ -333,7 +300,7 @@ const PaginaPedidos = () => {
             </p>
           </div>
           <button
-            onClick={() => {/* Implementar nuevo pedido */}}
+            onClick={() => setModalNuevo(true)}
             className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <PlusIcon className="w-5 h-5" />
@@ -474,8 +441,8 @@ const PaginaPedidos = () => {
                     <div className="grid md:grid-cols-4 gap-4 text-sm text-gray-600">
                       <div>
                         <span className="font-medium">Cliente:</span>
-                        <p>{pedido.usuario.nombre}</p>
-                        <p className="text-xs">{pedido.usuario.email}</p>
+                        <p>{pedido.usuario}</p>
+                        <p className="text-xs">{pedido.usuario_email}</p>
                       </div>
                       
                       <div>
@@ -488,7 +455,9 @@ const PaginaPedidos = () => {
                         <span className="font-medium">Entrega:</span>
                         <p>{pedido.metodo_entrega.replace('_', ' ')}</p>
                         {pedido.direccion_entrega && (
-                          <p className="text-xs truncate">{pedido.direccion_entrega}</p>
+                          <p className="text-xs truncate">
+                            {pedido.direccion_entrega.length < 10 ? 'Dirección no especificada' : pedido.direccion_entrega}
+                          </p>
                         )}
                       </div>
                       
@@ -561,9 +530,9 @@ const PaginaPedidos = () => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Información del Cliente</h4>
                 <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario.nombre}</p>
-                  <p><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario.email}</p>
-                  <p><span className="font-medium">Teléfono:</span> {pedidoSeleccionado.usuario.telefono}</p>
+                  <p><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario || pedidoSeleccionado.cliente_nombre}</p>
+                  <p><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario_email || pedidoSeleccionado.cliente_email}</p>
+                  <p><span className="font-medium">Teléfono:</span> {pedidoSeleccionado.usuario_telefono || pedidoSeleccionado.cliente_telefono}</p>
                 </div>
                 
                 <h4 className="font-semibold text-gray-900 mb-3 mt-6">Información del Pedido</h4>
@@ -575,7 +544,11 @@ const PaginaPedidos = () => {
                   </p>
                   <p><span className="font-medium">Método de entrega:</span> {pedidoSeleccionado.metodo_entrega.replace('_', ' ')}</p>
                   {pedidoSeleccionado.direccion_entrega && (
-                    <p><span className="font-medium">Dirección:</span> {pedidoSeleccionado.direccion_entrega}</p>
+                    <p><span className="font-medium">Dirección:</span> {
+                      pedidoSeleccionado.direccion_entrega.length < 10 ? 
+                      'Dirección no especificada' : 
+                      pedidoSeleccionado.direccion_entrega
+                    }</p>
                   )}
                   <p><span className="font-medium">Fecha de creación:</span> {formatearFecha(pedidoSeleccionado.fecha_creacion)}</p>
                   <p><span className="font-medium">Última actualización:</span> {formatearFecha(pedidoSeleccionado.fecha_actualizacion)}</p>
@@ -614,6 +587,282 @@ const PaginaPedidos = () => {
                     <span className="font-semibold text-lg">{formatearPrecio(pedidoSeleccionado.total)}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de Nuevo Pedido */}
+      {modalNuevo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Nuevo Pedido
+              </h3>
+              <button
+                onClick={() => setModalNuevo(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircleIcon className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cliente
+                </label>
+                <select
+                  value={formularioPedido.cliente_id || ''}
+                  onChange={e => setFormularioPedido({ ...formularioPedido, cliente_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={cargandoClientes}
+                >
+                  <option value="">Seleccionar cliente</option>
+                  {clientes.map(cliente => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nombre} ({cliente.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Método de Entrega
+                </label>
+                <select
+                  value={formularioPedido.metodo_entrega}
+                  onChange={(e) => setFormularioPedido({...formularioPedido, metodo_entrega: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="retiro_tienda">Retiro en Tienda</option>
+                  <option value="despacho_domicilio">Domicilio</option>
+                </select>
+              </div>
+
+              {formularioPedido.metodo_entrega === 'despacho_domicilio' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección de Entrega
+                  </label>
+                  <input
+                    type="text"
+                    value={formularioPedido.direccion_entrega}
+                    onChange={(e) => setFormularioPedido({...formularioPedido, direccion_entrega: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Ingrese la dirección de entrega"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Productos
+                </label>
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <select
+                      value={productoSeleccionado.producto_id}
+                      onChange={(e) => {
+                        const producto = productosDisponibles.find(p => p.id == e.target.value);
+                        setProductoSeleccionado({
+                          ...productoSeleccionado,
+                          producto_id: e.target.value,
+                          precio_unitario: producto ? producto.precio : 0
+                        });
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Seleccionar producto</option>
+                      {productosDisponibles.map(producto => (
+                        <option key={producto.id} value={producto.id}>
+                          {producto.nombre} - ${producto.precio}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      value={productoSeleccionado.cantidad}
+                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, cantidad: parseInt(e.target.value) || 1})}
+                      min="1"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Cantidad"
+                    />
+                    <button
+                      onClick={agregarProducto}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  
+                  {formularioPedido.productos.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-gray-900">Productos seleccionados:</h4>
+                      {formularioPedido.productos.map((producto, index) => {
+                        const productoInfo = productosDisponibles.find(p => p.id == producto.producto_id);
+                        return (
+                          <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <span>{productoInfo?.nombre || 'Producto'}</span>
+                            <span>Cantidad: {producto.cantidad}</span>
+                            <span>${producto.precio_unitario}</span>
+                            <button
+                              onClick={() => eliminarProducto(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observaciones
+                </label>
+                <textarea
+                  value={formularioPedido.observaciones}
+                  onChange={(e) => setFormularioPedido({...formularioPedido, observaciones: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows="3"
+                  placeholder="Observaciones adicionales..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setModalNuevo(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (formularioPedido.productos.length === 0) {
+                      error('Debe seleccionar al menos un producto');
+                      return;
+                    }
+                    crearPedido(formularioPedido);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Crear Pedido
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de Editar Pedido */}
+      {modalEditar && pedidoSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Editar Pedido {pedidoSeleccionado.numero_pedido}
+              </h3>
+              <button
+                onClick={() => setModalEditar(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircleIcon className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado
+                </label>
+                <select
+                  value={pedidoSeleccionado.estado}
+                  onChange={(e) => {
+                    setPedidoSeleccionado({...pedidoSeleccionado, estado: e.target.value});
+                    cambiarEstado(pedidoSeleccionado.id, e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="pendiente">Pendiente</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="rechazado">Rechazado</option>
+                  <option value="preparando">Preparando</option>
+                  <option value="listo">Listo</option>
+                  <option value="enviado">Enviado</option>
+                  <option value="entregado">Entregado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Método de Entrega
+                </label>
+                <select
+                  value={pedidoSeleccionado.metodo_entrega}
+                  onChange={(e) => setPedidoSeleccionado({...pedidoSeleccionado, metodo_entrega: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="retiro_tienda">Retiro en Tienda</option>
+                  <option value="despacho_domicilio">Domicilio</option>
+                </select>
+              </div>
+
+              {pedidoSeleccionado.metodo_entrega === 'despacho_domicilio' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección de Entrega
+                  </label>
+                  <input
+                    type="text"
+                    value={pedidoSeleccionado.direccion_entrega || ''}
+                    onChange={(e) => setPedidoSeleccionado({...pedidoSeleccionado, direccion_entrega: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Ingrese la dirección de entrega"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observaciones
+                </label>
+                <textarea
+                  value={pedidoSeleccionado.observaciones || ''}
+                  onChange={(e) => setPedidoSeleccionado({...pedidoSeleccionado, observaciones: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows="3"
+                  placeholder="Observaciones adicionales..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setModalEditar(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => actualizarPedido(pedidoSeleccionado.id, pedidoSeleccionado)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Guardar Cambios
+                </button>
               </div>
             </div>
           </motion.div>

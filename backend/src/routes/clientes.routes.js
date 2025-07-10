@@ -310,9 +310,19 @@ router.put('/:id/direccion-envio',
  *           type: integer
  *         description: ID del cliente
  */
+function puedeVerHistorial(req, res, next) {
+  const userId = req.user.id;
+  const userRol = req.user.rol;
+  const idParam = parseInt(req.params.id, 10);
+  if (userRol === 'administrador' || userRol === 'vendedor' || userId === idParam) {
+    return next();
+  }
+  return res.status(403).json({ success: false, error: 'No tiene permisos para ver este historial.' });
+}
+
 router.get('/:id/historial',
   verificarToken,
-  verificarRol(['administrador', 'vendedor']),
+  puedeVerHistorial,
   param('id').isInt(),
   validarResultados,
   clientesController.obtenerHistorialCompras

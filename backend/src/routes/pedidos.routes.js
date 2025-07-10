@@ -239,7 +239,7 @@ router.put('/:id/estado',
   verificarToken,
   [
     body('estado')
-      .isIn(['pendiente', 'confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'])
+      .isIn(['pendiente', 'aprobado', 'rechazado', 'preparando', 'listo', 'enviado', 'entregado', 'cancelado'])
       .withMessage('Estado inválido'),
     body('notas')
       .optional()
@@ -248,6 +248,30 @@ router.put('/:id/estado',
   ],
   pedidosController.cambiarEstado
 );
+
+/**
+ * @swagger
+ * /api/v1/pedidos/{id}/historial:
+ *   get:
+ *     summary: Obtener historial de estados de un pedido
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Historial de estados obtenido exitosamente
+ *       404:
+ *         description: Pedido no encontrado
+ *       403:
+ *         description: Sin permisos
+ */
+router.get('/:id/historial', verificarToken, pedidosController.obtenerHistorialEstados);
 
 /**
  * @swagger
@@ -266,6 +290,89 @@ router.get(
   verificarToken,
   verificarRol(['administrador', 'vendedor']),
   pedidosController.ventasHoy
+);
+
+/**
+ * @swagger
+ * /api/v1/pedidos/{id}:
+ *   put:
+ *     summary: Actualizar pedido (Solo admin/vendedor)
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               metodo_entrega:
+ *                 type: string
+ *                 enum: [retiro_tienda, despacho_domicilio]
+ *               direccion_entrega:
+ *                 type: string
+ *               observaciones:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Pedido actualizado exitosamente
+ *       403:
+ *         description: Sin permisos
+ *       404:
+ *         description: Pedido no encontrado
+ */
+router.put('/:id',
+  verificarToken,
+  verificarRol(['administrador', 'vendedor']),
+  [
+    body('metodo_entrega')
+      .optional()
+      .isIn(['retiro_tienda', 'despacho_domicilio'])
+      .withMessage('Método de entrega inválido'),
+    body('direccion_entrega')
+      .optional()
+      .isString(),
+    body('observaciones')
+      .optional()
+      .isString(),
+    handleValidationErrors
+  ],
+  pedidosController.actualizarPedido
+);
+
+/**
+ * @swagger
+ * /api/v1/pedidos/{id}:
+ *   delete:
+ *     summary: Eliminar pedido (Solo admin)
+ *     tags: [Pedidos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Pedido eliminado exitosamente
+ *       403:
+ *         description: Sin permisos
+ *       404:
+ *         description: Pedido no encontrado
+ */
+router.delete('/:id',
+  verificarToken,
+  verificarRol(['administrador']),
+  pedidosController.eliminarPedido
 );
 
 module.exports = router;

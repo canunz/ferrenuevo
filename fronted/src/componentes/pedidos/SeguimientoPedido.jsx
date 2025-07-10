@@ -26,31 +26,58 @@ const SeguimientoPedido = ({ pedido, onActualizarEstado }) => {
     }
   }, [pedido]);
 
-  const generarHistorialEstados = (estado) => {
-    const estados = [
-      { id: 'pendiente', nombre: 'Pendiente', descripcion: 'Pedido recibido y en espera de confirmación', completado: false },
-      { id: 'confirmado', nombre: 'Confirmado', descripcion: 'Pedido confirmado y en proceso de preparación', completado: false },
-      { id: 'en_preparacion', nombre: 'En Preparación', descripcion: 'Productos siendo preparados para envío', completado: false },
-      { id: 'enviado', nombre: 'Enviado', descripcion: 'Pedido enviado y en tránsito', completado: false },
-      { id: 'entregado', nombre: 'Entregado', descripcion: 'Pedido entregado exitosamente', completado: false }
-    ];
+  const generarHistorialEstados = async (estado) => {
+    try {
+      // Obtener historial real desde el backend
+      const response = await fetch(`/api/v1/pedidos/${pedido.id}/historial`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const historialReal = await response.json();
+        setHistorialEstados(historialReal.data || []);
+      } else {
+        // Si no hay historial real, usar estados básicos sin fechas falsas
+        const estados = [
+          { id: 'pendiente', nombre: 'Pendiente', descripcion: 'Pedido recibido y en espera de confirmación', completado: false },
+          { id: 'confirmado', nombre: 'Confirmado', descripcion: 'Pedido confirmado y en proceso de preparación', completado: false },
+          { id: 'en_preparacion', nombre: 'En Preparación', descripcion: 'Productos siendo preparados para envío', completado: false },
+          { id: 'enviado', nombre: 'Enviado', descripcion: 'Pedido enviado y en tránsito', completado: false },
+          { id: 'entregado', nombre: 'Entregado', descripcion: 'Pedido entregado exitosamente', completado: false }
+        ];
 
-    const estadoIndex = estados.findIndex(e => e.id === estado);
-    const historial = estados.map((estadoItem, index) => ({
-      ...estadoItem,
-      completado: index <= estadoIndex,
-      fecha: index <= estadoIndex ? generarFechaAleatoria(index) : null
-    }));
+        const estadoIndex = estados.findIndex(e => e.id === estado);
+        const historial = estados.map((estadoItem, index) => ({
+          ...estadoItem,
+          completado: index <= estadoIndex,
+          fecha: null // No generar fechas falsas
+        }));
 
-    setHistorialEstados(historial);
-  };
+        setHistorialEstados(historial);
+      }
+    } catch (error) {
+      console.error('Error al obtener historial de estados:', error);
+      // En caso de error, mostrar estados básicos sin fechas
+      const estados = [
+        { id: 'pendiente', nombre: 'Pendiente', descripcion: 'Pedido recibido y en espera de confirmación', completado: false },
+        { id: 'confirmado', nombre: 'Confirmado', descripcion: 'Pedido confirmado y en proceso de preparación', completado: false },
+        { id: 'en_preparacion', nombre: 'En Preparación', descripcion: 'Productos siendo preparados para envío', completado: false },
+        { id: 'enviado', nombre: 'Enviado', descripcion: 'Pedido enviado y en tránsito', completado: false },
+        { id: 'entregado', nombre: 'Entregado', descripcion: 'Pedido entregado exitosamente', completado: false }
+      ];
 
-  const generarFechaAleatoria = (diasAtras) => {
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() - diasAtras);
-    fecha.setHours(10 + Math.floor(Math.random() * 8));
-    fecha.setMinutes(Math.floor(Math.random() * 60));
-    return fecha;
+      const estadoIndex = estados.findIndex(e => e.id === estado);
+      const historial = estados.map((estadoItem, index) => ({
+        ...estadoItem,
+        completado: index <= estadoIndex,
+        fecha: null
+      }));
+
+      setHistorialEstados(historial);
+    }
   };
 
   const obtenerIconoEstado = (estado, completado) => {

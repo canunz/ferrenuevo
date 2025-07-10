@@ -49,7 +49,7 @@ const IniciarSesion = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      className="w-full max-w-md mx-auto min-h-screen flex flex-col justify-center"
     >
       {/* Logo y Título */}
       <div className="text-center mb-8">
@@ -153,17 +153,6 @@ const IniciarSesion = () => {
             >
               ¿Olvidaste tu contraseña?
             </Link>
-          </div>
-
-          {/* Credenciales de Demo */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
-            <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">
-              Credenciales de Demo:
-            </p>
-            <p className="text-xs text-blue-700 dark:text-blue-300">
-              Email: admin@ferremas.cl<br />
-              Contraseña: password123
-            </p>
           </div>
 
           {/* Botón de Login */}

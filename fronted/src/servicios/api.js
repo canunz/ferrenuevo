@@ -124,7 +124,7 @@ export const testBackendConnection = async () => {
 const verificarServidor = async () => {
   try {
     console.log('🏥 Verificando salud del servidor...');
-    const response = await fetch('http://localhost:3003/health', {
+    const response = await fetch('http://localhost:3003/', {
       method: 'GET',
       mode: 'cors',
       headers: {

@@ -27,7 +27,7 @@ const dashboardRoutes = require('./src/routes/dashboard.routes'); // ← NUEVO
 const descuentosRoutes = require('./src/routes/descuentos.routes');
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3004;
 
 // Middleware
 app.use(cors({
@@ -44,6 +44,7 @@ app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 app.use('/favicon.ico', express.static(path.join(__dirname, 'public/favicon.ico')));
 app.use('/logo192.png', express.static(path.join(__dirname, 'public/logo192.png')));
 app.use('/logo512.png', express.static(path.join(__dirname, 'public/logo512.png')));
+app.use('/imagenes', express.static(path.join(__dirname, 'public/imagenes')));
 
 // Servir archivos estáticos de forma más robusta
 app.use(express.static(path.join(__dirname, 'public')));

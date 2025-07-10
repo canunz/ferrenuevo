@@ -256,6 +256,9 @@ class ProductosController {
 
     } catch (error) {
       console.error('Error al listar productos:', error);
+      if (error && error.stack) {
+        console.error('STACK TRACE:', error.stack);
+      }
       res.status(500).json({
         success: false,
         error: 'Error interno del servidor',

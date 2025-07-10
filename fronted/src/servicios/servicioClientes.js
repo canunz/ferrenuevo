@@ -15,7 +15,13 @@ export const servicioClientes = {
   // Obtener cliente por ID
   obtenerPorId: async (id) => {
     const response = await api.get(`/clientes/${id}`);
-    return response.data.data;
+    // Log para depuración
+    console.log('Respuesta backend cliente:', response.data);
+    // Soporta ambas estructuras: { data: {...} } o { ... }
+    if (response.data && response.data.data) {
+      return response.data.data;
+    }
+    return response.data;
   },
 
   // Crear nuevo cliente

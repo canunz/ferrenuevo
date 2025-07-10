@@ -18,13 +18,16 @@ const PagoExitoso = () => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token_ws');
     if (token) {
-      fetch('/api/v1/transbank/confirmar', {
+      fetch('http://localhost:3003/api/v1/transbank/confirmar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token_ws: token })
       })
         .then(res => res.json())
-        .then(data => setDetalle(data.message || data))
+        .then(data => {
+          setDetalle(data.message || data);
+          console.log('DETALLE RESPUESTA:', data.message || data);
+        })
         .catch(() => setDetalle({ error: 'No se pudo obtener el detalle del pago' }));
     }
   }, [location.search]);

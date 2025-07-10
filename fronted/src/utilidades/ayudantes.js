@@ -115,7 +115,7 @@ export const generarID = () => {
       return imagen;
     }
     
-    // Si estamos en desarrollo, usar el backend
+    // Usar el backend correcto en desarrollo
     if (process.env.NODE_ENV === 'development') {
       return `http://localhost:3003/public/imagenes/${tipo}/${imagen}`;
     }

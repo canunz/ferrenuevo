@@ -8,6 +8,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@mercadopago/sdk-react": "^1.0.3",
     "@mui/icons-material": "^5.17.1",
@@ -64,5 +65,5 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:3002"
+  "proxy": "https://localhost:3003"
 }

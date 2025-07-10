@@ -52,12 +52,6 @@ const BarraLateral = () => {
       descripcion: 'Gestión de clientes'
     },
     {
-      nombre: 'Proveedores',
-      href: '/proveedores',
-      icono: BuildingStorefrontIcon,
-      descripcion: 'Gestión de proveedores'
-    },
-    {
       nombre: 'Productos',
       href: '/admin/productos',
       icono: WrenchScrewdriverIcon,
@@ -80,12 +74,6 @@ const BarraLateral = () => {
       descripcion: 'Gestión de pedidos'
     },
     {
-      nombre: 'Facturas',
-      href: '/facturas',
-      icono: DocumentTextIcon,
-      descripcion: 'Facturación'
-    },
-    {
       nombre: 'Pagos',
       href: '/pagos',
       icono: CreditCardIcon,
@@ -101,12 +89,6 @@ const BarraLateral = () => {
 
   // Navegación de sistema
   const navegacionSistema = [
-    {
-      nombre: 'Reportes',
-      href: '/reportes',
-      icono: ChartBarIcon,
-      descripcion: 'Reportes y análisis'
-    },
     {
       nombre: 'Integraciones',
       href: '/integraciones',

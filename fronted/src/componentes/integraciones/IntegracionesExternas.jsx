@@ -312,7 +312,7 @@ const IntegracionesExternas = () => {
       // Simular prueba de conexión
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const exito = Math.random() > 0.3; // 70% de éxito
+              const exito = true; // Simular éxito real
       
       if (exito) {
         setPruebasAPI(prev => ({ ...prev, [integracionId]: 'exitoso' }));

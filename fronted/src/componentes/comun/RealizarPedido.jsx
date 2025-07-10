@@ -667,7 +667,7 @@ const RealizarPedido = ({ abierto, onCerrar }) => {
                 <p className="text-gray-600 mb-4">Tu pedido ha sido procesado exitosamente</p>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 inline-block">
                   <p className="text-sm text-green-800">
-                    <strong>Número de Pedido:</strong> #FER-{Math.floor(Math.random() * 10000)}
+                    <strong>Número de Pedido:</strong> {pedido?.numero_pedido || 'Generando...'}
                   </p>
                   <p className="text-sm text-green-800">
                     <strong>Total:</strong> {formatearPrecio(totalFinal)}

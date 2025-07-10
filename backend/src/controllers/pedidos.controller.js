@@ -21,8 +21,13 @@ class PedidosController {
   // Crear nuevo pedido - USANDO TU ESTRUCTURA EXACTA
   async crearPedido(req, res) {
     try {
-      const { productos, metodo_entrega, direccion_entrega, observaciones } = req.body;
-      const usuario_id = req.user.id;
+      const { productos, metodo_entrega, direccion_entrega, observaciones, descuento_cupon = 0, cliente_id } = req.body;
+      let usuario_id = req.user.id;
+      const rol = req.user.rol;
+      // Si es admin o vendedor y se envía cliente_id, usarlo
+      if ((rol === 'administrador' || rol === 'vendedor') && cliente_id) {
+        usuario_id = cliente_id;
+      }
 
       console.log('📦 Creando pedido para usuario:', usuario_id);
       console.log('🟢 Body recibido en crearPedido:', req.body);
@@ -54,10 +59,13 @@ class PedidosController {
         });
       }
 
-      // Calcular total (subtotal + posibles impuestos/descuentos)
-      const total = subtotal; // Por ahora sin impuestos adicionales
+      // Calcular totales con IVA y descuentos
+      const iva = subtotal * 0.19; // 19% IVA
+      const costoEnvio = metodo_entrega === 'despacho_domicilio' ? 5990 : 0;
+      const descuento = descuento_cupon || 0;
+      const total = subtotal + iva + costoEnvio - descuento;
 
-      console.log('💰 Subtotal:', subtotal, 'Total:', total);
+      console.log('💰 Subtotal:', subtotal, 'IVA:', iva, 'Envío:', costoEnvio, 'Descuento:', descuento, 'Total:', total);
 
       // Generar número de pedido único
       const timestamp = Date.now().toString();
@@ -87,14 +95,17 @@ class PedidosController {
         
         const resultadoSQL = await sequelize.query(
           `INSERT INTO pedidos 
-           (numero_pedido, usuario_id, estado, subtotal, total, metodo_entrega, direccion_entrega, observaciones, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+           (numero_pedido, usuario_id, estado, subtotal, iva, descuento, costo_envio, total, metodo_entrega, direccion_entrega, observaciones, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           {
             replacements: [
               numero_pedido,
               usuario_id,
               'pendiente', // Estado válido de tu ENUM
               subtotal,
+              iva,
+              descuento,
+              costoEnvio,
               total,
               metodoEntregaDB, // Método válido de tu ENUM
               direccion_entrega || null,
@@ -142,6 +153,8 @@ class PedidosController {
           }
         }
 
+        // Al devolver el pedido:
+        const usuario = await Usuario.findByPk(usuario_id);
         return res.status(201).json(formatearRespuesta(
           '🎉 Pedido creado exitosamente',
           {
@@ -155,6 +168,9 @@ class PedidosController {
               direccion_entrega: direccion_entrega,
               observaciones: observaciones,
               fecha_creacion: new Date().toISOString(),
+              cliente_nombre: usuario ? usuario.nombre : '',
+              cliente_email: usuario ? usuario.email : '',
+              cliente_telefono: usuario ? usuario.telefono : '',
               productos: productosValidos.map(p => ({
                 nombre: p.producto_nombre,
                 cantidad: p.cantidad,
@@ -228,13 +244,16 @@ class PedidosController {
             numero_pedido: pedido.numero_pedido,
             usuario: usuario ? usuario.nombre : 'Usuario no encontrado',
             usuario_email: usuario ? usuario.email : '',
+            usuario_telefono: usuario ? usuario.telefono : '',
+            usuario_rut: usuario ? usuario.rut : '',
             subtotal: pedido.subtotal,
             total: pedido.total,
             estado: pedido.estado,
             metodo_entrega: pedido.metodo_entrega,
             direccion_entrega: pedido.direccion_entrega,
             observaciones: pedido.observaciones,
-            fecha_creacion: pedido.created_at,
+            fecha_creacion: pedido.created_at ? pedido.created_at.toISOString() : null,
+            fecha_actualizacion: pedido.updated_at ? pedido.updated_at.toISOString() : null,
             productos: productos
           };
         })
@@ -277,6 +296,14 @@ class PedidosController {
       }
 
       const usuario = await Usuario.findByPk(pedido.usuario_id);
+      console.log('🔍 Usuario encontrado:', usuario ? {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        telefono: usuario.telefono,
+        rut: usuario.rut
+      } : 'Usuario no encontrado');
+      
       const detalles = await DetallePedido.findAll({
         where: { pedido_id: pedido.id }
       });
@@ -295,19 +322,28 @@ class PedidosController {
         })
       );
 
+      console.log('📅 Fechas del pedido:', {
+        created_at: pedido.created_at,
+        updated_at: pedido.updated_at,
+        created_at_iso: pedido.created_at ? pedido.created_at.toISOString() : null,
+        updated_at_iso: pedido.updated_at ? pedido.updated_at.toISOString() : null
+      });
+
       const pedidoCompleto = {
         id: pedido.id,
         numero_pedido: pedido.numero_pedido,
         usuario: usuario ? usuario.nombre : 'Usuario no encontrado',
         usuario_email: usuario ? usuario.email : '',
+        usuario_telefono: usuario ? usuario.telefono : '',
+        usuario_rut: usuario ? usuario.rut : '',
         subtotal: pedido.subtotal,
         total: pedido.total,
         estado: pedido.estado,
         metodo_entrega: pedido.metodo_entrega,
         direccion_entrega: pedido.direccion_entrega,
         observaciones: pedido.observaciones,
-        fecha_creacion: pedido.created_at,
-        fecha_actualizacion: pedido.updated_at,
+        fecha_creacion: pedido.created_at ? pedido.created_at.toISOString() : null,
+        fecha_actualizacion: pedido.updated_at ? pedido.updated_at.toISOString() : null,
         productos: productos
       };
 
@@ -374,7 +410,110 @@ class PedidosController {
     }
   }
 
-  ventasHoy = async (req, res) => {
+  // Obtener historial de estados de un pedido
+  async obtenerHistorialEstados(req, res) {
+    try {
+      const { id } = req.params;
+      const usuario_id = req.user.id;
+      const rol = req.user.rol;
+
+      const pedido = await Pedido.findByPk(id);
+      if (!pedido) {
+        return res.status(404).json(formatearError('Pedido no encontrado'));
+      }
+
+      // Verificar permisos
+      if (pedido.usuario_id !== usuario_id && rol !== 'administrador' && rol !== 'vendedor') {
+        return res.status(403).json(formatearError('No tienes permisos para ver este pedido'));
+      }
+
+      // Estados posibles con fechas reales
+      const estados = [
+        { 
+          id: 'pendiente', 
+          nombre: 'Pendiente', 
+          descripcion: 'Pedido recibido y en espera de confirmación',
+          fecha: pedido.created_at,
+          completado: true
+        }
+      ];
+
+      // Agregar estados adicionales basados en el estado actual
+      if (['confirmado', 'en_preparacion', 'enviado', 'entregado'].includes(pedido.estado)) {
+        estados.push({
+          id: 'confirmado',
+          nombre: 'Confirmado',
+          descripcion: 'Pedido confirmado y en proceso de preparación',
+          fecha: pedido.updated_at,
+          completado: true
+        });
+      }
+
+      if (['en_preparacion', 'enviado', 'entregado'].includes(pedido.estado)) {
+        estados.push({
+          id: 'en_preparacion',
+          nombre: 'En Preparación',
+          descripcion: 'Productos siendo preparados para envío',
+          fecha: pedido.updated_at,
+          completado: true
+        });
+      }
+
+      if (['enviado', 'entregado'].includes(pedido.estado)) {
+        estados.push({
+          id: 'enviado',
+          nombre: 'Enviado',
+          descripcion: 'Pedido enviado y en tránsito',
+          fecha: pedido.updated_at,
+          completado: true
+        });
+      }
+
+      if (pedido.estado === 'entregado') {
+        estados.push({
+          id: 'entregado',
+          nombre: 'Entregado',
+          descripcion: 'Pedido entregado exitosamente',
+          fecha: pedido.updated_at,
+          completado: true
+        });
+      }
+
+      // Agregar estados futuros no completados
+      if (!['entregado', 'cancelado'].includes(pedido.estado)) {
+        if (!['enviado', 'entregado'].includes(pedido.estado)) {
+          estados.push({
+            id: 'enviado',
+            nombre: 'Enviado',
+            descripcion: 'Pedido enviado y en tránsito',
+            fecha: null,
+            completado: false
+          });
+        }
+
+        if (pedido.estado !== 'entregado') {
+          estados.push({
+            id: 'entregado',
+            nombre: 'Entregado',
+            descripcion: 'Pedido entregado exitosamente',
+            fecha: null,
+            completado: false
+          });
+        }
+      }
+
+      res.json(formatearRespuesta(
+        'Historial de estados obtenido exitosamente',
+        estados
+      ));
+
+    } catch (error) {
+      console.error('Error al obtener historial de estados:', error);
+      res.status(500).json(formatearError('Error interno del servidor'));
+    }
+  }
+
+  async ventasHoy(req, res) {
     try {
       const total = await Pedido.sum('total', {
         where: literal('DATE(created_at) = CURDATE()')
@@ -383,7 +522,100 @@ class PedidosController {
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
-  };
+  }
+
+  // Actualizar pedido
+  async actualizarPedido(req, res) {
+    try {
+      const { id } = req.params;
+      const { metodo_entrega, direccion_entrega, observaciones } = req.body;
+      const rol = req.user.rol;
+
+      if (rol !== 'administrador' && rol !== 'vendedor') {
+        return res.status(403).json(formatearError('No tienes permisos para actualizar pedidos'));
+      }
+
+      const pedido = await Pedido.findByPk(id);
+      if (!pedido) {
+        return res.status(404).json(formatearError('Pedido no encontrado'));
+      }
+
+      // Validar método de entrega
+      const metodosEntregaValidos = {
+        'domicilio': 'despacho_domicilio',
+        'retiro_tienda': 'retiro_tienda',
+        'retiro': 'retiro_tienda',
+        'despacho_domicilio': 'despacho_domicilio',
+        'delivery': 'despacho_domicilio'
+      };
+
+      const metodoEntregaDB = metodosEntregaValidos[metodo_entrega] || pedido.metodo_entrega;
+
+      await pedido.update({
+        metodo_entrega: metodoEntregaDB,
+        direccion_entrega: direccion_entrega || pedido.direccion_entrega,
+        observaciones: observaciones || pedido.observaciones
+      });
+
+      res.json(formatearRespuesta(
+        'Pedido actualizado exitosamente',
+        {
+          id: pedido.id,
+          numero_pedido: pedido.numero_pedido,
+          metodo_entrega: pedido.metodo_entrega,
+          direccion_entrega: pedido.direccion_entrega,
+          observaciones: pedido.observaciones,
+          fecha_actualizacion: new Date().toISOString()
+        }
+      ));
+
+    } catch (error) {
+      console.error('Error al actualizar pedido:', error);
+      res.status(500).json(formatearError('Error interno del servidor'));
+    }
+  }
+
+  // Eliminar pedido
+  async eliminarPedido(req, res) {
+    try {
+      const { id } = req.params;
+      const rol = req.user.rol;
+
+      if (rol !== 'administrador') {
+        return res.status(403).json(formatearError('Solo los administradores pueden eliminar pedidos'));
+      }
+
+      const pedido = await Pedido.findByPk(id);
+      if (!pedido) {
+        return res.status(404).json(formatearError('Pedido no encontrado'));
+      }
+
+      // Solo permitir eliminar pedidos en estado pendiente o cancelado
+      if (!['pendiente', 'cancelado'].includes(pedido.estado)) {
+        return res.status(400).json(formatearError('Solo se pueden eliminar pedidos pendientes o cancelados'));
+      }
+
+      // Eliminar detalles del pedido primero
+      await DetallePedido.destroy({
+        where: { pedido_id: id }
+      });
+
+      // Eliminar el pedido
+      await pedido.destroy();
+
+      res.json(formatearRespuesta(
+        'Pedido eliminado exitosamente',
+        {
+          id: pedido.id,
+          numero_pedido: pedido.numero_pedido
+        }
+      ));
+
+    } catch (error) {
+      console.error('Error al eliminar pedido:', error);
+      res.status(500).json(formatearError('Error interno del servidor'));
+    }
+  }
 }
 
 // Exportar una instancia del controlador

@@ -36,81 +36,46 @@ const DetallePedido = ({ pedidoId, onCerrar, onActualizar }) => {
   const cargarPedido = async () => {
     setCargando(true);
     try {
-      // Simular carga de pedido
-      setTimeout(() => {
-        const pedidoSimulado = {
-          id: pedidoId,
-          numero_pedido: `PED-2024-${pedidoId.toString().padStart(3, '0')}`,
+      const response = await servicioPedidos.obtenerPorId(pedidoId);
+      if (response.success) {
+        const pedidoReal = response.data;
+        
+        // Formatear el pedido para el componente
+        const pedidoFormateado = {
+          id: pedidoReal.id,
+          numero_pedido: pedidoReal.numero_pedido,
           usuario: {
-            id: 1,
-            nombre: 'Juan Pérez',
-            email: 'juan.perez@email.com',
-            telefono: '+56 9 1234 5678',
-            rut: '12.345.678-9'
+            id: pedidoReal.usuario_id,
+            nombre: pedidoReal.usuario,
+            email: pedidoReal.usuario_email,
+            telefono: pedidoReal.usuario_telefono || '',
+            rut: pedidoReal.usuario_rut || ''
           },
-          estado: 'en_preparacion',
-          total: 485990,
-          subtotal: 450000,
-          costo_envio: 35990,
-          metodo_entrega: 'domicilio',
-          direccion_entrega: 'Av. Providencia 1234, Providencia, Santiago',
-          fecha_creacion: '2024-06-30 10:30:00',
-          fecha_actualizacion: '2024-06-30 11:45:00',
-          fecha_entrega_estimada: '2024-07-02 14:00:00',
-          metodo_pago: 'transferencia',
-          estado_pago: 'pagado',
-          productos: [
-            {
-              id: 1,
-              producto_id: 1,
-              producto_nombre: 'Taladro Eléctrico DeWalt 20V',
-              producto_imagen: '/assets/imagenes/productos/taladro_electrico_dewalt_20v.jpg',
-              cantidad: 2,
-              precio_unitario: 125000,
-              subtotal: 250000,
-              stock_disponible: 15
-            },
-            {
-              id: 2,
-              producto_id: 2,
-              producto_nombre: 'Sierra Circular Bosch 725',
-              producto_imagen: '/assets/imagenes/productos/sierra_circular_bosch_725.jpg',
-              cantidad: 1,
-              precio_unitario: 200000,
-              subtotal: 200000,
-              stock_disponible: 8
-            }
-          ],
-          observaciones: 'Entregar en horario de oficina, llamar antes de llegar',
-          historial_estados: [
-            {
-              estado: 'pendiente',
-              fecha: '2024-06-30 10:30:00',
-              comentario: 'Pedido recibido'
-            },
-            {
-              estado: 'confirmado',
-              fecha: '2024-06-30 10:35:00',
-              comentario: 'Pago confirmado'
-            },
-            {
-              estado: 'en_preparacion',
-              fecha: '2024-06-30 11:45:00',
-              comentario: 'Productos en preparación'
-            }
-          ]
+          estado: pedidoReal.estado,
+          total: pedidoReal.total,
+          subtotal: pedidoReal.subtotal,
+          costo_envio: pedidoReal.costo_envio || 0,
+          metodo_entrega: pedidoReal.metodo_entrega,
+          direccion_entrega: pedidoReal.direccion_entrega,
+          fecha_creacion: pedidoReal.fecha_creacion,
+          fecha_actualizacion: pedidoReal.fecha_actualizacion,
+          observaciones: pedidoReal.observaciones,
+          productos: pedidoReal.productos || []
         };
-        setPedido(pedidoSimulado);
+        
+        setPedido(pedidoFormateado);
         setFormulario({
-          observaciones: pedidoSimulado.observaciones,
-          direccion_entrega: pedidoSimulado.direccion_entrega,
-          fecha_entrega_estimada: pedidoSimulado.fecha_entrega_estimada
+          observaciones: pedidoFormateado.observaciones || '',
+          direccion_entrega: pedidoFormateado.direccion_entrega || '',
+          fecha_entrega_estimada: pedidoFormateado.fecha_entrega_estimada || ''
         });
-        setCargando(false);
-      }, 1000);
+      } else {
+        error('No se pudo cargar el pedido');
+      }
     } catch (err) {
       console.error('Error al cargar pedido:', err);
       error('Error al cargar el pedido');
+    } finally {
       setCargando(false);
     }
   };
